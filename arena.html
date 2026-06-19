@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Containment Swarm</title>
+    <link rel="stylesheet" href="src/styles/arena.css">
+  </head>
+  <body>
+    <div class="arena-shell">
+      <header class="arena-header">
+        <div>
+          <div class="arena-kicker">UNIT-12 FIELD TEST</div>
+          <h1>Containment Swarm</h1>
+        </div>
+        <div class="arena-status">
+          <div><span>Energy</span><strong id="arenaEnergy">0</strong></div>
+          <div><span>Wave</span><strong id="arenaWave">1</strong></div>
+          <div><span>Defeated</span><strong id="arenaDefeated">0</strong></div>
+          <div><span>Core</span><strong id="arenaCore">100%</strong></div>
+        </div>
+      </header>
+
+      <main class="arena-layout">
+        <section class="arena-stage">
+          <div id="arenaMount" class="arena-mount"></div>
+          <div class="arena-log" id="arenaLog">AUTO-PULSE ONLINE</div>
+        </section>
+
+        <aside class="arena-shop">
+          <div class="shop-head">
+            <div>
+              <div class="arena-kicker">VISIBLE UPGRADES</div>
+              <h2>Systems</h2>
+            </div>
+            <div class="shop-actions">
+              <button type="button" id="arenaMuteBtn">Sound: ON</button>
+              <button type="button" id="arenaResetBtn">Reset</button>
+            </div>
+          </div>
+          <div id="arenaUpgradeList" class="arena-upgrade-list"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script src="src/arena/data/arenaBalanceConfig.js"></script>
+    <script src="src/arena/data/arenaUpgrades.js"></script>
+    <script src="src/arena/systems/NumberFormat.js"></script>
+    <script src="src/arena/systems/SoundSystem.js"></script>
+    <script src="src/arena/systems/SaveSystem.js"></script>
+    <script src="src/arena/systems/UpgradeSystem.js"></script>
+    <script src="src/arena/systems/EnemySystem.js"></script>
+    <script src="src/arena/systems/AttackSystem.js"></script>
+    <script src="src/arena/ui/ArenaHud.js"></script>
+    <script src="src/arena/ui/UpgradePanel.js"></script>
+    <script src="src/arena/scenes/ArenaScene.js"></script>
+    <script src="src/arena/main.js"></script>
+  </body>
+</html>
