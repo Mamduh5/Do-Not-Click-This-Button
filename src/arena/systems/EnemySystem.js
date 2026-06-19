@@ -20,11 +20,13 @@
     enemy.speed = CONFIG.enemy.baseSpeed * (1 + (wave - 1) * CONFIG.enemy.waveSpeedScale);
     enemy.reward = CONFIG.enemy.baseReward * (1 + (wave - 1) * CONFIG.enemy.waveRewardScale);
     enemy.hitFlashUntil = 0;
+    enemy.spawnSeed = Math.random() * 1000;
+    enemy.driftAngle = Phaser.Math.Angle.Between(x, y, width / 2, height / 2) + Phaser.Math.FloatBetween(-0.9, 0.9);
     enemy.setStrokeStyle(1, 0xff9a9a, 0.55);
     return enemy;
   }
 
-  function update(scene, enemies, core, deltaMs, onCoreDamage) {
+  function update(scene, enemies, deltaMs) {
     var deltaSeconds = deltaMs / 1000;
 
     enemies.slice().forEach(function (enemy) {
@@ -32,22 +34,27 @@
         return;
       }
 
-      var angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, core.x, core.y);
+      var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
+      var angle = enemy.driftAngle + wiggle * 0.01;
       enemy.x += Math.cos(angle) * enemy.speed * deltaSeconds;
       enemy.y += Math.sin(angle) * enemy.speed * deltaSeconds;
 
       if (scene.time.now > enemy.hitFlashUntil) {
         enemy.setFillStyle(0xe84848, 0.92);
+        enemy.setScale(1);
       }
 
-      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, core.x, core.y) <= core.radius + CONFIG.enemy.radius) {
-        onCoreDamage(CONFIG.enemy.contactDamage);
-        enemy.destroy();
+      if (enemy.x < -CONFIG.enemy.spawnMargin || enemy.x > CONFIG.canvas.width + CONFIG.enemy.spawnMargin) {
+        enemy.driftAngle = Math.PI - enemy.driftAngle;
+      }
+
+      if (enemy.y < -CONFIG.enemy.spawnMargin || enemy.y > CONFIG.canvas.height + CONFIG.enemy.spawnMargin) {
+        enemy.driftAngle = -enemy.driftAngle;
       }
     });
   }
 
-  function damage(scene, enemy, amount) {
+  function damage(scene, enemy, amount, sourceX, sourceY) {
     if (!enemy || !enemy.active) {
       return false;
     }
@@ -55,6 +62,14 @@
     enemy.health -= amount;
     enemy.hitFlashUntil = scene.time.now + CONFIG.enemy.hitFlashMs;
     enemy.setFillStyle(0xffffff, 1);
+    enemy.setScale(1.28, 0.62);
+
+    if (sourceX !== undefined && sourceY !== undefined) {
+      var angle = Phaser.Math.Angle.Between(sourceX, sourceY, enemy.x, enemy.y);
+      enemy.x += Math.cos(angle) * CONFIG.enemy.knockback;
+      enemy.y += Math.sin(angle) * CONFIG.enemy.knockback;
+    }
+
     return enemy.health <= 0;
   }
 

@@ -17,18 +17,16 @@
     this.stats = ARENA.Upgrades.computeStats(this.state);
     this.soundSystem = ARENA.createSoundSystem(this.state);
     this.enemies = [];
-    this.projectiles = [];
-    this.attackState = ARENA.Attacks.createState();
     this.spawnAccumulatorMs = 0;
     this.autosaveAccumulatorMs = 0;
     this.lastWave = this.state.wave;
-    this.coreHealth = CONFIG.core.maxHealth;
-    this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2, radius: CONFIG.core.radius };
+    this.combo = 0;
+    this.comboExpiresAt = 0;
+    this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2 };
+    this.helperCursorSystem = ARENA.HelperCursors.create(this);
 
     drawRoom(this);
-    this.coreShape = this.add.circle(this.core.x, this.core.y, CONFIG.core.radius, 0x37d5ff, 0.95);
-    this.coreShape.setStrokeStyle(3, 0xdff8ff, 0.75);
-    this.orbiterGraphics = this.add.graphics();
+    this.input.on("pointerdown", this.handlePointerDown, this);
 
     this.hud = ARENA.createArenaHud({
       onToggleMute: this.toggleMute.bind(this),
@@ -51,22 +49,19 @@
     if (this.state.wave !== this.lastWave) {
       this.lastWave = this.state.wave;
       this.soundSystem.play("wave");
-      this.hud.log("WAVE " + this.state.wave + " ESCALATION");
+      this.hud.log("MORE ANOMALIES ENTERED THE ROOM");
+    }
+
+    if (this.combo > 0 && this.time.now > this.comboExpiresAt) {
+      this.combo = 0;
     }
 
     this.spawnEnemies();
-    ARENA.Enemies.update(this, this.enemies, this.core, deltaMs, this.damageCore.bind(this));
+    ARENA.Enemies.update(this, this.enemies, deltaMs);
     this.enemies = this.enemies.filter(function (enemy) {
       return enemy.active;
     });
-
-    ARENA.Attacks.update(this, this.attackState, this.stats, this.enemies, this.projectiles, deltaMs, {
-      damageEnemy: this.damageEnemy.bind(this),
-      onAttack: this.onAttack.bind(this)
-    });
-    ARENA.Attacks.updateProjectiles(this, this.stats, this.enemies, this.projectiles, deltaMs, {
-      damageEnemy: this.damageEnemy.bind(this)
-    });
+    ARENA.HelperCursors.update(this.helperCursorSystem, this.stats, deltaMs);
 
     if (this.autosaveAccumulatorMs >= CONFIG.autosaveMs) {
       this.autosaveAccumulatorMs = 0;
@@ -79,7 +74,7 @@
   ArenaScene.prototype.spawnEnemies = function () {
     var spawnInterval = Math.max(
       CONFIG.enemy.minimumSpawnIntervalMs,
-      CONFIG.enemy.spawnIntervalMs * Math.pow(0.92, this.state.wave - 1)
+      CONFIG.enemy.spawnIntervalMs * Math.pow(0.94, this.state.wave - 1)
     );
 
     while (this.spawnAccumulatorMs >= spawnInterval) {
@@ -90,50 +85,19 @@
     }
   };
 
-  ArenaScene.prototype.onAttack = function () {
-    this.soundSystem.play("attack");
+  ArenaScene.prototype.handlePointerDown = function (pointer) {
+    var point = pointer.positionToCamera(this.cameras.main);
+    this.soundSystem.unlock();
+    ARENA.CursorAttack.attack(this, point.x, point.y, this.stats);
+    this.refreshUi();
   };
 
-  ArenaScene.prototype.damageEnemy = function (enemy, amount, sourceX, sourceY) {
-    if (!enemy || !enemy.active) {
-      return;
-    }
+  ArenaScene.prototype.registerKill = function () {
+    this.combo += 1;
+    this.comboExpiresAt = this.time.now + CONFIG.cursor.comboWindowMs;
 
-    if (sourceX !== undefined && sourceY !== undefined) {
-      ARENA.Attacks.drawHitLine(this, sourceX, sourceY, enemy.x, enemy.y, 0x37d5ff);
-    }
-
-    if (!ARENA.Enemies.damage(this, enemy, amount)) {
-      this.soundSystem.play("hit");
-      return;
-    }
-
-    var reward = enemy.reward * this.stats.rewardMultiplier;
-    var x = enemy.x;
-    var y = enemy.y;
-    enemy.destroy();
-    this.state.energy += reward;
-    this.state.totalDefeated += 1;
-    this.soundSystem.play("destroy");
-    this.showFloatingText("+" + ARENA.formatNumber(reward), x, y, 0x37d5ff);
-    this.showPop(x, y);
-  };
-
-  ArenaScene.prototype.damageCore = function (amount) {
-    this.coreHealth -= amount;
-    this.soundSystem.play("coreDamage");
-    this.coreShape.setFillStyle(0xffffff, 1);
-    this.time.delayedCall(CONFIG.core.damagedFlashMs, function () {
-      this.coreShape.setFillStyle(0x37d5ff, 0.95);
-    }, [], this);
-
-    if (this.coreHealth <= 0) {
-      this.coreHealth = Math.ceil(CONFIG.core.maxHealth * CONFIG.core.rebootHealthRatio);
-      this.enemies.forEach(function (enemy) {
-        enemy.destroy();
-      });
-      this.enemies = [];
-      this.hud.log("CORE REBOOTED // SWARM PURGED");
+    if (this.combo > 1) {
+      ARENA.ImpactEffects.showHitText(this, this.combo + "x", CONFIG.canvas.width / 2, 72, 0xd82626);
     }
   };
 
@@ -164,60 +128,30 @@
     this.state = ARENA.Save.reset();
     this.stats = ARENA.Upgrades.computeStats(this.state);
     this.soundSystem = ARENA.createSoundSystem(this.state);
-    this.coreHealth = CONFIG.core.maxHealth;
+    this.combo = 0;
+    this.comboExpiresAt = 0;
     this.enemies.forEach(function (enemy) {
       enemy.destroy();
     });
-    this.projectiles.forEach(function (projectile) {
-      projectile.destroy();
+    this.helperCursorSystem.cursors.forEach(function (cursor) {
+      cursor.graphic.destroy();
     });
     this.enemies = [];
-    this.projectiles = [];
+    this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.hud.log("PROTOTYPE SAVE RESET");
     this.refreshUi();
   };
 
   ArenaScene.prototype.refreshUi = function () {
-    this.hud.update(this.state, this.coreHealth, CONFIG.core.maxHealth);
+    this.hud.update(this.state, this.combo);
     this.panel.update(this.state);
-  };
-
-  ArenaScene.prototype.showFloatingText = function (text, x, y, color) {
-    var label = this.add.text(x, y - 10, text, {
-      fontFamily: "Consolas, monospace",
-      fontSize: "13px",
-      color: "#" + color.toString(16).padStart(6, "0")
-    }).setOrigin(0.5);
-
-    this.tweens.add({
-      targets: label,
-      y: y - 38,
-      alpha: 0,
-      duration: CONFIG.feedback.floatingTextMs,
-      onComplete: function () {
-        label.destroy();
-      }
-    });
-  };
-
-  ArenaScene.prototype.showPop = function (x, y) {
-    var pop = this.add.circle(x, y, 12, 0xffffff, 0.32);
-    this.tweens.add({
-      targets: pop,
-      scale: 2,
-      alpha: 0,
-      duration: CONFIG.feedback.enemyPopMs,
-      onComplete: function () {
-        pop.destroy();
-      }
-    });
   };
 
   function drawRoom(scene) {
     var graphics = scene.add.graphics();
     graphics.fillStyle(CONFIG.canvas.background, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
-    graphics.lineStyle(1, 0x15222c, 0.75);
+    graphics.lineStyle(1, 0xd9e2e6, 0.9);
 
     for (var x = 0; x <= CONFIG.canvas.width; x += 48) {
       graphics.lineBetween(x, 0, x, CONFIG.canvas.height);
@@ -227,8 +161,10 @@
       graphics.lineBetween(0, y, CONFIG.canvas.width, y);
     }
 
-    graphics.lineStyle(2, 0x243846, 1);
+    graphics.lineStyle(2, 0xbac8ce, 1);
     graphics.strokeRect(18, 18, CONFIG.canvas.width - 36, CONFIG.canvas.height - 36);
+    graphics.lineStyle(1, 0x9caeb6, 0.5);
+    graphics.strokeCircle(CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, 64);
   }
 
   function exposeDebugApi(scene) {
@@ -238,13 +174,30 @@
         scene.state.energy += amount;
         scene.refreshUi();
       },
+      spawnEnemyAt: function (x, y, health) {
+        var enemy = scene.add.circle(x, y, CONFIG.enemy.radius, 0xe84848, 0.92);
+        enemy.maxHealth = health || CONFIG.enemy.baseHealth;
+        enemy.health = enemy.maxHealth;
+        enemy.speed = CONFIG.enemy.baseSpeed;
+        enemy.reward = CONFIG.enemy.baseReward;
+        enemy.hitFlashUntil = 0;
+        enemy.spawnSeed = Math.random() * 1000;
+        enemy.driftAngle = 0;
+        enemy.setStrokeStyle(1, 0xff9a9a, 0.55);
+        scene.enemies.push(enemy);
+        return scene.enemies.length - 1;
+      },
+      clickAt: function (x, y) {
+        return ARENA.CursorAttack.attack(scene, x, y, scene.stats);
+      },
       getSnapshot: function () {
         return {
           energy: scene.state.energy,
           wave: scene.state.wave,
           totalDefeated: scene.state.totalDefeated,
           enemyCount: scene.enemies.length,
-          projectileCount: scene.projectiles.length,
+          helperCursorCount: scene.helperCursorSystem.cursors.length,
+          combo: scene.combo,
           upgrades: Object.assign({}, scene.state.upgrades),
           stats: ARENA.Upgrades.computeStats(scene.state),
           muted: scene.state.muted

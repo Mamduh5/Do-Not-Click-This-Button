@@ -16,7 +16,7 @@ button {
 }
 
 .arena-shell {
-  background: radial-gradient(circle at 50% 40%, #111923 0, #090d12 58%, #050608 100%);
+  background: #eef3f4;
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100vh;
@@ -24,6 +24,7 @@ button {
 }
 
 .arena-header {
+  background: #f8fbfc;
   align-items: center;
   border-bottom: 1px solid #1a2a33;
   display: flex;
@@ -41,7 +42,7 @@ button {
 
 .arena-header h1,
 .shop-head h2 {
-  color: #e9f8ff;
+  color: #18232b;
   font-size: 18px;
   letter-spacing: 2px;
   margin: 2px 0 0;
@@ -56,8 +57,8 @@ button {
 }
 
 .arena-status div {
-  background: #0d141b;
-  border: 1px solid #182934;
+  background: #ffffff;
+  border: 1px solid #cfdce2;
   padding: 7px 9px;
 }
 
@@ -114,15 +115,15 @@ button {
 }
 
 .arena-shop {
-  background: #090d12;
-  border-left: 1px solid #18232b;
+  background: #f8fbfc;
+  border-left: 1px solid #cfdce2;
   min-height: 0;
   overflow-y: auto;
   padding: 12px;
 }
 
 .shop-head {
-  border-bottom: 1px solid #18232b;
+  border-bottom: 1px solid #cfdce2;
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -136,9 +137,9 @@ button {
 
 .shop-actions button,
 .arena-upgrade-card {
-  background: #101822;
-  border: 1px solid #1d303d;
-  color: #c8dce5;
+  background: #ffffff;
+  border: 1px solid #c6d5dc;
+  color: #1c2a32;
   cursor: pointer;
 }
 
@@ -177,7 +178,7 @@ button {
 }
 
 .upgrade-name {
-  color: #ffffff;
+  color: #18232b;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;

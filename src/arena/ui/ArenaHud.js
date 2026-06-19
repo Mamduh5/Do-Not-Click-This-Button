@@ -8,7 +8,7 @@
       energy: document.getElementById("arenaEnergy"),
       wave: document.getElementById("arenaWave"),
       defeated: document.getElementById("arenaDefeated"),
-      core: document.getElementById("arenaCore"),
+      combo: document.getElementById("arenaCombo"),
       log: document.getElementById("arenaLog"),
       mute: document.getElementById("arenaMuteBtn"),
       reset: document.getElementById("arenaResetBtn")
@@ -17,11 +17,11 @@
     elements.mute.addEventListener("click", options.onToggleMute);
     elements.reset.addEventListener("click", options.onReset);
 
-    function update(state, coreHealth, maxHealth) {
+    function update(state, combo) {
       elements.energy.textContent = ARENA.formatNumber(state.energy);
       elements.wave.textContent = ARENA.formatNumber(state.wave);
       elements.defeated.textContent = ARENA.formatNumber(state.totalDefeated);
-      elements.core.textContent = Math.max(0, Math.ceil((coreHealth / maxHealth) * 100)) + "%";
+      elements.combo.textContent = combo > 1 ? combo + "x" : "0x";
       elements.mute.textContent = "Sound: " + (state.muted ? "OFF" : "ON");
     }
 

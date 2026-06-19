@@ -39,23 +39,17 @@
 
   function computeStats(state) {
     var stats = {
-      attackDamage: CONFIG.attack.damage,
-      attackIntervalMs: CONFIG.attack.intervalMs,
-      attackRange: CONFIG.attack.range,
-      projectileSpeed: CONFIG.attack.projectileSpeed,
-      projectileRadius: CONFIG.attack.projectileRadius,
-      projectileHitRadius: CONFIG.attack.projectileHitRadius,
-      projectileCount: CONFIG.attack.projectileCount,
-      pulseDamage: CONFIG.attack.damage * CONFIG.attack.pulseDamageMultiplier,
-      pulseRadius: CONFIG.attack.pulseRadius,
-      chainRange: CONFIG.attack.chainRange,
-      chainDamageMultiplier: CONFIG.attack.chainDamageMultiplier,
-      chainTargets: CONFIG.attack.chainTargets,
-      orbiters: CONFIG.attack.orbiters,
-      orbiterRadius: CONFIG.attack.orbiterRadius,
-      orbiterDamage: CONFIG.attack.orbiterDamage,
-      orbiterHitRadius: CONFIG.attack.orbiterHitRadius,
-      orbiterIntervalMs: CONFIG.attack.orbiterIntervalMs,
+      clickDamage: CONFIG.cursor.clickDamage,
+      clickRadius: CONFIG.cursor.clickRadius,
+      doubleTapChance: CONFIG.cursor.doubleTapChance,
+      shockRadius: CONFIG.cursor.shockRadius,
+      shockDamage: CONFIG.cursor.shockDamage,
+      helperCursors: CONFIG.cursor.helperCursors,
+      helperClickIntervalMs: CONFIG.cursor.helperClickIntervalMs,
+      helperClickDamage: CONFIG.cursor.helperClickDamage,
+      helperClickRadius: CONFIG.cursor.helperClickRadius,
+      helperMoveSpeed: CONFIG.cursor.helperMoveSpeed,
+      feedbackScale: CONFIG.cursor.feedbackScale,
       rewardMultiplier: 1
     };
 
@@ -70,29 +64,30 @@
       });
     });
 
-    stats.attackIntervalMs = Math.max(120, stats.attackIntervalMs);
-    stats.projectileCount = Math.max(1, Math.floor(stats.projectileCount));
-    stats.chainTargets = Math.max(0, Math.floor(stats.chainTargets));
-    stats.orbiters = Math.max(0, Math.floor(stats.orbiters));
+    stats.doubleTapChance = Math.min(0.9, Math.max(0, stats.doubleTapChance));
+    stats.shockRadius = Math.max(0, stats.shockRadius);
+    stats.helperCursors = Math.max(0, Math.floor(stats.helperCursors));
+    stats.feedbackScale = Math.max(1, stats.feedbackScale);
     return stats;
   }
 
   function applyEffect(stats, effect, level) {
-    if (effect.type === "attackDamageAdd") {
-      stats.attackDamage += effect.value * level;
-      stats.pulseDamage = stats.attackDamage * CONFIG.attack.pulseDamageMultiplier;
-    } else if (effect.type === "attackIntervalMultiplier") {
-      stats.attackIntervalMs *= Math.pow(effect.value, level);
-    } else if (effect.type === "pulseRadiusAdd") {
-      stats.pulseRadius += effect.value * level;
-    } else if (effect.type === "projectileCountAdd") {
-      stats.projectileCount += effect.value * level;
+    if (effect.type === "clickDamageAdd") {
+      stats.clickDamage += effect.value * level;
+    } else if (effect.type === "clickRadiusAdd") {
+      stats.clickRadius += effect.value * level;
+    } else if (effect.type === "doubleTapChanceAdd") {
+      stats.doubleTapChance += effect.value * level;
     } else if (effect.type === "rewardMultiplierAdd") {
       stats.rewardMultiplier += effect.value * level;
-    } else if (effect.type === "chainTargetsAdd") {
-      stats.chainTargets += effect.value * level;
-    } else if (effect.type === "orbiterAdd") {
-      stats.orbiters += effect.value * level;
+    } else if (effect.type === "shockRadiusAdd") {
+      stats.shockRadius += effect.value * level;
+    } else if (effect.type === "shockDamageAdd") {
+      stats.shockDamage += effect.value * level;
+    } else if (effect.type === "helperCursorAdd") {
+      stats.helperCursors += effect.value * level;
+    } else if (effect.type === "feedbackScaleAdd") {
+      stats.feedbackScale += effect.value * level;
     }
   }
 

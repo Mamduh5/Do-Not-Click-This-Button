@@ -51,10 +51,11 @@
       var gain = context.createGain();
       var now = context.currentTime;
       var tones = {
-        attack: [520, 760, 0.055, "square"],
-        hit: [170, 90, 0.05, "sawtooth"],
-        destroy: [320, 760, 0.09, "triangle"],
+        clickMiss: [180, 120, 0.04, "triangle"],
+        hit: [150, 70, 0.055, "sawtooth"],
+        kill: [260, 62, 0.11, "sawtooth"],
         upgrade: [620, 980, 0.13, "sine"],
+        helperClick: [420, 260, 0.045, "square"],
         coreDamage: [120, 48, 0.18, "sawtooth"],
         wave: [280, 520, 0.16, "square"]
       };

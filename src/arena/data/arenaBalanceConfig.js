@@ -19,7 +19,7 @@
     canvas: {
       width: 960,
       height: 620,
-      background: 0x080c12
+      background: 0xf4f7f8
     },
 
     core: {
@@ -30,46 +30,45 @@
     },
 
     enemy: {
-      baseHealth: 4,
-      baseSpeed: 34,
+      baseHealth: 3,
+      baseSpeed: 22,
       baseReward: 2,
-      radius: 8,
-      spawnIntervalMs: 1150,
-      minimumSpawnIntervalMs: 360,
+      radius: 9,
+      spawnIntervalMs: 850,
+      minimumSpawnIntervalMs: 280,
       spawnBurst: 1,
       spawnMargin: 34,
       contactDamage: 8,
       hitFlashMs: 90,
+      knockback: 24,
+      wiggleAmplitude: 16,
+      wiggleSpeed: 0.004,
       waveEverySeconds: 24,
       waveHealthScale: 0.35,
       waveSpeedScale: 0.08,
       waveRewardScale: 0.15
     },
 
-    attack: {
-      damage: 2,
-      intervalMs: 760,
-      range: 320,
-      projectileSpeed: 430,
-      projectileRadius: 4,
-      projectileHitRadius: 13,
-      projectileCount: 1,
-      pulseDamageMultiplier: 0.45,
-      pulseRadius: 58,
-      chainRange: 90,
-      chainDamageMultiplier: 0.55,
-      chainTargets: 0,
-      orbiters: 0,
-      orbiterRadius: 74,
-      orbiterDamage: 1.1,
-      orbiterHitRadius: 18,
-      orbiterIntervalMs: 420
+    cursor: {
+      clickDamage: 2,
+      clickRadius: 24,
+      doubleTapChance: 0,
+      shockRadius: 0,
+      shockDamage: 1,
+      comboWindowMs: 1300,
+      helperCursors: 0,
+      helperClickIntervalMs: 1450,
+      helperClickDamage: 1,
+      helperClickRadius: 18,
+      helperMoveSpeed: 0.22,
+      feedbackScale: 1
     },
 
     feedback: {
       floatingTextMs: 640,
-      pulseVisualMs: 260,
-      hitLineMs: 95,
+      impactMs: 180,
+      splatterParticleCount: 10,
+      splatterMs: 360,
       enemyPopMs: 120
     },
 
@@ -77,10 +76,11 @@
 
     audio: {
       masterVolume: 0.22,
-      attackVolume: 0.16,
+      clickMissVolume: 0.12,
       hitVolume: 0.13,
-      destroyVolume: 0.2,
+      killVolume: 0.2,
       upgradeVolume: 0.24,
+      helperClickVolume: 0.12,
       coreDamageVolume: 0.26,
       waveVolume: 0.2
     }
