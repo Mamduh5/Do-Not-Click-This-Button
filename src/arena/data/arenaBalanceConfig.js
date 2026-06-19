@@ -32,17 +32,33 @@
     enemy: {
       baseHealth: 3,
       baseSpeed: 22,
+      speedVariance: 0.28,
       baseReward: 2,
       radius: 9,
+      visualScale: 1.25,
+      clickPadding: 8,
+      fillColor: 0xe84848,
+      hitColor: 0xffffff,
+      outlineColor: 0x9f1f1f,
+      outlineAlpha: 0.8,
+      outlineWidth: 2,
+      shadowColor: 0x4d1111,
+      shadowAlpha: 0.22,
       spawnIntervalMs: 850,
       minimumSpawnIntervalMs: 280,
       spawnBurst: 1,
       spawnMargin: 34,
+      maxEnemies: 70,
       contactDamage: 8,
       hitFlashMs: 90,
       knockback: 24,
+      knockbackDecay: 0.82,
       wiggleAmplitude: 16,
       wiggleSpeed: 0.004,
+      directionChangeMs: 900,
+      turnStrength: 0.75,
+      spawnFadeMs: 180,
+      spawnRingMs: 260,
       waveEverySeconds: 24,
       waveHealthScale: 0.35,
       waveSpeedScale: 0.08,
@@ -61,15 +77,29 @@
       helperClickDamage: 1,
       helperClickRadius: 18,
       helperMoveSpeed: 0.22,
+      helperImpactScale: 0.62,
       feedbackScale: 1
     },
 
     feedback: {
       floatingTextMs: 640,
       impactMs: 180,
+      missImpactScale: 0.62,
+      hitImpactScale: 1,
+      killImpactScale: 1.45,
+      shockImpactScale: 1.25,
+      cursorFlashSize: 12,
+      cursorFlashMs: 90,
+      hitParticleCount: 5,
+      hitParticleDistance: 16,
       splatterParticleCount: 10,
       splatterMs: 360,
-      enemyPopMs: 120
+      enemyPopMs: 120,
+      killRingMs: 220,
+      screenFlashEnabled: true,
+      screenFlashMs: 120,
+      comboMilestone: 5,
+      comboFlashAlpha: 0.12
     },
 
     autosaveMs: 5000,
@@ -82,7 +112,16 @@
       upgradeVolume: 0.24,
       helperClickVolume: 0.12,
       coreDamageVolume: 0.26,
-      waveVolume: 0.2
+      waveVolume: 0.2,
+      sounds: {
+        clickMiss: { frequency: 180, endFrequency: 120, durationSeconds: 0.04, type: "triangle" },
+        hit: { frequency: 150, endFrequency: 70, durationSeconds: 0.055, type: "sawtooth" },
+        kill: { frequency: 260, endFrequency: 62, durationSeconds: 0.11, type: "sawtooth" },
+        upgrade: { frequency: 620, endFrequency: 980, durationSeconds: 0.13, type: "sine" },
+        helperClick: { frequency: 420, endFrequency: 260, durationSeconds: 0.045, type: "square" },
+        coreDamage: { frequency: 120, endFrequency: 48, durationSeconds: 0.18, type: "sawtooth" },
+        wave: { frequency: 280, endFrequency: 520, durationSeconds: 0.16, type: "square" }
+      }
     }
   };
 })();

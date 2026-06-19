@@ -7,10 +7,18 @@
     var radius = options && options.radius ? options.radius : stats.clickRadius;
     var damage = options && options.damage ? options.damage : stats.clickDamage;
     var helper = Boolean(options && options.helper);
+    var impactScale = helper ? ARENA.BALANCE_CONFIG.cursor.helperImpactScale : stats.feedbackScale;
     var targets = findTargets(scene.enemies, x, y, radius);
     var killed = [];
 
-    ARENA.ImpactEffects.showImpact(scene, x, y, radius, targets.length > 0, stats.feedbackScale);
+    ARENA.ImpactEffects.showImpact(
+      scene,
+      x,
+      y,
+      radius,
+      targets.length > 0,
+      impactScale * (targets.length > 0 ? ARENA.BALANCE_CONFIG.feedback.hitImpactScale : ARENA.BALANCE_CONFIG.feedback.missImpactScale)
+    );
 
     if (targets.length === 0) {
       scene.soundSystem.play(helper ? "helperClick" : "clickMiss");
@@ -42,6 +50,7 @@
   function damageEnemy(scene, enemy, damage, x, y, stats, helper) {
     if (!ARENA.Enemies.damage(scene, enemy, damage, x, y)) {
       ARENA.ImpactEffects.showHitText(scene, helper ? "tap" : "HIT", enemy.x, enemy.y, helper ? 0x646464 : 0x171717);
+      ARENA.ImpactEffects.showHitParticles(scene, enemy.x, enemy.y, helper ? ARENA.BALANCE_CONFIG.cursor.helperImpactScale : stats.feedbackScale, 0x171717);
       return false;
     }
 
@@ -54,12 +63,16 @@
     var x = enemy.x;
     var y = enemy.y;
 
+    if (enemy.shadow && enemy.shadow.active) {
+      enemy.shadow.destroy();
+    }
     enemy.destroy();
     scene.state.energy += reward;
     scene.state.totalDefeated += 1;
     scene.registerKill();
     scene.soundSystem.play("kill");
     ARENA.ImpactEffects.showHitText(scene, "+" + ARENA.formatNumber(reward), x, y, 0xd82626);
+    ARENA.ImpactEffects.showKillBurst(scene, x, y, stats.feedbackScale * ARENA.BALANCE_CONFIG.feedback.killImpactScale);
     ARENA.ImpactEffects.showSplatter(scene, x, y, stats.feedbackScale);
 
     if (stats.shockRadius > 0) {
@@ -68,17 +81,20 @@
   }
 
   function shock(scene, x, y, stats) {
-    ARENA.ImpactEffects.showImpact(scene, x, y, stats.shockRadius, true, stats.feedbackScale);
+    scene.effectCounts.shockwave = (scene.effectCounts.shockwave || 0) + 1;
+    ARENA.ImpactEffects.showImpact(scene, x, y, stats.shockRadius, true, stats.feedbackScale * ARENA.BALANCE_CONFIG.feedback.shockImpactScale);
     findTargets(scene.enemies, x, y, stats.shockRadius).forEach(function (enemy) {
       if (enemy.active && ARENA.Enemies.damage(scene, enemy, stats.shockDamage, x, y)) {
         killEnemy(scene, enemy, stats);
+      } else if (enemy.active) {
+        ARENA.ImpactEffects.showHitParticles(scene, enemy.x, enemy.y, 0.75, 0xd82626);
       }
     });
   }
 
   function findTargets(enemies, x, y, radius) {
     return enemies.filter(function (enemy) {
-      return enemy.active && Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y) <= radius + enemy.radius;
+      return enemy.active && Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y) <= radius + (enemy.hitRadius || enemy.radius);
     }).sort(function (a, b) {
       return Phaser.Math.Distance.Between(x, y, a.x, a.y) - Phaser.Math.Distance.Between(x, y, b.x, b.y);
     });

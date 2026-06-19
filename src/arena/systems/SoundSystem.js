@@ -50,26 +50,17 @@
       var oscillator = context.createOscillator();
       var gain = context.createGain();
       var now = context.currentTime;
-      var tones = {
-        clickMiss: [180, 120, 0.04, "triangle"],
-        hit: [150, 70, 0.055, "sawtooth"],
-        kill: [260, 62, 0.11, "sawtooth"],
-        upgrade: [620, 980, 0.13, "sine"],
-        helperClick: [420, 260, 0.045, "square"],
-        coreDamage: [120, 48, 0.18, "sawtooth"],
-        wave: [280, 520, 0.16, "square"]
-      };
-      var tone = tones[name] || tones.hit;
+      var tone = CONFIG.audio.sounds[name] || CONFIG.audio.sounds.hit;
 
-      oscillator.type = tone[3];
-      oscillator.frequency.setValueAtTime(tone[0], now);
-      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, tone[1]), now + tone[2]);
+      oscillator.type = tone.type;
+      oscillator.frequency.setValueAtTime(tone.frequency, now);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, tone.endFrequency), now + tone.durationSeconds);
       gain.gain.setValueAtTime(CONFIG.audio.masterVolume * volume, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + tone[2]);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + tone.durationSeconds);
       oscillator.connect(gain);
       gain.connect(context.destination);
       oscillator.start(now);
-      oscillator.stop(now + tone[2]);
+      oscillator.stop(now + tone.durationSeconds);
       return true;
     }
 

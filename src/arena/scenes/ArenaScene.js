@@ -22,6 +22,8 @@
     this.lastWave = this.state.wave;
     this.combo = 0;
     this.comboExpiresAt = 0;
+    this.effectCounts = {};
+    this.spawningEnabled = true;
     this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2 };
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
 
@@ -72,6 +74,14 @@
   };
 
   ArenaScene.prototype.spawnEnemies = function () {
+    if (!this.spawningEnabled) {
+      return;
+    }
+
+    if (this.enemies.length >= CONFIG.enemy.maxEnemies) {
+      return;
+    }
+
     var spawnInterval = Math.max(
       CONFIG.enemy.minimumSpawnIntervalMs,
       CONFIG.enemy.spawnIntervalMs * Math.pow(0.94, this.state.wave - 1)
@@ -80,7 +90,9 @@
     while (this.spawnAccumulatorMs >= spawnInterval) {
       this.spawnAccumulatorMs -= spawnInterval;
       for (var index = 0; index < CONFIG.enemy.spawnBurst; index += 1) {
-        this.enemies.push(ARENA.Enemies.spawn(this, this.state.wave));
+        if (this.enemies.length < CONFIG.enemy.maxEnemies) {
+          this.enemies.push(ARENA.Enemies.spawn(this, this.state.wave));
+        }
       }
     }
   };
@@ -131,12 +143,16 @@
     this.combo = 0;
     this.comboExpiresAt = 0;
     this.enemies.forEach(function (enemy) {
+      if (enemy.shadow && enemy.shadow.active) {
+        enemy.shadow.destroy();
+      }
       enemy.destroy();
     });
     this.helperCursorSystem.cursors.forEach(function (cursor) {
       cursor.graphic.destroy();
     });
     this.enemies = [];
+    this.effectCounts = {};
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.hud.log("PROTOTYPE SAVE RESET");
     this.refreshUi();
@@ -174,21 +190,30 @@
         scene.state.energy += amount;
         scene.refreshUi();
       },
+      setSpawning: function (enabled) {
+        scene.spawningEnabled = Boolean(enabled);
+      },
+      clearEnemies: function () {
+        scene.enemies.forEach(function (enemy) {
+          if (enemy.shadow && enemy.shadow.active) {
+            enemy.shadow.destroy();
+          }
+          enemy.destroy();
+        });
+        scene.enemies = [];
+      },
       spawnEnemyAt: function (x, y, health) {
-        var enemy = scene.add.circle(x, y, CONFIG.enemy.radius, 0xe84848, 0.92);
-        enemy.maxHealth = health || CONFIG.enemy.baseHealth;
-        enemy.health = enemy.maxHealth;
-        enemy.speed = CONFIG.enemy.baseSpeed;
-        enemy.reward = CONFIG.enemy.baseReward;
-        enemy.hitFlashUntil = 0;
-        enemy.spawnSeed = Math.random() * 1000;
-        enemy.driftAngle = 0;
-        enemy.setStrokeStyle(1, 0xff9a9a, 0.55);
+        var enemy = ARENA.Enemies.create(scene, x, y, scene.state.wave, health || CONFIG.enemy.baseHealth);
         scene.enemies.push(enemy);
         return scene.enemies.length - 1;
       },
       clickAt: function (x, y) {
-        return ARENA.CursorAttack.attack(scene, x, y, scene.stats);
+        var result = ARENA.CursorAttack.attack(scene, x, y, scene.stats);
+        scene.refreshUi();
+        return {
+          hit: result.hit,
+          killed: result.killed.length
+        };
       },
       getSnapshot: function () {
         return {
@@ -198,6 +223,7 @@
           enemyCount: scene.enemies.length,
           helperCursorCount: scene.helperCursorSystem.cursors.length,
           combo: scene.combo,
+          effectCounts: Object.assign({}, scene.effectCounts),
           upgrades: Object.assign({}, scene.state.upgrades),
           stats: ARENA.Upgrades.computeStats(scene.state),
           muted: scene.state.muted

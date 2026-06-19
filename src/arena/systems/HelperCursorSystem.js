@@ -40,6 +40,7 @@
             damage: stats.helperClickDamage,
             radius: stats.helperClickRadius
           });
+          cursor.clickFlashUntil = scene.time.now + ARENA.BALANCE_CONFIG.feedback.cursorFlashMs;
         }
       });
     }
@@ -61,14 +62,16 @@
       x: scene.core.x,
       y: scene.core.y,
       target: null,
+      clickFlashUntil: 0,
       graphic: graphic
     };
   }
 
   function drawCursor(cursor) {
     cursor.graphic.clear();
-    cursor.graphic.lineStyle(2, 0x1f1f1f, 0.85);
-    cursor.graphic.fillStyle(0xffffff, 0.86);
+    var activeClick = cursor.graphic.scene.time.now < cursor.clickFlashUntil;
+    cursor.graphic.lineStyle(activeClick ? 3 : 2, activeClick ? 0xd82626 : 0x1f1f1f, 0.85);
+    cursor.graphic.fillStyle(activeClick ? 0xffe6e6 : 0xffffff, 0.86);
     cursor.graphic.beginPath();
     cursor.graphic.moveTo(cursor.x, cursor.y);
     cursor.graphic.lineTo(cursor.x + 11, cursor.y + 26);

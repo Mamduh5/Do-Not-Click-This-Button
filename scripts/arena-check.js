@@ -55,12 +55,17 @@ assert(ARENA.UPGRADE_DEFS.length >= 5, "arena should define at least five upgrad
 near(baseStats.clickDamage, ARENA.BALANCE_CONFIG.cursor.clickDamage, "base click damage should come from config");
 near(baseStats.clickRadius, ARENA.BALANCE_CONFIG.cursor.clickRadius, "base click radius should come from config");
 assert(baseStats.helperCursors === 0, "helper cursors should start locked");
+assert(ARENA.BALANCE_CONFIG.enemy.clickPadding > 0, "enemy click padding should be configurable");
+assert(ARENA.BALANCE_CONFIG.enemy.speedVariance > 0, "enemy speed variance should be configurable");
+assert(ARENA.BALANCE_CONFIG.feedback.hitParticleCount > 0, "hit particles should be configurable");
+assert(ARENA.BALANCE_CONFIG.audio.sounds.kill.durationSeconds > 0, "sound tone duration should be configurable");
 
 state.energy = 200;
 assert(ARENA.Upgrades.buy(state, "heavierCursor"), "Heavier Cursor should be purchasable");
 assert(ARENA.Upgrades.buy(state, "widerImpact"), "Wider Impact should be purchasable");
 assert(ARENA.Upgrades.buy(state, "doubleTap"), "Double Tap should be purchasable");
 assert(ARENA.Upgrades.buy(state, "splatterYield"), "Splatter Yield should be purchasable");
+assert(ARENA.Upgrades.buy(state, "shockClick"), "Shock Click should be purchasable");
 assert(ARENA.Upgrades.buy(state, "autoTapper"), "Auto Tapper should be purchasable");
 
 const upgradedStats = ARENA.Upgrades.computeStats(state);
@@ -68,6 +73,7 @@ assert(upgradedStats.clickDamage > baseStats.clickDamage, "damage upgrade should
 assert(upgradedStats.clickRadius > baseStats.clickRadius, "radius upgrade should increase click radius");
 assert(upgradedStats.doubleTapChance > baseStats.doubleTapChance, "double tap should increase extra-hit chance");
 assert(upgradedStats.rewardMultiplier > baseStats.rewardMultiplier, "collector should improve rewards");
+assert(upgradedStats.shockRadius > baseStats.shockRadius, "shock click should add area radius");
 assert(upgradedStats.helperCursors === 1, "auto tapper should add a visible helper cursor");
 
 const spentState = ARENA.Save.validateState(JSON.parse(JSON.stringify(state)));

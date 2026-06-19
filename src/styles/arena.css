@@ -91,6 +91,7 @@ button {
 }
 
 .arena-mount {
+  cursor: crosshair;
   height: 100%;
   width: 100%;
 }
