@@ -22,6 +22,7 @@
       instabilityPerSecond: BASE_STATS.instabilityPerSecond,
       containmentPerSecond: BASE_STATS.containmentPerSecond,
       upgrades: {},
+      shardUpgrades: {},
       totalClicks: BASE_STATS.totalClicks,
       lastSavedAt: Date.now(),
       reducedMotion: BASE_STATS.reducedMotion
@@ -45,6 +46,7 @@
     var state = createDefaultState();
     var source = raw && typeof raw === "object" ? raw : {};
     var upgrades = source.upgrades && typeof source.upgrades === "object" ? source.upgrades : {};
+    var shardUpgrades = source.shardUpgrades && typeof source.shardUpgrades === "object" ? source.shardUpgrades : {};
 
     state.version = SAVE_VERSION;
     state.power = Math.max(0, toSafeNumber(source.power, state.power));
@@ -71,7 +73,15 @@
       }
     });
 
+    Object.keys(shardUpgrades).forEach(function (id) {
+      var level = toSafeInteger(shardUpgrades[id], 0);
+      if (level > 0) {
+        state.shardUpgrades[id] = level;
+      }
+    });
+
     DNC.recalculateStats(state);
+    applyStartingPowerFloor(state);
     return state;
   }
 
@@ -81,6 +91,10 @@
     state.instabilityPerClick = BASE_STATS.instabilityPerClick;
     state.instabilityPerSecond = BASE_STATS.instabilityPerSecond;
     state.containmentPerSecond = BASE_STATS.containmentPerSecond;
+
+    if (DNC.ShardUpgrades && typeof DNC.ShardUpgrades.applyPermanentEffects === "function") {
+      DNC.ShardUpgrades.applyPermanentEffects(state);
+    }
 
     if (DNC.UPGRADE_DEFS) {
       DNC.UPGRADE_DEFS.forEach(function (upgrade) {
@@ -95,10 +109,32 @@
     state.instability = clamp(state.instability, STAT_CAPS.minimumInstability, STAT_CAPS.maximumInstability);
   }
 
+  function applyStartingPowerFloor(state) {
+    var startingPower = BASE_STATS.power;
+
+    if (DNC.ShardUpgrades && typeof DNC.ShardUpgrades.getStartingPowerBonus === "function") {
+      startingPower += DNC.ShardUpgrades.getStartingPowerBonus(state);
+    }
+
+    state.power = Math.max(state.power, startingPower);
+  }
+
+  function resetRunAfterBreach(state, shardsEarned) {
+    state.breachCount += 1;
+    state.anomalyShards += shardsEarned;
+    state.power = BASE_STATS.power;
+    state.instability = BASE_STATS.instability;
+    state.upgrades = {};
+    DNC.recalculateStats(state);
+    applyStartingPowerFloor(state);
+  }
+
   DNC.SAVE_VERSION = SAVE_VERSION;
   DNC.BASE_STATS = BASE_STATS;
   DNC.createDefaultState = createDefaultState;
   DNC.validateState = validateState;
   DNC.recalculateStats = recalculateStats;
+  DNC.applyStartingPowerFloor = applyStartingPowerFloor;
+  DNC.resetRunAfterBreach = resetRunAfterBreach;
   DNC.clamp = clamp;
 })();

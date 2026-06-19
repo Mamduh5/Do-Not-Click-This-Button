@@ -15,7 +15,7 @@
       <div class="dnc-header">
         <div class="state-indicator" id="stateDot"></div>
         <div class="dnc-title" id="headlineText">&#9888; CONTAINMENT SYSTEM ARMED &#9888;</div>
-        <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07</div>
+        <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07 // SHARDS <span id="shardsDisplay">0</span> // BREACHES <span id="breachesDisplay">0</span></div>
       </div>
 
       <div class="status-bar">
@@ -61,6 +61,7 @@
             <button class="tab-btn" type="button" data-tab="auto">AUTO</button>
             <button class="tab-btn" type="button" data-tab="contain">CTN</button>
             <button class="tab-btn" type="button" data-tab="risk">RISK</button>
+            <button class="tab-btn" type="button" data-tab="shard">SHARD</button>
           </div>
 
           <div class="tab-panel" id="tab-power" data-tab-panel="power">
@@ -81,6 +82,11 @@
           <div class="tab-panel" id="tab-risk" data-tab-panel="risk" hidden>
             <div class="panel-label">Risk Upgrades</div>
             <div class="upgrade-list" id="list-risk"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-shard" data-tab-panel="shard" hidden>
+            <div class="panel-label">Shard Upgrades</div>
+            <div class="upgrade-list" id="list-shard"></div>
           </div>
         </div>
       </div>
@@ -104,6 +110,7 @@
           <div class="shard-count" id="shardCount">+0</div>
           <div class="shard-label">Anomaly Shards Gained</div>
           <p>Anomaly Shards gained: <span id="shardLine">0</span></p>
+          <p>Total shards: <span id="totalShardLine">0</span> // Breaches: <span id="breachCountLine">0</span></p>
           <p>Total interactions before breach: <span id="breachClicks">0</span></p>
           <button class="breach-btn" type="button" id="breachContinueBtn">REINITIALIZE SYSTEM</button>
         </div>
@@ -113,6 +120,8 @@
     <script src="node_modules/phaser/dist/phaser.min.js"></script>
     <script src="src/game/systems/NumberFormat.js"></script>
     <script src="src/game/data/balanceConfig.js"></script>
+    <script src="src/game/data/shardUpgrades.js"></script>
+    <script src="src/game/systems/ShardUpgradeSystem.js"></script>
     <script src="src/game/systems/GameState.js"></script>
     <script src="src/game/data/upgrades.js"></script>
     <script src="src/game/systems/UpgradeSystem.js"></script>

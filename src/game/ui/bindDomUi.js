@@ -57,6 +57,8 @@
       headlineText: getElement("headlineText"),
       warnHeadline: getElement("warnHeadline"),
       powerDisplay: getElement("powerDisplay"),
+      shardsDisplay: getElement("shardsDisplay"),
+      breachesDisplay: getElement("breachesDisplay"),
       instabilityDisplay: getElement("instabilityDisplay"),
       instabilityFill: getElement("instabilityFill"),
       perClickDisplay: getElement("perClickDisplay"),
@@ -79,11 +81,14 @@
       overlay: getElement("breachOverlay"),
       shardCount: getElement("shardCount"),
       shardLine: getElement("shardLine"),
+      totalShardLine: getElement("totalShardLine"),
+      breachCountLine: getElement("breachCountLine"),
       breachClicks: getElement("breachClicks"),
       continueButton: getElement("breachContinueBtn")
     }, closeBreach);
 
     renderUpgradeCards();
+    renderShardUpgradeCards();
     bindEvents();
     consoleLog.reset();
     refresh();
@@ -125,6 +130,30 @@
       });
     }
 
+    function renderShardUpgradeCards() {
+      var list = getElement("list-shard");
+
+      DNC.SHARD_UPGRADE_DEFS.forEach(function (upgrade) {
+        var card = document.createElement("button");
+
+        card.type = "button";
+        card.className = "upgrade-card containment";
+        card.id = "shard-card-" + upgrade.id;
+        card.dataset.shardUpgradeId = upgrade.id;
+        card.innerHTML = [
+          "<span class=\"upgrade-tag tag-safe\">PERM</span>",
+          "<div class=\"upgrade-name\">" + upgrade.name + "</div>",
+          "<div class=\"upgrade-cost\" id=\"shard-cost-" + upgrade.id + "\"></div>",
+          "<div class=\"upgrade-effect\">" + upgrade.description + "</div>"
+        ].join("");
+        card.addEventListener("click", function () {
+          buyShardUpgrade(upgrade.id);
+        });
+
+        list.appendChild(card);
+      });
+    }
+
     function handleClick() {
       if (awaitingBreach) {
         return;
@@ -149,6 +178,22 @@
         triggerBreach();
       }
 
+      refresh();
+    }
+
+    function buyShardUpgrade(id) {
+      if (awaitingBreach) {
+        return;
+      }
+
+      if (!DNC.ShardUpgrades.buy(state, id)) {
+        consoleLog.add("Shard purchase denied. Insufficient Shards.", "warning");
+        return;
+      }
+
+      var upgrade = DNC.ShardUpgrades.get(id);
+      consoleLog.add(upgrade.name + " stabilized. Level " + DNC.ShardUpgrades.getLevel(state, id) + ".", "normal");
+      save();
       refresh();
     }
 
@@ -203,13 +248,9 @@
 
       var shardsEarned = DNC.Instability.getShardReward(state);
       awaitingBreach = true;
-      state.breachCount += 1;
-      state.anomalyShards += shardsEarned;
-      state.power = 0;
-      state.instability = 0;
-      DNC.recalculateStats(state);
+      DNC.resetRunAfterBreach(state, shardsEarned);
       consoleLog.add("REALITY BREACH DETECTED. Containment failed.", "critical");
-      breachModal.show(shardsEarned, clickCountThisRun || state.totalClicks, state.breachCount);
+      breachModal.show(shardsEarned, state.anomalyShards, clickCountThisRun || state.totalClicks, state.breachCount);
 
       if (!state.reducedMotion) {
         root.classList.add("shake");
@@ -272,6 +313,8 @@
       }
 
       elements.powerDisplay.textContent = DNC.formatNumber(state.power);
+      elements.shardsDisplay.textContent = DNC.formatNumber(state.anomalyShards);
+      elements.breachesDisplay.textContent = DNC.formatNumber(state.breachCount);
       elements.instabilityDisplay.textContent = Math.floor(state.instability) + "%";
       elements.instabilityFill.style.width = DNC.clamp(state.instability, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability) + "%";
       elements.instabilityFill.style.background = bandData.fill;
@@ -310,6 +353,7 @@
       }
 
       refreshCards();
+      refreshShardCards();
     }
 
     function formatRate(value) {
@@ -336,6 +380,32 @@
         card.classList.toggle("dangerous", upgrade.category === "risk");
         card.disabled = maxed || !affordable;
         costEl.textContent = maxed ? "Level " + level + " / OWNED" : "Level " + level + "  Cost " + DNC.formatNumber(cost);
+
+        if (maxed && !existingOwnedTag) {
+          var tag = document.createElement("span");
+          tag.className = "upgrade-tag tag-owned";
+          tag.textContent = "\u2713 OWNED";
+          card.appendChild(tag);
+        } else if (!maxed && existingOwnedTag) {
+          existingOwnedTag.remove();
+        }
+      });
+    }
+
+    function refreshShardCards() {
+      DNC.SHARD_UPGRADE_DEFS.forEach(function (upgrade) {
+        var card = getElement("shard-card-" + upgrade.id);
+        var costEl = getElement("shard-cost-" + upgrade.id);
+        var level = DNC.ShardUpgrades.getLevel(state, upgrade.id);
+        var cost = DNC.ShardUpgrades.getCost(state, upgrade.id);
+        var maxed = upgrade.maxLevel !== null && level >= upgrade.maxLevel;
+        var affordable = DNC.ShardUpgrades.canBuy(state, upgrade.id);
+        var existingOwnedTag = card.querySelector(".tag-owned");
+
+        card.classList.toggle("unaffordable", !affordable && !maxed);
+        card.classList.toggle("purchased", maxed);
+        card.disabled = maxed || !affordable;
+        costEl.textContent = maxed ? "Level " + level + " / OWNED" : "Level " + level + "  Cost " + DNC.formatNumber(cost) + " Shards";
 
         if (maxed && !existingOwnedTag) {
           var tag = document.createElement("span");
