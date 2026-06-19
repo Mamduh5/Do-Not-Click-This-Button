@@ -56,6 +56,7 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   position: relative;
   z-index: 10;
 }
@@ -68,17 +69,48 @@ button {
   letter-spacing: 3px;
   text-transform: uppercase;
   padding-left: 16px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dnc-sys {
+  align-items: center;
+  display: flex;
+  gap: 10px;
   font-size: 10px;
   color: #3a4a3a;
   letter-spacing: 1px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-right {
+  align-items: center;
+  display: flex;
+  flex: 1 1 300px;
+  gap: 10px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.sys-flavor {
+  color: #3a4a3a;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sys-metric {
   color: #20d0e0;
-  margin-left: 10px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .status-bar {
@@ -758,6 +790,93 @@ button {
   border-color: #3a5060;
 }
 
+.menu-toggle {
+  color: #20d0e0;
+  flex: 0 0 auto;
+}
+
+.system-menu {
+  background: #0b1017;
+  border: 1px solid #203040;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  color: #9fb4c4;
+  min-width: 210px;
+  padding: 10px;
+  position: absolute;
+  right: 16px;
+  top: 38px;
+  z-index: 60;
+}
+
+.system-menu-title {
+  border-bottom: 1px solid #18232e;
+  color: #20d0e0;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.menu-action {
+  background: #101722;
+  border: 1px solid #1f2d3a;
+  color: #c4d6e3;
+  cursor: pointer;
+  display: block;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin: 5px 0;
+  padding: 7px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.menu-action:hover,
+.menu-action:focus {
+  border-color: #20d0e070;
+  color: #ffffff;
+  outline: none;
+}
+
+.menu-action.danger {
+  border-color: #e8404055;
+  color: #e84040;
+}
+
+.menu-action.confirm {
+  color: #f0a020;
+}
+
+.menu-action.close {
+  color: #7f92a3;
+}
+
+.menu-divider {
+  border-top: 1px solid #18232e;
+  margin: 8px 0;
+}
+
+.menu-confirm {
+  background: #120d10;
+  border: 1px solid #e8404055;
+  color: #e6a0a0;
+  font-size: 10px;
+  line-height: 1.4;
+  margin: 8px 0;
+  padding: 8px;
+}
+
+.menu-confirm-actions {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 7px;
+}
+
 .instability-warning {
   position: absolute;
   bottom: 130px;
@@ -936,5 +1055,27 @@ button {
   .settings-row {
     top: auto;
     bottom: 10px;
+  }
+
+  .dnc-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .dnc-title {
+    flex: 1 1 220px;
+  }
+
+  .header-right {
+    flex: 1 1 100%;
+  }
+
+  .sys-flavor {
+    display: none;
+  }
+
+  .system-menu {
+    right: 10px;
+    top: 58px;
   }
 }

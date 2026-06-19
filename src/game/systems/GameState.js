@@ -124,6 +124,10 @@
   function resetRunAfterBreach(state, shardsEarned) {
     state.breachCount += 1;
     state.anomalyShards += shardsEarned;
+    resetCurrentRun(state);
+  }
+
+  function resetCurrentRun(state) {
     state.power = BASE_STATS.power;
     state.instability = BASE_STATS.instability;
     state.upgrades = {};
@@ -138,5 +142,6 @@
   DNC.recalculateStats = recalculateStats;
   DNC.applyStartingPowerFloor = applyStartingPowerFloor;
   DNC.resetRunAfterBreach = resetRunAfterBreach;
+  DNC.resetCurrentRun = resetCurrentRun;
   DNC.clamp = clamp;
 })();

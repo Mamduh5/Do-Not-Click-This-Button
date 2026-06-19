@@ -4,6 +4,21 @@ const { readFileSync } = require("node:fs");
 const { runInThisContext } = require("node:vm");
 
 global.window = global;
+global.localStorage = {
+  store: new Map(),
+  getItem(key) {
+    return this.store.has(key) ? this.store.get(key) : null;
+  },
+  setItem(key, value) {
+    this.store.set(key, String(value));
+  },
+  removeItem(key) {
+    this.store.delete(key);
+  },
+  clear() {
+    this.store.clear();
+  }
+};
 
 [
   "src/game/systems/NumberFormat.js",
@@ -14,7 +29,8 @@ global.window = global;
   "src/game/systems/GameState.js",
   "src/game/data/upgrades.js",
   "src/game/systems/UpgradeSystem.js",
-  "src/game/systems/InstabilitySystem.js"
+  "src/game/systems/InstabilitySystem.js",
+  "src/game/systems/SaveSystem.js"
 ].forEach((file) => {
   runInThisContext(readFileSync(file, "utf8"), { filename: file });
 });
@@ -68,6 +84,12 @@ const sound = DNC.createSoundSystem(audioState);
 assert(sound.isSupported() === false, "sound system should tolerate missing AudioContext in checks");
 assert(sound.play("click") === false, "sound play should not throw without audio support or unlock");
 
+audioState.reducedMotion = true;
+assert(DNC.Save.save(audioState), "save should succeed with localStorage test double");
+const savedSettings = DNC.Save.load();
+assert(savedSettings.audioEnabled === false, "sound setting should persist through save/load");
+assert(savedSettings.reducedMotion === true, "motion setting should persist through save/load");
+
 const shardState = DNC.createDefaultState();
 assert(DNC.ShardUpgrades.getCost(shardState, "containmentMemory") === 1, "containmentMemory cost level 0");
 assert(!DNC.ShardUpgrades.canBuy(shardState, "containmentMemory"), "cannot buy shard upgrade without shards");
@@ -111,5 +133,35 @@ assert(breachResetState.shardUpgrades.residualCharge === 1, "shard upgrades pers
 assert(breachResetState.shardUpgrades.shardResonance === 1, "shard upgrades persist through breach");
 assert(breachResetState.power === 10, "Residual Charge grants starting Power after breach reset");
 near(breachResetState.powerPerClick, 1 * 1.05, "Shard Resonance remains after breach reset");
+
+const currentRunResetState = DNC.validateState({
+  power: 150,
+  instability: 66,
+  anomalyShards: 5,
+  breachCount: 3,
+  reducedMotion: true,
+  audioEnabled: false,
+  upgrades: { powerTap: 2, autoPress: 1 },
+  shardUpgrades: { residualCharge: 1, containmentMemory: 1 }
+});
+DNC.resetCurrentRun(currentRunResetState);
+assert(currentRunResetState.anomalyShards === 5, "current run reset should preserve shards");
+assert(currentRunResetState.breachCount === 3, "current run reset should preserve breach count");
+assert(currentRunResetState.shardUpgrades.residualCharge === 1, "current run reset should preserve residualCharge");
+assert(currentRunResetState.shardUpgrades.containmentMemory === 1, "current run reset should preserve containmentMemory");
+assert(currentRunResetState.reducedMotion === true, "current run reset should preserve motion setting");
+assert(currentRunResetState.audioEnabled === false, "current run reset should preserve sound setting");
+assert(Object.keys(currentRunResetState.upgrades).length === 0, "current run reset should clear normal upgrades");
+assert(currentRunResetState.instability === 0, "current run reset should clear instability");
+assert(currentRunResetState.power === 10, "current run reset should apply permanent starting Power");
+
+DNC.Save.save(currentRunResetState);
+const deletedSaveState = DNC.Save.reset();
+assert(deletedSaveState.anomalyShards === 0, "delete all reset should clear shards");
+assert(deletedSaveState.breachCount === 0, "delete all reset should clear breach count");
+assert(Object.keys(deletedSaveState.shardUpgrades).length === 0, "delete all reset should clear shard upgrades");
+assert(deletedSaveState.reducedMotion === false, "delete all reset should restore default motion setting");
+assert(deletedSaveState.audioEnabled === true, "delete all reset should restore default sound setting");
+assert(DNC.Save.load().anomalyShards === 0, "delete all reset should remove persisted save data");
 
 console.log("Gameplay checks passed.");

@@ -63,6 +63,20 @@
       breachLabel: "BREACHES"
     },
 
+    menu: {
+      buttonLabel: "MENU",
+      title: "SYSTEM MENU",
+      closeLabel: "Close",
+      soundLabel: "Sound",
+      motionLabel: "Motion",
+      resetRunLabel: "Reset Current Run",
+      deleteSaveLabel: "Delete All Save Data",
+      resetRunConfirm: "Reset current run? Permanent shard progress will be kept.",
+      deleteSaveConfirm: "Delete all save data? This removes shards, breaches, and permanent upgrades.",
+      confirmLabel: "Confirm",
+      cancelLabel: "Cancel"
+    },
+
     breachRewards: {
       totalPowerDivisor: 80,
       breachCountBonus: 0.5,

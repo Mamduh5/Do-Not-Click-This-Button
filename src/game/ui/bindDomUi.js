@@ -48,7 +48,8 @@
     var awaitingBreach = false;
     var lastBand = "";
     var lastConsoleAt = 0;
-    var resetConfirmUntil = 0;
+    var menuActionPending = "";
+    var menuConfirmTimeoutId = null;
     var criticalLabelIndex = 0;
     var firstClickLogged = state.totalClicks > 0;
     var autoCursorAccumulatorMs = 0;
@@ -71,9 +72,18 @@
       btnContainer: getElement("btnContainer"),
       overlayWarning: getElement("overlayWarning"),
       instabWarn: getElement("instabWarn"),
+      menuBtn: getElement("menuBtn"),
+      menuPanel: getElement("systemMenu"),
+      menuTitle: getElement("systemMenuTitle"),
       soundBtn: getElement("soundBtn"),
       motionBtn: getElement("motionBtn"),
-      resetBtn: getElement("resetBtn"),
+      resetRunBtn: getElement("resetRunBtn"),
+      deleteSaveBtn: getElement("deleteSaveBtn"),
+      menuConfirm: getElement("menuConfirm"),
+      menuConfirmText: getElement("menuConfirmText"),
+      menuConfirmBtn: getElement("menuConfirmBtn"),
+      menuCancelBtn: getElement("menuCancelBtn"),
+      menuCloseBtn: getElement("menuCloseBtn"),
       consoleLog: getElement("consoleLog")
     };
 
@@ -93,22 +103,48 @@
 
     renderUpgradeCards();
     renderShardUpgradeCards();
+    applyMenuLabels();
     bindEvents();
     consoleLog.reset();
     refresh();
 
     function bindEvents() {
       elements.mainBtn.addEventListener("click", handleClick);
+      elements.menuBtn.addEventListener("click", function (event) {
+        event.stopPropagation();
+        toggleMenu();
+      });
+      elements.menuPanel.addEventListener("click", function (event) {
+        event.stopPropagation();
+      });
       elements.soundBtn.addEventListener("click", toggleSound);
       elements.motionBtn.addEventListener("click", toggleMotion);
-      elements.resetBtn.addEventListener("click", confirmReset);
+      elements.resetRunBtn.addEventListener("click", requestResetCurrentRun);
+      elements.deleteSaveBtn.addEventListener("click", requestDeleteSave);
+      elements.menuConfirmBtn.addEventListener("click", confirmMenuAction);
+      elements.menuCancelBtn.addEventListener("click", clearMenuConfirm);
+      elements.menuCloseBtn.addEventListener("click", closeMenu);
+      document.addEventListener("click", function () {
+        closeMenu();
+      });
 
       window.addEventListener("keydown", function (event) {
-        if (event.code === "Space" && document.activeElement !== elements.mainBtn) {
+        if (event.key === "Escape" && !elements.menuPanel.hidden) {
+          closeMenu();
+          elements.menuBtn.focus();
+          return;
+        }
+
+        if (event.code === "Space" && shouldSpaceActivateButton()) {
           event.preventDefault();
           handleClick();
         }
       });
+    }
+
+    function shouldSpaceActivateButton() {
+      var activeElement = document.activeElement;
+      return !activeElement || activeElement === document.body || activeElement === elements.root;
     }
 
     function renderUpgradeCards() {
@@ -274,6 +310,7 @@
 
       var shardsEarned = DNC.Instability.getShardReward(state);
       awaitingBreach = true;
+      closeMenu();
       DNC.resetRunAfterBreach(state, shardsEarned);
       consoleLog.add("REALITY BREACH DETECTED. Containment failed.", "critical");
       breachModal.show(shardsEarned, state.anomalyShards, clickCountThisRun || state.totalClicks, state.breachCount);
@@ -299,29 +336,99 @@
       refresh();
     }
 
-    function confirmReset() {
-      if (resetConfirmUntil && Date.now() <= resetConfirmUntil) {
-        resetSave();
-        return;
-      }
-
-      resetConfirmUntil = Date.now() + CONFIG.timing.resetConfirmMs;
-      elements.resetBtn.textContent = "CONFIRM?";
+    function resetCurrentRun() {
+      DNC.resetCurrentRun(state);
+      clickCountThisRun = 0;
+      awaitingBreach = false;
+      firstClickLogged = state.totalClicks > 0;
+      breachModal.hide();
+      consoleLog.add("Current run reset. Shards preserved.", "warning");
+      save();
+      tabs.activate("power");
+      closeMenu();
+      refresh();
     }
 
-    function resetSave() {
+    function deleteSaveData() {
       state = DNC.Save.reset();
+      sound = DNC.createSoundSystem(state);
       clickCountThisRun = 0;
       awaitingBreach = false;
       firstClickLogged = false;
-      resetConfirmUntil = 0;
-      elements.resetBtn.textContent = "RESET";
       breachModal.hide();
       consoleLog.reset();
-      consoleLog.add("Save reset. Fresh containment session started.", "warning");
+      consoleLog.add("All save data deleted. Fresh session started.", "critical");
       save();
       tabs.activate("power");
+      closeMenu();
       refresh();
+    }
+
+    function toggleMenu() {
+      if (elements.menuPanel.hidden) {
+        openMenu();
+      } else {
+        closeMenu();
+      }
+    }
+
+    function openMenu() {
+      elements.menuPanel.hidden = false;
+      elements.menuBtn.setAttribute("aria-expanded", "true");
+    }
+
+    function closeMenu() {
+      elements.menuPanel.hidden = true;
+      elements.menuBtn.setAttribute("aria-expanded", "false");
+      clearMenuConfirm();
+    }
+
+    function requestResetCurrentRun() {
+      setMenuConfirm("resetRun", CONFIG.menu.resetRunConfirm);
+    }
+
+    function requestDeleteSave() {
+      setMenuConfirm("deleteSave", CONFIG.menu.deleteSaveConfirm);
+    }
+
+    function setMenuConfirm(action, message) {
+      clearMenuConfirm();
+      menuActionPending = action;
+      elements.menuConfirmText.textContent = message;
+      elements.menuConfirm.hidden = false;
+      elements.menuConfirmBtn.focus();
+      menuConfirmTimeoutId = window.setTimeout(clearMenuConfirm, CONFIG.timing.resetConfirmMs);
+    }
+
+    function clearMenuConfirm() {
+      if (menuConfirmTimeoutId !== null) {
+        window.clearTimeout(menuConfirmTimeoutId);
+        menuConfirmTimeoutId = null;
+      }
+      menuActionPending = "";
+      elements.menuConfirm.hidden = true;
+      elements.menuConfirmText.textContent = "";
+    }
+
+    function confirmMenuAction() {
+      if (menuActionPending === "resetRun") {
+        resetCurrentRun();
+        return;
+      }
+
+      if (menuActionPending === "deleteSave") {
+        deleteSaveData();
+      }
+    }
+
+    function applyMenuLabels() {
+      elements.menuBtn.textContent = CONFIG.menu.buttonLabel;
+      elements.menuTitle.textContent = CONFIG.menu.title;
+      elements.resetRunBtn.textContent = CONFIG.menu.resetRunLabel;
+      elements.deleteSaveBtn.textContent = CONFIG.menu.deleteSaveLabel;
+      elements.menuConfirmBtn.textContent = CONFIG.menu.confirmLabel;
+      elements.menuCancelBtn.textContent = CONFIG.menu.cancelLabel;
+      elements.menuCloseBtn.textContent = CONFIG.menu.closeLabel;
     }
 
     function toggleSound() {
@@ -349,11 +456,6 @@
       var band = DNC.Instability.getBand(state.instability);
       var bandData = STATE_LABELS[band] || STATE_LABELS.critical;
 
-      if (resetConfirmUntil && Date.now() > resetConfirmUntil) {
-        resetConfirmUntil = 0;
-        elements.resetBtn.textContent = "RESET";
-      }
-
       elements.powerDisplay.textContent = DNC.formatNumber(state.power);
       elements.shardsDisplay.textContent = DNC.formatNumber(state.anomalyShards);
       elements.breachesDisplay.textContent = DNC.formatNumber(state.breachCount);
@@ -368,8 +470,8 @@
       elements.stateDot.style.background = bandData.color;
       elements.warnHeadline.textContent = bandData.headline;
       elements.warnHeadline.style.color = bandData.headlineColor;
-      elements.soundBtn.textContent = "SOUND: " + (state.audioEnabled ? "ON" : "OFF");
-      elements.motionBtn.textContent = "MOTION: " + (state.reducedMotion ? "OFF" : "ON");
+      elements.soundBtn.textContent = CONFIG.menu.soundLabel + ": " + (state.audioEnabled ? "ON" : "OFF");
+      elements.motionBtn.textContent = CONFIG.menu.motionLabel + ": " + (state.reducedMotion ? "OFF" : "ON");
       elements.root.classList.toggle("reduced-motion", state.reducedMotion);
 
       elements.overlayWarning.style.display = band === "critical" ? "block" : "none";

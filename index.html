@@ -15,7 +15,10 @@
       <div class="dnc-header">
         <div class="state-indicator" id="stateDot"></div>
         <div class="dnc-title" id="headlineText">&#9888; CONTAINMENT SYSTEM ARMED &#9888;</div>
-        <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07 <span class="sys-metric">SHARDS: <span id="shardsDisplay">0</span></span> <span class="sys-metric">BREACHES: <span id="breachesDisplay">0</span></span></div>
+        <div class="header-right">
+          <div class="dnc-sys"><span class="sys-flavor">SYS-CTRL v0.9.4 // UNIT-07</span> <span class="sys-metric">SHARDS: <span id="shardsDisplay">0</span></span> <span class="sys-metric">BREACHES: <span id="breachesDisplay">0</span></span></div>
+          <button class="settings-btn menu-toggle" type="button" id="menuBtn" aria-expanded="false" aria-controls="systemMenu">MENU</button>
+        </div>
       </div>
 
       <div class="status-bar">
@@ -98,10 +101,21 @@
         <div id="consoleLog"></div>
       </div>
 
-      <div class="settings-row">
-        <button class="settings-btn" type="button" id="soundBtn">SOUND: ON</button>
-        <button class="settings-btn" type="button" id="motionBtn">MOTION: ON</button>
-        <button class="settings-btn" type="button" id="resetBtn">RESET</button>
+      <div class="system-menu" id="systemMenu" hidden>
+        <div class="system-menu-title" id="systemMenuTitle">SYSTEM MENU</div>
+        <button class="menu-action" type="button" id="soundBtn">Sound: ON</button>
+        <button class="menu-action" type="button" id="motionBtn">Motion: ON</button>
+        <div class="menu-divider"></div>
+        <button class="menu-action" type="button" id="resetRunBtn">Reset Current Run</button>
+        <button class="menu-action danger" type="button" id="deleteSaveBtn">Delete All Save Data</button>
+        <div class="menu-confirm" id="menuConfirm" hidden>
+          <div id="menuConfirmText"></div>
+          <div class="menu-confirm-actions">
+            <button class="menu-action confirm" type="button" id="menuConfirmBtn">Confirm</button>
+            <button class="menu-action" type="button" id="menuCancelBtn">Cancel</button>
+          </div>
+        </div>
+        <button class="menu-action close" type="button" id="menuCloseBtn">Close</button>
       </div>
 
       <div class="breach-overlay" id="breachOverlay" role="dialog" aria-modal="true" aria-labelledby="breachTitle">

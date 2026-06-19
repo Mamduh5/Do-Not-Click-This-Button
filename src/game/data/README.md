@@ -10,6 +10,6 @@ Edit permanent Anomaly Shard upgrade costs, multipliers, max levels, and effects
 
 Permanent shard upgrades are applied during stat recomputation before current-run upgrades. Future prestige systems must follow the same config/data pattern: definitions live in data files, while systems only apply generic effect types.
 
-Edit auto cursor timing, audio volumes/frequencies/durations, and shard UI labels in `src/game/data/balanceConfig.js`.
+Edit auto cursor timing, audio volumes/frequencies/durations, shard UI labels, system menu labels, and reset confirmation copy in `src/game/data/balanceConfig.js`.
 
 Future feel systems, including sound, animation cadence, and feedback timing, must remain config-driven. UI modules should read tuning from data/config and avoid embedding balance or feel constants directly.
