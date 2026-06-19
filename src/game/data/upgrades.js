@@ -8,7 +8,7 @@
       id: "powerTap",
       name: "Power Tap",
       description: "+1 power per click",
-      baseCost: 10,
+      baseCost: 8,
       costMultiplier: 1.55,
       maxLevel: null,
       tab: "power",
@@ -21,7 +21,7 @@
       id: "doubleContact",
       name: "Double Contact",
       description: "x2 click power",
-      baseCost: 50,
+      baseCost: 40,
       costMultiplier: 2,
       maxLevel: 5,
       tab: "power",
@@ -34,7 +34,7 @@
       id: "conductFinger",
       name: "Conductive Finger",
       description: "+5 power per click",
-      baseCost: 200,
+      baseCost: 140,
       costMultiplier: 1.8,
       maxLevel: null,
       tab: "power",
@@ -46,29 +46,29 @@
     {
       id: "autoPress",
       name: "Auto-Presser",
-      description: "+1 power/sec, +0.15 instab/sec",
-      baseCost: 75,
+      description: "+1 power/sec, +0.12 instab/sec",
+      baseCost: 45,
       costMultiplier: 1.7,
       maxLevel: null,
       tab: "auto",
       category: "automation",
       apply: function (state, level) {
         state.powerPerSecond += level;
-        state.instabilityPerSecond += 0.15 * level;
+        state.instabilityPerSecond += 0.12 * level;
       }
     },
     {
       id: "mechIntern",
       name: "Mechanical Intern",
-      description: "+5 power/sec, +0.5 instab/sec",
-      baseCost: 250,
+      description: "+5 power/sec, +0.45 instab/sec",
+      baseCost: 180,
       costMultiplier: 1.85,
       maxLevel: null,
       tab: "auto",
       category: "automation",
       apply: function (state, level) {
         state.powerPerSecond += 5 * level;
-        state.instabilityPerSecond += 0.5 * level;
+        state.instabilityPerSecond += 0.45 * level;
       }
     },
     {
@@ -88,7 +88,7 @@
       id: "reinfBtn",
       name: "Reinforced Button",
       description: "-0.1 instability per click",
-      baseCost: 40,
+      baseCost: 28,
       costMultiplier: 1.8,
       maxLevel: 8,
       tab: "contain",
@@ -102,7 +102,7 @@
       id: "conField",
       name: "Containment Field",
       description: "+0.4 instability reduction/sec",
-      baseCost: 300,
+      baseCost: 90,
       costMultiplier: 1.75,
       maxLevel: null,
       tab: "contain",
@@ -116,7 +116,7 @@
       id: "realityPatch",
       name: "Reality Patch",
       description: "Reduce instability by 20%",
-      baseCost: 800,
+      baseCost: 140,
       costMultiplier: 2,
       maxLevel: null,
       tab: "contain",
@@ -145,7 +145,7 @@
       id: "unsafeOC",
       name: "Unsafe Overclock",
       description: "x3 power, +2 instab/sec",
-      baseCost: 500,
+      baseCost: 420,
       costMultiplier: 2,
       maxLevel: 1,
       tab: "risk",
@@ -163,7 +163,7 @@
       id: "forbMult",
       name: "Forbidden Multiplier",
       description: "x10 output. Breach imminent.",
-      baseCost: 2000,
+      baseCost: 1600,
       costMultiplier: 2,
       maxLevel: 1,
       tab: "risk",

@@ -49,6 +49,7 @@
     var lastConsoleAt = 0;
     var resetConfirmUntil = 0;
     var criticalLabelIndex = 0;
+    var firstClickLogged = state.totalClicks > 0;
 
     var elements = {
       root: root,
@@ -134,6 +135,11 @@
       clickCountThisRun += 1;
       state.instability = DNC.clamp(state.instability + state.instabilityPerClick, 0, 100);
 
+      if (!firstClickLogged) {
+        firstClickLogged = true;
+        consoleLog.add("First contact logged. Please do not repeat.", "warning");
+      }
+
       showClickFeedback();
       pulseButton();
       maybeLogRandom();
@@ -156,7 +162,7 @@
       }
 
       var upgrade = DNC.Upgrades.get(id);
-      consoleLog.add(upgrade.name + " installed.", upgrade.category === "risk" ? "critical" : "normal");
+      consoleLog.add(upgrade.name + " installed. Level " + DNC.Upgrades.getLevel(state, id) + ".", upgrade.category === "risk" ? "critical" : "normal");
       save();
       refresh();
     }
@@ -219,7 +225,7 @@
       awaitingBreach = false;
       clickCountThisRun = 0;
       breachModal.hide();
-      consoleLog.add("System reinitialized. Containment nominal.", "normal");
+      consoleLog.add("System reinitialized. Shards retained.", "normal");
       refresh();
     }
 
@@ -237,6 +243,7 @@
       state = DNC.Save.reset();
       clickCountThisRun = 0;
       awaitingBreach = false;
+      firstClickLogged = false;
       resetConfirmUntil = 0;
       elements.resetBtn.textContent = "RESET";
       breachModal.hide();
@@ -292,8 +299,12 @@
 
       if (band !== lastBand) {
         lastBand = band;
-        if (band !== "stable") {
-          consoleLog.addRandom(band);
+        if (band === "disturbed") {
+          consoleLog.add("DISTURBED state entered. Watch the meter.", "warning");
+        } else if (band === "unstable") {
+          consoleLog.add("UNSTABLE state entered. Containment advised.", "corrupt");
+        } else if (band === "critical") {
+          consoleLog.add("CRITICAL state entered. Stop pressing.", "critical");
         }
       }
 
@@ -338,7 +349,8 @@
 
     function showClickFeedback() {
       var feedback = document.createElement("div");
-      feedback.className = "click-feedback";
+      var band = DNC.Instability.getBand(state.instability);
+      feedback.className = "click-feedback " + band;
       feedback.textContent = "+" + DNC.formatNumber(state.powerPerClick);
       elements.btnContainer.appendChild(feedback);
       window.setTimeout(function () {

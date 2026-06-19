@@ -62,7 +62,9 @@
   }
 
   function getShardReward(state) {
-    return Math.max(1, Math.floor(Math.sqrt(state.totalPowerEarned / 100)));
+    var powerReward = Math.sqrt(state.totalPowerEarned / 80);
+    var repeatReward = state.breachCount * 0.5;
+    return Math.max(1, Math.floor(powerReward + repeatReward));
   }
 
   DNC.Instability = {

@@ -8,7 +8,7 @@
   var BASE_STATS = {
     powerPerClick: 1,
     powerPerSecond: 0,
-    instabilityPerClick: 1,
+    instabilityPerClick: 0.65,
     instabilityPerSecond: 0,
     containmentPerSecond: 0
   };

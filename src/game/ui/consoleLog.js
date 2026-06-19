@@ -8,25 +8,37 @@
       "System online. Containment nominal.",
       "All parameters within expected range.",
       "User compliance: pending verification.",
-      "Reality coherence: 100%."
+      "Reality coherence: 100%.",
+      "Button surface temperature: nominal.",
+      "Audit loop idle. No violations logged.",
+      "Operator restraint recommended."
     ],
     disturbed: [
       "WARNING: unauthorized button contact logged.",
       "Button surface showing micro-fractures.",
       "System log integrity: minor corruption detected.",
-      "ERR: reality coherence falling."
+      "ERR: reality coherence falling.",
+      "User compliance trend: declining.",
+      "Containment hum detected.",
+      "Advisory: install safety hardware."
     ],
     unstable: [
       "ALARM: containment field resonance detected.",
       "Critical: do not interact with the button.",
       "LOG CORRUPTION: coherence drift rising.",
-      "WARNING: multiple timeline forks detected."
+      "WARNING: multiple timeline forks detected.",
+      "Panel drift exceeds expected tolerance.",
+      "Button request queue: impossible.",
+      "Containment math no longer balances."
     ],
     critical: [
       "BREACH THRESHOLD APPROACHING. EVACUATE.",
       "CRITICAL: all containment layers failing.",
       "BUTTON COMPLIANCE: terminal failure.",
-      "LAST LOG: containment has failed."
+      "LAST LOG: containment has failed.",
+      "Reality seam load: critical.",
+      "Manual interaction must cease.",
+      "Shard signature forming."
     ]
   };
 

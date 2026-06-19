@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "start": "vite --host 127.0.0.1",
-    "check": "node scripts/check.js"
+    "check": "node scripts/check.js && node scripts/gameplay-check.js"
   },
   "dependencies": {
     "phaser": "3.90.0",

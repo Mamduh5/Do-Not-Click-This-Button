@@ -279,6 +279,25 @@ button {
   top: 44%;
   left: 50%;
   transform: translateX(-50%);
+  text-shadow: 0 0 8px #20d0e080;
+}
+
+.click-feedback.disturbed {
+  color: #f0a020;
+  font-size: 17px;
+}
+
+.click-feedback.unstable {
+  color: #ff7a3d;
+  font-size: 19px;
+  text-shadow: 0 0 10px #e0602090;
+}
+
+.click-feedback.critical {
+  color: #ff6060;
+  font-size: 21px;
+  text-shadow: 0 0 12px #e84040b0;
+  animation-duration: 0.95s;
 }
 
 @keyframes float-up {
