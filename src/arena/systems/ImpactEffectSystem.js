@@ -21,21 +21,9 @@
     var color = hit ? 0x171717 : 0x7f8a90;
     showCursorFlash(scene, x, y, color, scale);
 
-    if (hit) {
-      return;
+    if (!hit) {
+      mark(scene, "missVariant");
     }
-
-    var ring = scene.add.circle(x, y, Math.max(6, radius * 0.28), color, 0.02);
-    ring.setStrokeStyle(1, color, 0.24);
-    scene.tweens.add({
-      targets: ring,
-      alpha: 0,
-      scale: 0.75,
-      duration: CONFIG.feedback.impactMs,
-      onComplete: function () {
-        ring.destroy();
-      }
-    });
   }
 
   function showCursorFlash(scene, x, y, color, scale) {
@@ -125,7 +113,8 @@
         hit: true,
         kill: true,
         scale: scale,
-        silent: true
+        silent: true,
+        noDecal: true
       });
     }
     ring.setStrokeStyle(Math.max(2, 3 * scale), 0xd82626, 0.85);
@@ -157,9 +146,79 @@
     });
   }
 
+  function showComboPopup(scene, combo, x, y) {
+    if (combo <= 1) {
+      return;
+    }
+
+    var color = getComboColor(combo);
+    var milestone = CONFIG.feedback.comboMilestones.indexOf(combo) >= 0;
+    var label = scene.add.text(
+      clamp(x, 80, CONFIG.canvas.width - 80),
+      clamp(y - 44, 54, CONFIG.canvas.height - 54),
+      "COMBO x" + combo + (milestone ? "!" : ""),
+      {
+        fontFamily: "Consolas, monospace",
+        fontSize: milestone ? "22px" : "18px",
+        color: "#" + color.toString(16).padStart(6, "0"),
+        fontStyle: "bold",
+        stroke: "#ffffff",
+        strokeThickness: 3
+      }
+    ).setOrigin(0.5);
+    var popupScale = Math.min(CONFIG.feedback.comboPopupMaxScale, CONFIG.feedback.comboPopupBaseScale + combo * 0.045);
+
+    mark(scene, "comboPopup");
+    scene.tweens.add({
+      targets: label,
+      y: label.y - 24,
+      scale: popupScale,
+      alpha: 0,
+      duration: CONFIG.feedback.comboPopupMs,
+      ease: "Cubic.easeOut",
+      onComplete: function () {
+        label.destroy();
+      }
+    });
+
+    if (milestone && CONFIG.feedback.comboPulseEnabled) {
+      mark(scene, "comboMilestone");
+      showComboPulse(scene, color, combo);
+    }
+  }
+
+  function showComboPulse(scene, color, combo) {
+    var pulse = scene.add.circle(CONFIG.canvas.width / 2, 72, Math.min(90, 24 + combo * 2), color, CONFIG.feedback.comboPulseAlpha);
+    pulse.setStrokeStyle(2, color, 0.42);
+    scene.tweens.add({
+      targets: pulse,
+      alpha: 0,
+      scale: 1.55,
+      duration: CONFIG.feedback.comboPulseMs,
+      onComplete: function () {
+        pulse.destroy();
+      }
+    });
+  }
+
+  function getComboColor(combo) {
+    var selected = CONFIG.feedback.comboColors[0].color;
+    CONFIG.feedback.comboColors.forEach(function (entry) {
+      if (combo >= entry.threshold) {
+        selected = entry.color;
+      }
+    });
+    return selected;
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   ARENA.ImpactEffects = {
     showImpact: showImpact,
     showHitText: showHitText,
+    showComboPopup: showComboPopup,
     showHitParticles: showHitParticles,
     showSplatter: showSplatter,
     showKillBurst: showKillBurst,

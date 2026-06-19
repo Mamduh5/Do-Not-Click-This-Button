@@ -66,10 +66,10 @@
       drawEye(graphics, skin, radius, color, moving);
     } else if (skin.id === "tank") {
       drawTank(graphics, skin, radius, color, phase, moving);
-    } else if (skin.id === "tree") {
-      drawTree(graphics, skin, radius, color, phase, moving);
     } else if (skin.id === "hat") {
       drawHat(graphics, skin, radius, color, phase, moving);
+    } else if (skin.id === "worm") {
+      drawWorm(graphics, skin, radius, color, phase, moving);
     }
   }
 
@@ -131,19 +131,6 @@
     graphics.fillRect(radius * 0.08, -radius * 0.16, radius * 1.15, radius * 0.32);
   }
 
-  function drawTree(graphics, skin, radius, color, phase, moving) {
-    var lean = Math.sin(phase * skin.animation.bodyWobbleSpeed) * (skin.animation.leanAmount || 0) * moving;
-    graphics.fillStyle(color, 1);
-    graphics.fillRoundedRect(-radius * 0.55, -radius * 0.24 + lean * radius, radius * 0.8, radius * 0.48, 3);
-    graphics.fillStyle(skin.leafColor, 1);
-    graphics.fillCircle(radius * 0.28, -radius * 0.08 + lean * radius, radius * 0.72);
-    graphics.fillStyle(skin.accentColor, 1);
-    graphics.fillCircle(-radius * 0.18, -radius * 0.34 + lean * radius, radius * 0.42);
-    graphics.fillCircle(radius * 0.48, radius * 0.32 + lean * radius, radius * 0.42);
-    graphics.lineStyle(1, skin.outlineColor, 0.6);
-    graphics.strokeCircle(radius * 0.28, -radius * 0.08 + lean * radius, radius * 0.72);
-  }
-
   function drawHat(graphics, skin, radius, color, phase, moving) {
     var bounce = Math.abs(Math.sin(phase * skin.animation.bodyWobbleSpeed)) * (skin.animation.bounceAmount || 0) * moving;
     graphics.fillStyle(skin.accentColor, 1);
@@ -154,6 +141,30 @@
     graphics.fillStyle(skin.accentColor, 1);
     graphics.fillRect(-radius * 0.58, -radius * 0.12 - bounce, radius * 1.18, radius * 0.18);
     graphics.fillTriangle(radius * 0.86, radius * 0.18 - bounce, radius * 1.2, radius * 0.24 - bounce, radius * 0.86, radius * 0.02 - bounce);
+  }
+
+  function drawWorm(graphics, skin, radius, color, phase, moving) {
+    var worm = skin.worm;
+    var wigglePhase = phase * skin.animation.wormWiggleFrequency;
+    var spacing = radius * worm.segmentSpacing;
+    var startX = -spacing * (worm.segmentCount - 1) * 0.5;
+
+    for (var index = 0; index < worm.segmentCount; index += 1) {
+      var progress = index / (worm.segmentCount - 1);
+      var segmentX = startX + index * spacing;
+      var segmentY = Math.sin(wigglePhase + index * 0.82) * radius * skin.animation.wormWiggleAmplitude * moving;
+      var segmentRadius = radius * (index === worm.segmentCount - 1 ? worm.headRadius : worm.segmentRadius - progress * (worm.segmentRadius - worm.tailRadius));
+      var segmentColor = worm.colors[index % worm.colors.length] || color;
+
+      graphics.fillStyle(segmentColor, 1);
+      graphics.fillCircle(segmentX, segmentY, segmentRadius);
+      graphics.lineStyle(1, skin.outlineColor, 0.44);
+      graphics.strokeCircle(segmentX, segmentY, segmentRadius);
+    }
+
+    graphics.fillStyle(skin.outlineColor, 0.78);
+    graphics.fillCircle(startX + spacing * (worm.segmentCount - 1) + radius * 0.08, -radius * 0.12, radius * 0.07);
+    graphics.fillCircle(startX + spacing * (worm.segmentCount - 1) + radius * 0.08, radius * 0.12, radius * 0.07);
   }
 
   ARENA.EnemySkins = {

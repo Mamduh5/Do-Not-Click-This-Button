@@ -78,10 +78,10 @@
     } else if (skin.id === "paperDrop") {
       drawPaper(scene, skin, x, y, scale);
     } else if (skin.id === "arrowStrike") {
-      drawArrow(scene, skin, x, y, scale);
+      drawArrowRain(scene, skin, x, y, scale);
     }
 
-    if ((hit || kill) && ARENA.BackgroundEffects) {
+    if (ARENA.BackgroundEffects && !(options && options.noDecal)) {
       ARENA.BackgroundEffects.add(scene.backgroundEffectSystem, skin, x, y, scale);
     }
 
@@ -109,17 +109,33 @@
     });
     fade(scene, streak, skin.durationMs * 0.65);
     scatter(scene, skin, x, y, scale, "circle");
-    if (kill && scene.cameras && scene.cameras.main) {
+    if (kill && skin.shakeIntensity > 0 && scene.cameras && scene.cameras.main) {
       scene.cameras.main.shake(skin.shakeMs, skin.shakeIntensity);
     }
   }
 
   function drawPixels(scene, skin, x, y, scale) {
     var glitch = scene.add.graphics();
-    glitch.lineStyle(Math.max(1, 2 * scale), skin.secondaryColor, 0.68);
-    glitch.lineBetween(x - skin.ringRadius * scale, y - 4 * scale, x + skin.ringRadius * scale, y - 4 * scale);
-    glitch.lineBetween(x - skin.ringRadius * 0.65 * scale, y + 5 * scale, x + skin.ringRadius * 0.65 * scale, y + 5 * scale);
-    fade(scene, glitch, skin.durationMs * 0.65);
+    var grid = skin.decalGridSize || 4;
+    var pixelSize = Math.max(2, skin.pixelSize * scale);
+    glitch.fillStyle(skin.primaryColor, 0.18);
+    glitch.fillRect(x - grid * pixelSize * 0.5, y - grid * pixelSize * 0.5, grid * pixelSize, grid * pixelSize);
+    glitch.lineStyle(Math.max(1, pixelSize * 0.35), skin.secondaryColor, 0.7);
+    for (var line = -2; line <= 2; line += 1) {
+      glitch.lineBetween(x - skin.ringRadius * scale, y + line * pixelSize, x + skin.ringRadius * scale, y + line * pixelSize);
+    }
+    mark(scene, "pixelBreak");
+    scene.tweens.add({
+      targets: glitch,
+      alpha: 0.18,
+      y: y + Phaser.Math.Between(-2, 2),
+      duration: skin.glitchFlickerMs,
+      yoyo: true,
+      repeat: 1,
+      onComplete: function () {
+        fade(scene, glitch, skin.durationMs * 0.45);
+      }
+    });
     scatter(scene, skin, x, y, scale, "square");
   }
 
@@ -139,15 +155,25 @@
 
   function drawGroundBreak(scene, skin, x, y, scale) {
     var cracks = scene.add.graphics();
-    cracks.lineStyle(Math.max(1, 2 * scale), skin.primaryColor, 0.82);
+    cracks.lineStyle(Math.max(1, skin.crackLineWidth * scale), skin.primaryColor, 0.82);
+    cracks.fillStyle(skin.secondaryColor, 0.08);
+    cracks.fillCircle(x, y, skin.craterRadius * scale);
     for (var index = 0; index < skin.crackLines; index += 1) {
       var angle = (Math.PI * 2 * index) / skin.crackLines + Phaser.Math.FloatBetween(-0.22, 0.22);
-      var length = Phaser.Math.Between(skin.crackLength * 0.45, skin.crackLength) * scale;
-      cracks.lineBetween(x, y, x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+      var length = Phaser.Math.Between(skin.crackLengthMin, skin.crackLengthMax) * scale;
+      var endX = x + Math.cos(angle) * length;
+      var endY = y + Math.sin(angle) * length;
+      cracks.lineBetween(x, y, endX, endY);
+      if (Math.random() < skin.crackBranchChance) {
+        var branchAngle = angle + Phaser.Math.FloatBetween(-0.85, 0.85);
+        var branchLength = length * Phaser.Math.FloatBetween(0.25, 0.48);
+        cracks.lineBetween(endX, endY, endX + Math.cos(branchAngle) * branchLength, endY + Math.sin(branchAngle) * branchLength);
+      }
     }
+    mark(scene, "groundFracture");
     fade(scene, cracks, skin.durationMs);
-    scatter(scene, skin, x, y, scale, "circle");
-    if (scene.cameras && scene.cameras.main) {
+    scatter(scene, Object.assign({}, skin, { particleCount: skin.dustParticleCount }), x, y, scale, "dust");
+    if (skin.shakeIntensity > 0 && scene.cameras && scene.cameras.main) {
       scene.cameras.main.shake(skin.shakeMs, skin.shakeIntensity);
     }
   }
@@ -172,53 +198,64 @@
     scatter(scene, skin, x, y, scale, "paper");
   }
 
-  function drawArrow(scene, skin, x, y, scale) {
-    var incomingAngle = skin.incomingAngle + Phaser.Math.FloatBetween(-skin.incomingJitter, skin.incomingJitter);
-    var startX = x + Math.cos(incomingAngle) * skin.arrowSpawnDistance * scale;
-    var startY = y + Math.sin(incomingAngle) * skin.arrowSpawnDistance * scale;
-    var travelAngle = Phaser.Math.Angle.Between(startX, startY, x, y);
-    var arrow = scene.add.container(startX, startY);
-    var shaft = scene.add.graphics();
-    var trail = scene.add.line(
-      0,
-      0,
-      startX - Math.cos(travelAngle) * skin.arrowShaftLength * scale * 0.75,
-      startY - Math.sin(travelAngle) * skin.arrowShaftLength * scale * 0.75,
-      startX,
-      startY,
-      skin.trailColor,
-      skin.trailAlpha
-    ).setOrigin(0, 0);
+  function drawArrowRain(scene, skin, x, y, scale) {
+    var target = scene.add.circle(x, y, skin.targetRadius * scale, skin.primaryColor, skin.targetAlpha);
+    target.setStrokeStyle(1, skin.primaryColor, 0.24);
+    fade(scene, target, skin.durationMs);
 
-    shaft.lineStyle(Math.max(1, skin.arrowShaftWidth * scale), skin.arrowColor, 0.95);
-    shaft.lineBetween(-skin.arrowShaftLength * scale, 0, -skin.arrowHeadSize * 0.55 * scale, 0);
-    shaft.fillStyle(skin.arrowColor, 0.98);
-    shaft.fillTriangle(0, 0, -skin.arrowHeadSize * scale, -skin.arrowHeadSize * 0.48 * scale, -skin.arrowHeadSize * scale, skin.arrowHeadSize * 0.48 * scale);
-    shaft.fillStyle(skin.arrowFletchingColor, 0.86);
-    shaft.fillTriangle(-skin.arrowShaftLength * scale, 0, -skin.arrowShaftLength * 0.78 * scale, -skin.arrowShaftWidth * 2.2 * scale, -skin.arrowShaftLength * 0.72 * scale, 0);
-    shaft.fillTriangle(-skin.arrowShaftLength * scale, 0, -skin.arrowShaftLength * 0.78 * scale, skin.arrowShaftWidth * 2.2 * scale, -skin.arrowShaftLength * 0.72 * scale, 0);
-    arrow.add(shaft);
-    arrow.rotation = travelAngle;
-    mark(scene, "arrowProjectile");
+    var count = Phaser.Math.Between(skin.arrowCountMin, skin.arrowCountMax);
+    mark(scene, "arrowRain");
+    for (var index = 0; index < count; index += 1) {
+      var landX = x + Phaser.Math.FloatBetween(-skin.arrowSpreadRadius, skin.arrowSpreadRadius) * scale;
+      var landY = y + Phaser.Math.FloatBetween(-skin.arrowSpreadRadius, skin.arrowSpreadRadius) * scale;
+      var startX = landX - skin.arrowSpawnDistance * scale + Phaser.Math.FloatBetween(-16, 16) * scale;
+      var startY = landY - skin.arrowSpawnHeight * scale - index * 5 * scale;
+      var travelAngle = Phaser.Math.Angle.Between(startX, startY, landX, landY);
+      var arrow = createBowArrow(scene, skin, startX, startY, travelAngle, scale);
+      var trail = scene.add.line(0, 0, startX, startY, landX, landY, skin.trailColor, skin.trailAlpha).setOrigin(0, 0);
+      var duration = skin.arrowTravelDurationMs + index * 12;
+
+      tweenArrow(scene, skin, arrow, trail, landX, landY, duration, scale);
+    }
+  }
+
+  function tweenArrow(scene, skin, arrow, trail, landX, landY, duration, scale) {
     scene.tweens.add({
       targets: arrow,
-      x: x,
-      y: y,
-      duration: skin.arrowTravelDurationMs,
+      x: landX,
+      y: landY,
+      duration: duration,
       ease: "Cubic.easeIn",
       onComplete: function () {
-        scatter(scene, Object.assign({}, skin, { particleCount: skin.impactParticleCount }), x, y, scale, "spark");
-        fade(scene, arrow, skin.punctureDecalDurationMs * 0.34);
+        mark(scene, "arrowRainArrow");
+        scatter(scene, Object.assign({}, skin, { particleCount: skin.impactParticleCount }), landX, landY, scale, "dust");
+        fade(scene, arrow, skin.punctureDecalDurationMs);
       }
     });
     scene.tweens.add({
       targets: trail,
       alpha: 0,
-      duration: skin.arrowTravelDurationMs * 1.45,
+      duration: duration * 1.2,
       onComplete: function () {
         trail.destroy();
       }
     });
+  }
+
+  function createBowArrow(scene, skin, x, y, rotation, scale) {
+    var arrow = scene.add.container(x, y);
+    var graphics = scene.add.graphics();
+    graphics.lineStyle(Math.max(1, skin.arrowShaftWidth * scale), skin.arrowShaftColor, 0.96);
+    graphics.lineBetween(-skin.arrowShaftLength * scale, 0, -skin.arrowHeadSize * 0.5 * scale, 0);
+    graphics.fillStyle(skin.arrowHeadColor, 0.98);
+    graphics.fillTriangle(0, 0, -skin.arrowHeadSize * scale, -skin.arrowHeadSize * 0.45 * scale, -skin.arrowHeadSize * scale, skin.arrowHeadSize * 0.45 * scale);
+    graphics.fillStyle(skin.arrowFeatherColor, 0.92);
+    graphics.fillTriangle(-skin.arrowShaftLength * scale, 0, -skin.arrowShaftLength * 0.76 * scale, -skin.arrowShaftWidth * 2.3 * scale, -skin.arrowShaftLength * 0.7 * scale, 0);
+    graphics.fillStyle(skin.arrowFeatherAccentColor, 0.92);
+    graphics.fillTriangle(-skin.arrowShaftLength * scale, 0, -skin.arrowShaftLength * 0.76 * scale, skin.arrowShaftWidth * 2.3 * scale, -skin.arrowShaftLength * 0.7 * scale, 0);
+    arrow.add(graphics);
+    arrow.rotation = rotation;
+    return arrow;
   }
 
   function scatter(scene, skin, x, y, scale, shape) {
@@ -226,7 +263,7 @@
       var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       var distance = Phaser.Math.Between(skin.particleDistance * 0.35, skin.particleDistance) * scale;
       var size = Math.max(2, skin.particleSize * scale);
-      var particle = shape === "square" || shape === "paper" ? scene.add.rectangle(x, y, shape === "paper" ? size * 1.4 : size, size, index % 2 ? skin.secondaryColor : skin.particleColor, 0.86) : scene.add.circle(x, y, size * 0.5, index % 2 ? skin.secondaryColor : skin.particleColor, 0.78);
+      var particle = shape === "square" || shape === "paper" ? scene.add.rectangle(x, y, shape === "paper" ? size * 1.4 : size, size, index % 2 ? skin.secondaryColor : skin.particleColor, 0.86) : scene.add.circle(x, y, size * 0.5, index % 2 ? skin.secondaryColor : skin.particleColor, shape === "dust" ? 0.42 : 0.78);
 
       scene.tweens.add({
         targets: particle,

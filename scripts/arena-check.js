@@ -56,7 +56,7 @@ function near(actual, expected, message) {
 const state = ARENA.Save.createDefaultState();
 const baseStats = ARENA.Upgrades.computeStats(state);
 const requiredSkinIds = ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak", "paperDrop", "arrowStrike"];
-const requiredEnemySkinIds = ["ant", "eyes", "tank", "tree", "hat"];
+const requiredEnemySkinIds = ["ant", "eyes", "tank", "hat", "worm"];
 
 assert(ARENA.UPGRADE_DEFS.length >= 5, "arena should define at least five upgrades");
 assert(ARENA.CLICK_EFFECT_SKINS.length >= 6, "arena should define required click effect skins");
@@ -71,13 +71,26 @@ requiredSkinIds.forEach((id) => {
 });
 assert(soundSignatures.size === requiredSkinIds.length, "all click skins should have unique sound config");
 const arrowSkin = ARENA.ClickEffectSkins.get("arrowStrike");
-["arrowSpawnDistance", "arrowTravelDurationMs", "arrowShaftLength", "arrowShaftWidth", "arrowHeadSize", "trailAlpha", "impactParticleCount", "punctureDecalDurationMs"].forEach((key) => {
-  assert(arrowSkin[key] > 0, "Arrow Strike should define projectile value " + key);
+assert(arrowSkin.name === "Arrow Rain", "arrowStrike id should display as Arrow Rain for save compatibility");
+["arrowCountMin", "arrowCountMax", "arrowSpawnHeight", "arrowSpawnDistance", "arrowSpreadRadius", "arrowTravelDurationMs", "arrowShaftLength", "arrowShaftWidth", "arrowHeadSize", "trailAlpha", "impactParticleCount", "arrowDecalCount", "punctureDecalDurationMs"].forEach((key) => {
+  assert(arrowSkin[key] > 0, "Arrow Rain should define projectile value " + key);
 });
-assert(arrowSkin.arrowColor !== undefined, "Arrow Strike should define arrow color");
-assert(arrowSkin.trailColor !== undefined, "Arrow Strike should define trail color");
-assert(arrowSkin.thunkSound && arrowSkin.thunkSound.durationSeconds > 0, "Arrow Strike should define thunk sound config");
+assert(arrowSkin.arrowCountMax >= arrowSkin.arrowCountMin && arrowSkin.arrowCountMin >= 3, "Arrow Rain should create multiple arrows");
+assert(arrowSkin.arrowShaftColor !== 0x000000, "Arrow Rain shaft should not be a black diagram arrow");
+assert(arrowSkin.arrowHeadColor !== undefined, "Arrow Rain should define arrowhead color");
+assert(arrowSkin.arrowFeatherColor !== undefined, "Arrow Rain should define feather color");
+assert(arrowSkin.trailColor !== undefined, "Arrow Rain should define trail color");
+assert(arrowSkin.thunkSound && arrowSkin.thunkSound.durationSeconds > 0, "Arrow Rain should define thunk sound config");
+assert(arrowSkin.decal.type === "arrowRain", "Arrow Rain should define arrow rain background decal");
+const groundSkin = ARENA.ClickEffectSkins.get("groundBreak");
+assert(groundSkin.shakeIntensity === 0, "Ground Break shake should be disabled by default");
+assert(groundSkin.crackLines >= 12, "Ground Break should define stronger crack count");
+assert(groundSkin.decal.branchChance > 0, "Ground Break decal should define branch cracks");
+const pixelSkin = ARENA.ClickEffectSkins.get("pixelShatter");
+assert(pixelSkin.pixelSize > 0 && pixelSkin.decal.gridSize > 0, "Pixel Shatter should define square pixel background values");
+assert(pixelSkin.particleCount >= 20, "Pixel Shatter should define stronger square particle burst");
 assert(!ARENA.BALANCE_CONFIG.feedback.sharedBlackCircle, "no shared generic black circle config should exist");
+assert(ARENA.EnemySkins.setActive(ARENA.Save.createDefaultState(), "tree") === false, "removed Tree skin should not be selectable");
 requiredEnemySkinIds.forEach((id) => {
   const skin = ARENA.EnemySkins.get(id);
   assert(skin.id === id, id + " enemy skin should exist");
@@ -92,11 +105,22 @@ const antSkin = ARENA.EnemySkins.get("ant");
 assert(antSkin.ant && antSkin.ant.segmentCount === 3, "Ant should define three segmented body sections");
 assert(antSkin.ant.legPairs === 3, "Ant should define three leg pairs");
 assert(antSkin.ant.waistWidth > 0, "Ant should define narrow waist config");
+assert(antSkin.scale < 1, "Ant should be slightly smaller");
+assert(antSkin.bodyColor !== 0x161312 && antSkin.accentColor > antSkin.bodyColor, "Ant should use red/dark red colors");
+const wormSkin = ARENA.EnemySkins.get("worm");
+assert(wormSkin.worm && wormSkin.worm.segmentCount >= 6, "Worm should define segmented body config");
+assert(wormSkin.animation.wormWiggleAmplitude > 0, "Worm should define crawl wiggle animation");
 assert(state.activeClickSkin === "meteorImpact", "default active click skin");
 assert(state.unlockedClickSkins.groundBreak === true, "default unlocked click skins");
 assert(state.activeEnemySkin === "ant", "default enemy skin");
 assert(state.unlockedEnemySkins.hat === true, "default unlocked enemy skins");
+assert(state.unlockedEnemySkins.worm === true, "worm enemy skin should be unlocked by default");
+assert(!state.unlockedEnemySkins.tree, "tree enemy skin should not be unlocked by default");
 assert(ARENA.BALANCE_CONFIG.backgroundEffects.maxDecals > 0, "background decal cap should be configured");
+assert(ARENA.BALANCE_CONFIG.feedback.comboPopupMs > 0, "combo popup duration should be configurable");
+assert(ARENA.BALANCE_CONFIG.feedback.comboMilestones.indexOf(5) >= 0, "combo milestone thresholds should be configurable");
+assert(ARENA.BALANCE_CONFIG.feedback.comboColors.length >= 3, "combo colors should be configurable");
+assert(ARENA.BALANCE_CONFIG.audio.sounds.comboTick.durationSeconds > 0, "combo sound should be configurable");
 near(baseStats.clickDamage, ARENA.BALANCE_CONFIG.cursor.clickDamage, "base click damage should come from config");
 near(baseStats.clickRadius, ARENA.BALANCE_CONFIG.cursor.clickRadius, "base click radius should come from config");
 assert(baseStats.helperCursors === 0, "helper cursors should start locked");
@@ -151,6 +175,17 @@ assert(loaded.activeClickSkin === "sciFiLaser", "active skin should persist");
 assert(loaded.unlockedClickSkins.meteorImpact === true, "unlocked skins should persist");
 assert(loaded.activeEnemySkin === "eyes", "active enemy skin should persist");
 assert(loaded.unlockedEnemySkins.ant === true, "unlocked enemy skins should persist");
+
+const migratedTreeSave = ARENA.Save.validateState({
+  activeEnemySkin: "tree",
+  unlockedEnemySkins: { tree: true },
+  activeClickSkin: "arrowStrike",
+  unlockedClickSkins: { arrowStrike: true },
+  upgrades: {}
+});
+assert(migratedTreeSave.activeEnemySkin === "ant", "save with removed Tree skin should fall back safely");
+assert(migratedTreeSave.unlockedEnemySkins.worm === true, "validated saves should unlock Worm by default");
+assert(!migratedTreeSave.unlockedEnemySkins.tree, "validated saves should not preserve removed Tree unlock");
 
 const nearEnemy = { active: true, x: 20, y: 0, radius: 8 };
 const farEnemy = { active: true, x: 35, y: 0, radius: 8 };

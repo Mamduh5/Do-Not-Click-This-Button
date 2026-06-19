@@ -42,6 +42,11 @@ async function run() {
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
     assert(await page.locator("#arenaSkinSelect option").count() >= 6, "skin selector should render required click skins");
     assert(await page.locator("#arenaEnemySkinSelect option").count() >= 5, "enemy skin selector should render required enemy skins");
+    const clickSkinOptions = await page.locator("#arenaSkinSelect option").evaluateAll((options) => options.map((option) => option.textContent.trim()));
+    const enemySkinOptions = await page.locator("#arenaEnemySkinSelect option").evaluateAll((options) => options.map((option) => option.textContent.trim()));
+    assert(clickSkinOptions.includes("Arrow Rain"), "click skin selector should show Arrow Rain");
+    assert(enemySkinOptions.includes("Worm"), "enemy skin selector should show Worm");
+    assert(!enemySkinOptions.includes("Tree"), "enemy skin selector should not show removed Tree skin");
     assert(initial.activeClickSkin === "meteorImpact", "default active click skin should be Meteor Impact");
     assert(initial.activeEnemySkin === "ant", "default enemy skin should be Ant");
     await page.selectOption("#arenaSkinSelect", "pixelShatter");
@@ -51,11 +56,32 @@ async function run() {
     const afterEnemyUiSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterEnemyUiSwitch.activeEnemySkin === "eyes", "enemy skin selector should update active enemy skin");
 
-    const missResult = await page.evaluate(() => window.__containmentArena.clickAt(40, 40));
-    const afterMiss = await page.evaluate(() => window.__containmentArena.getSnapshot());
-    assert(missResult.hit === false, "empty click should be a miss");
-    assert(afterMiss.energy === initial.energy, "miss click should not grant Energy");
-    assert(afterMiss.effectCounts.missImpact > 0, "miss click should create miss feedback");
+    for (const skinId of ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak", "paperDrop", "arrowStrike"]) {
+      const beforeEmptySkin = await page.evaluate(() => window.__containmentArena.getSnapshot());
+      const missResult = await page.evaluate((id) => {
+        window.__containmentArena.setClickSkin(id);
+        window.__containmentArena.clearEnemies();
+        return window.__containmentArena.clickAt(58, 58);
+      }, skinId);
+      const afterEmptySkin = await page.evaluate(() => window.__containmentArena.getSnapshot());
+      assert(missResult.hit === false, skinId + " empty click should be a miss");
+      assert(afterEmptySkin.energy === beforeEmptySkin.energy, skinId + " empty click should not grant Energy");
+      assert(afterEmptySkin.effectCounts.missImpact > (beforeEmptySkin.effectCounts.missImpact || 0), skinId + " empty click should create miss feedback");
+      assert(afterEmptySkin.effectCounts["skin_" + skinId] > (beforeEmptySkin.effectCounts["skin_" + skinId] || 0), skinId + " empty click should create active skin effect");
+      assert(afterEmptySkin.effectCounts.backgroundDecals > (beforeEmptySkin.effectCounts.backgroundDecals || 0), skinId + " empty click should create a background decal");
+      if (skinId === "pixelShatter") {
+        assert(afterEmptySkin.effectCounts.pixelBreak > (beforeEmptySkin.effectCounts.pixelBreak || 0), "Pixel Shatter empty click should create pixel break effect");
+        assert(afterEmptySkin.effectCounts.backgroundPixels > (beforeEmptySkin.effectCounts.backgroundPixels || 0), "Pixel Shatter empty click should create pixel background residue");
+      }
+      if (skinId === "groundBreak") {
+        assert(afterEmptySkin.effectCounts.groundFracture > (beforeEmptySkin.effectCounts.groundFracture || 0), "Ground Break empty click should fracture the background");
+        assert(afterEmptySkin.effectCounts.backgroundCracks > (beforeEmptySkin.effectCounts.backgroundCracks || 0), "Ground Break empty click should create crack decal");
+      }
+      if (skinId === "arrowStrike") {
+        assert(afterEmptySkin.effectCounts.arrowRain > (beforeEmptySkin.effectCounts.arrowRain || 0), "Arrow Rain empty click should create arrow rain effect");
+        assert(afterEmptySkin.effectCounts.backgroundArrows > (beforeEmptySkin.effectCounts.backgroundArrows || 0), "Arrow Rain empty click should create arrow background marks");
+      }
+    }
 
     await page.evaluate(() => {
       window.__containmentArena.spawnEnemyAt(320, 260, 1);
@@ -81,7 +107,8 @@ async function run() {
       assert(skinSnapshot.effectCounts["skin_" + skinId] > 0, skinId + " should create skin-specific effects");
       assert(skinSnapshot.effectCounts.backgroundDecals > 0, skinId + " should create background decals");
       if (skinId === "arrowStrike") {
-        assert(skinSnapshot.effectCounts.arrowProjectile > (beforeSkinSnapshot.effectCounts.arrowProjectile || 0), "Arrow Strike should create a flying arrow projectile visual");
+        assert(skinSnapshot.effectCounts.arrowRain > (beforeSkinSnapshot.effectCounts.arrowRain || 0), "Arrow Rain should create multi-arrow visual");
+        await page.waitForFunction((before) => window.__containmentArena.getSnapshot().effectCounts.arrowRainArrow >= before + 3, beforeSkinSnapshot.effectCounts.arrowRainArrow || 0, { timeout: 1500 });
       }
     }
 
@@ -113,7 +140,7 @@ async function run() {
     assert(antMotionSnapshot.enemy.movingAmount > 0, "ant enemy should report movement animation state");
     assert(antMotionSnapshot.orientationDelta < 1.25, "ant enemy should rotate toward movement direction");
 
-    for (const enemySkinId of ["ant", "eyes", "tank", "tree", "hat"]) {
+    for (const enemySkinId of ["ant", "eyes", "tank", "hat", "worm"]) {
       await page.evaluate((id) => {
         window.__containmentArena.setEnemySkin(id);
         window.__containmentArena.clearEnemies();
@@ -124,6 +151,20 @@ async function run() {
       assert(enemySkinSnapshot.activeEnemySkin === enemySkinId, enemySkinId + " enemy skin should become active");
       assert(enemySkinSnapshot.totalDefeated > initial.totalDefeated, enemySkinId + " enemy skin should remain killable");
     }
+    await page.evaluate(() => {
+      window.__containmentArena.setEnemySkin("hat");
+    });
+
+    await page.evaluate(() => {
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.spawnEnemyAt(460, 260, 1);
+      window.__containmentArena.spawnEnemyAt(490, 260, 1);
+      window.__containmentArena.clickAt(460, 260);
+      window.__containmentArena.clickAt(490, 260);
+    });
+    const comboSnapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(comboSnapshot.combo >= 2, "rapid kills should build combo");
+    assert(comboSnapshot.effectCounts.comboPopup > 0, "combo popup should appear after rapid kills");
 
     await page.evaluate(() => window.__containmentArena.grantEnergy(500));
     await page.locator("#arenaUpgradeList .arena-upgrade-card").first().click();

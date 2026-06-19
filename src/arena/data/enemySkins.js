@@ -8,21 +8,21 @@
       id: "ant",
       name: "Ant",
       unlockedByDefault: true,
-      bodyColor: 0x161312,
-      accentColor: 0x2b201e,
+      bodyColor: 0x5c1714,
+      accentColor: 0x8d2a20,
       hitColor: 0xff5757,
-      deathColor: 0x222222,
-      outlineColor: 0x000000,
-      legColor: 0x191919,
-      scale: 1,
-      shadowScale: 1.05,
+      deathColor: 0x6f1e18,
+      outlineColor: 0x260908,
+      legColor: 0x3a0e0c,
+      scale: 0.88,
+      shadowScale: 0.94,
       animation: {
         forwardAngleOffset: 0,
         rotationSmoothing: 0.2,
         bodyWobbleAmount: 0.035,
         bodyWobbleSpeed: 0.018,
-        legAnimationSpeed: 0.026,
-        legAnimationAmplitude: 4.2,
+        legAnimationSpeed: 0.03,
+        legAnimationAmplitude: 3.6,
         hitSquashDurationMs: 90,
         hitSquashScaleX: 1.32,
         hitSquashScaleY: 0.68,
@@ -31,11 +31,11 @@
       },
       ant: {
         segmentCount: 3,
-        headRadius: 0.46,
-        thoraxRadius: 0.5,
-        abdomenRadius: 0.68,
-        waistWidth: 0.16,
-        antennaLength: 0.72,
+        headRadius: 0.4,
+        thoraxRadius: 0.43,
+        abdomenRadius: 0.58,
+        waistWidth: 0.12,
+        antennaLength: 0.68,
         legPairs: 3
       }
     },
@@ -90,31 +90,6 @@
       }
     },
     {
-      id: "tree",
-      name: "Tree",
-      unlockedByDefault: true,
-      bodyColor: 0x6f4327,
-      accentColor: 0x2f9a53,
-      hitColor: 0xa6e58d,
-      deathColor: 0x4cb96d,
-      outlineColor: 0x2e452d,
-      leafColor: 0x58c46f,
-      scale: 1.06,
-      shadowScale: 1.08,
-      animation: {
-        forwardAngleOffset: 0,
-        rotationSmoothing: 0.1,
-        bodyWobbleAmount: 0.045,
-        bodyWobbleSpeed: 0.011,
-        leanAmount: 0.18,
-        hitSquashDurationMs: 100,
-        hitSquashScaleX: 1.18,
-        hitSquashScaleY: 0.78,
-        deathPopScale: 1.16,
-        deathFadeMs: 140
-      }
-    },
-    {
       id: "hat",
       name: "Hat",
       unlockedByDefault: true,
@@ -136,6 +111,39 @@
         hitSquashScaleY: 0.72,
         deathPopScale: 1.14,
         deathFadeMs: 120
+      }
+    },
+    {
+      id: "worm",
+      name: "Worm",
+      unlockedByDefault: true,
+      bodyColor: 0xc24a5a,
+      accentColor: 0xff8a9a,
+      hitColor: 0xffb3bf,
+      deathColor: 0xd64d61,
+      outlineColor: 0x6b1d28,
+      scale: 0.98,
+      shadowScale: 1,
+      animation: {
+        forwardAngleOffset: 0,
+        rotationSmoothing: 0.18,
+        bodyWobbleAmount: 0.075,
+        bodyWobbleSpeed: 0.02,
+        wormWiggleAmplitude: 0.26,
+        wormWiggleFrequency: 0.034,
+        hitSquashDurationMs: 110,
+        hitSquashScaleX: 1.36,
+        hitSquashScaleY: 0.58,
+        deathPopScale: 1.2,
+        deathFadeMs: 130
+      },
+      worm: {
+        segmentCount: 7,
+        segmentSpacing: 0.34,
+        segmentRadius: 0.38,
+        headRadius: 0.46,
+        tailRadius: 0.26,
+        colors: [0xff8a9a, 0xe85c70, 0xc24a5a]
       }
     }
   ];

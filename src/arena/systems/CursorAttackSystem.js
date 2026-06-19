@@ -70,7 +70,7 @@
     enemy.destroy();
     scene.state.energy += reward;
     scene.state.totalDefeated += 1;
-    scene.registerKill();
+    scene.registerKill(x, y);
     scene.soundSystem.play("kill");
     ARENA.ImpactEffects.showHitText(scene, "+" + ARENA.formatNumber(reward), x, y, 0xd82626);
     ARENA.ImpactEffects.showKillBurst(scene, x, y, stats.feedbackScale * ARENA.BALANCE_CONFIG.feedback.killImpactScale);

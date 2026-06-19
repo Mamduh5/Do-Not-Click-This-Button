@@ -104,7 +104,20 @@
       screenFlashEnabled: true,
       screenFlashMs: 120,
       comboMilestone: 5,
-      comboFlashAlpha: 0.12
+      comboFlashAlpha: 0.12,
+      comboPopupMs: 620,
+      comboPopupBaseScale: 0.85,
+      comboPopupMaxScale: 1.65,
+      comboMilestones: [5, 10, 25],
+      comboColors: [
+        { threshold: 2, color: 0x2a2a2a },
+        { threshold: 5, color: 0xd82626 },
+        { threshold: 10, color: 0xff8a24 },
+        { threshold: 25, color: 0xffd447 }
+      ],
+      comboPulseEnabled: true,
+      comboPulseAlpha: 0.1,
+      comboPulseMs: 170
     },
 
     backgroundEffects: {
@@ -124,6 +137,7 @@
       killVolume: 0.2,
       upgradeVolume: 0.24,
       helperClickVolume: 0.12,
+      comboTickVolume: 0.1,
       coreDamageVolume: 0.26,
       waveVolume: 0.2,
       sounds: {
@@ -132,6 +146,7 @@
         kill: { frequency: 260, endFrequency: 62, durationSeconds: 0.11, type: "sawtooth" },
         upgrade: { frequency: 620, endFrequency: 980, durationSeconds: 0.13, type: "sine" },
         helperClick: { frequency: 420, endFrequency: 260, durationSeconds: 0.045, type: "square" },
+        comboTick: { frequency: 520, endFrequency: 720, durationSeconds: 0.045, type: "triangle" },
         coreDamage: { frequency: 120, endFrequency: 48, durationSeconds: 0.18, type: "sawtooth" },
         wave: { frequency: 280, endFrequency: 520, durationSeconds: 0.16, type: "square" }
       }

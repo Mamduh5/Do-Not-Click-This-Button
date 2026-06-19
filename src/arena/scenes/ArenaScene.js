@@ -108,12 +108,13 @@
     this.refreshUi();
   };
 
-  ArenaScene.prototype.registerKill = function () {
+  ArenaScene.prototype.registerKill = function (x, y) {
     this.combo += 1;
     this.comboExpiresAt = this.time.now + CONFIG.cursor.comboWindowMs;
 
     if (this.combo > 1) {
-      ARENA.ImpactEffects.showHitText(this, this.combo + "x", CONFIG.canvas.width / 2, 72, 0xd82626);
+      ARENA.ImpactEffects.showComboPopup(this, this.combo, x || CONFIG.canvas.width / 2, y || 98);
+      this.soundSystem.play("comboTick");
     }
   };
 
