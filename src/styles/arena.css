@@ -137,6 +137,7 @@ button {
 }
 
 .shop-actions button,
+.skin-select,
 .arena-upgrade-card {
   background: #ffffff;
   border: 1px solid #c6d5dc;
@@ -144,11 +145,19 @@ button {
   cursor: pointer;
 }
 
-.shop-actions button {
+.shop-actions button,
+.skin-select {
   font-size: 10px;
   min-width: 92px;
   padding: 5px 7px;
   text-align: left;
+}
+
+.skin-select-label {
+  color: #617b86;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .arena-upgrade-list {

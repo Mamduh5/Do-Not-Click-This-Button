@@ -64,6 +64,31 @@
       return true;
     }
 
+    function playClickSkin(skinId) {
+      var context = getContext();
+      var skin = ARENA.ClickEffectSkins.get(skinId);
+      var tone = skin.sound;
+
+      if (!context || state.muted || !unlocked || !tone) {
+        return false;
+      }
+
+      var oscillator = context.createOscillator();
+      var gain = context.createGain();
+      var now = context.currentTime;
+
+      oscillator.type = tone.type;
+      oscillator.frequency.setValueAtTime(tone.frequency, now);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, tone.endFrequency), now + tone.durationSeconds);
+      gain.gain.setValueAtTime(CONFIG.audio.masterVolume * tone.volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + tone.durationSeconds);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + tone.durationSeconds);
+      return true;
+    }
+
     function setMuted(muted) {
       state.muted = muted;
     }
@@ -71,6 +96,7 @@
     return {
       unlock: unlock,
       play: play,
+      playClickSkin: playClickSkin,
       setMuted: setMuted,
       isSupported: function () {
         return Boolean(window.AudioContext || window.webkitAudioContext);

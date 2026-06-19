@@ -34,6 +34,11 @@ async function run() {
     assert(initial.stats.clickRadius > 0, "arena should expose cursor click radius");
     assert(initial.stats.clickDamage > 0, "arena should expose cursor click damage");
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
+    assert(await page.locator("#arenaSkinSelect option").count() >= 4, "skin selector should render required skins");
+    assert(initial.activeClickSkin === "meteorImpact", "default active click skin should be Meteor Impact");
+    await page.selectOption("#arenaSkinSelect", "pixelShatter");
+    const afterUiSkinSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterUiSkinSwitch.activeClickSkin === "pixelShatter", "skin selector should update active skin");
 
     const missResult = await page.evaluate(() => window.__containmentArena.clickAt(40, 40));
     const afterMiss = await page.evaluate(() => window.__containmentArena.getSnapshot());
@@ -51,6 +56,18 @@ async function run() {
     assert(afterClickKill.effectCounts.hitImpact > 0, "click kill should create hit impact feedback");
     assert(afterClickKill.effectCounts.killBurst > 0, "click kill should create kill burst feedback");
     assert(afterClickKill.effectCounts.splatter > 0, "click kill should create splatter feedback");
+
+    for (const skinId of ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak"]) {
+      await page.evaluate((id) => {
+        window.__containmentArena.setClickSkin(id);
+        window.__containmentArena.clearEnemies();
+        window.__containmentArena.spawnEnemyAt(300, 260, 1);
+        window.__containmentArena.clickAt(300, 260);
+      }, skinId);
+      const skinSnapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
+      assert(skinSnapshot.activeClickSkin === skinId, skinId + " should become active");
+      assert(skinSnapshot.effectCounts["skin_" + skinId] > 0, skinId + " should create skin-specific effects");
+    }
 
     await page.evaluate(() => window.__containmentArena.grantEnergy(500));
     await page.locator("#arenaUpgradeList .arena-upgrade-card").first().click();
@@ -94,8 +111,9 @@ async function run() {
     await page.click("#arenaMuteBtn");
     await page.reload({ waitUntil: "networkidle" });
     await waitForArena(page);
-    const muted = await page.evaluate(() => window.__containmentArena.getSnapshot().muted);
-    assert(muted === true, "mute setting should persist after reload");
+    const persisted = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(persisted.muted === true, "mute setting should persist after reload");
+    assert(persisted.activeClickSkin === "groundBreak", "active click skin should persist after reload");
   } finally {
     await browser.close();
   }

@@ -9,8 +9,15 @@
     scene.effectCounts[type] = (scene.effectCounts[type] || 0) + 1;
   }
 
-  function showImpact(scene, x, y, radius, hit, scale) {
+  function showImpact(scene, x, y, radius, hit, scale, helper) {
     mark(scene, hit ? "hitImpact" : "missImpact");
+    if (ARENA.ClickEffectSkins) {
+      ARENA.ClickEffectSkins.drawImpact(scene, x, y, {
+        hit: hit,
+        scale: scale,
+        helper: helper
+      });
+    }
     var color = hit ? 0x171717 : 0x7f8a90;
     var ring = scene.add.circle(x, y, radius, color, 0.08);
     ring.setStrokeStyle(Math.max(2, 3 * scale), color, hit ? 0.9 : 0.42);
@@ -108,6 +115,14 @@
   function showKillBurst(scene, x, y, scale) {
     var ring = scene.add.circle(x, y, 16 * scale, 0xd82626, 0.08);
     mark(scene, "killBurst");
+    if (ARENA.ClickEffectSkins) {
+      ARENA.ClickEffectSkins.drawImpact(scene, x, y, {
+        hit: true,
+        kill: true,
+        scale: scale,
+        silent: true
+      });
+    }
     ring.setStrokeStyle(Math.max(2, 3 * scale), 0xd82626, 0.85);
     scene.tweens.add({
       targets: ring,

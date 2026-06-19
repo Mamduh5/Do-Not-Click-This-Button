@@ -29,7 +29,9 @@ global.localStorage = {
 [
   "src/arena/data/arenaBalanceConfig.js",
   "src/arena/data/arenaUpgrades.js",
+  "src/arena/data/clickEffectSkins.js",
   "src/arena/systems/NumberFormat.js",
+  "src/arena/systems/ClickEffectSkinSystem.js",
   "src/arena/systems/SaveSystem.js",
   "src/arena/systems/UpgradeSystem.js",
   "src/arena/systems/SoundSystem.js",
@@ -50,8 +52,18 @@ function near(actual, expected, message) {
 
 const state = ARENA.Save.createDefaultState();
 const baseStats = ARENA.Upgrades.computeStats(state);
+const requiredSkinIds = ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak"];
 
 assert(ARENA.UPGRADE_DEFS.length >= 5, "arena should define at least five upgrades");
+assert(ARENA.CLICK_EFFECT_SKINS.length >= 4, "arena should define required click effect skins");
+requiredSkinIds.forEach((id) => {
+  const skin = ARENA.ClickEffectSkins.get(id);
+  assert(skin.id === id, id + " skin should exist");
+  assert(skin.unlockedByDefault === true, id + " should be unlocked by default for testing");
+  assert(skin.sound && skin.sound.durationSeconds > 0, id + " should define generated sound");
+});
+assert(state.activeClickSkin === "meteorImpact", "default active click skin");
+assert(state.unlockedClickSkins.groundBreak === true, "default unlocked click skins");
 near(baseStats.clickDamage, ARENA.BALANCE_CONFIG.cursor.clickDamage, "base click damage should come from config");
 near(baseStats.clickRadius, ARENA.BALANCE_CONFIG.cursor.clickRadius, "base click radius should come from config");
 assert(baseStats.helperCursors === 0, "helper cursors should start locked");
@@ -78,11 +90,15 @@ assert(upgradedStats.helperCursors === 1, "auto tapper should add a visible help
 
 const spentState = ARENA.Save.validateState(JSON.parse(JSON.stringify(state)));
 assert(spentState.upgrades.heavierCursor === 1, "save validation should preserve upgrades");
+assert(ARENA.ClickEffectSkins.setActive(spentState, "sciFiLaser"), "skin switch should update active skin");
+assert(spentState.activeClickSkin === "sciFiLaser", "active skin should switch");
 spentState.muted = true;
 assert(ARENA.Save.save(spentState), "arena save should write to localStorage test double");
 const loaded = ARENA.Save.load();
 assert(loaded.muted === true, "mute setting should persist");
 assert(loaded.upgrades.autoTapper === 1, "upgrade levels should persist");
+assert(loaded.activeClickSkin === "sciFiLaser", "active skin should persist");
+assert(loaded.unlockedClickSkins.meteorImpact === true, "unlocked skins should persist");
 
 const nearEnemy = { active: true, x: 20, y: 0, radius: 8 };
 const farEnemy = { active: true, x: 35, y: 0, radius: 8 };

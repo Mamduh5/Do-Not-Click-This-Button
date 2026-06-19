@@ -6,4 +6,6 @@ Edit spawn rates, enemy visuals, enemy health/speed/rewards, movement variance, 
 
 Edit upgrade costs, cost multipliers, max levels, labels, descriptions, and effects in `arenaUpgrades.js`.
 
+Edit click effect skin labels, unlock defaults, effect colors, particle counts, durations, shake values, helper scales, and skin-specific generated sound tones in `clickEffectSkins.js`.
+
 Systems and UI should consume these data files and avoid hardcoded balance values.

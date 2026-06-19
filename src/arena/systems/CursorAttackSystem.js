@@ -17,7 +17,8 @@
       y,
       radius,
       targets.length > 0,
-      impactScale * (targets.length > 0 ? ARENA.BALANCE_CONFIG.feedback.hitImpactScale : ARENA.BALANCE_CONFIG.feedback.missImpactScale)
+      impactScale * (targets.length > 0 ? ARENA.BALANCE_CONFIG.feedback.hitImpactScale : ARENA.BALANCE_CONFIG.feedback.missImpactScale),
+      helper
     );
 
     if (targets.length === 0) {

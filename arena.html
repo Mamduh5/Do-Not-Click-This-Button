@@ -34,6 +34,8 @@
               <h2>Systems</h2>
             </div>
             <div class="shop-actions">
+              <label class="skin-select-label" for="arenaSkinSelect">Click Skin</label>
+              <select id="arenaSkinSelect" class="skin-select"></select>
               <button type="button" id="arenaMuteBtn">Sound: ON</button>
               <button type="button" id="arenaResetBtn">Reset</button>
             </div>
@@ -46,8 +48,10 @@
     <script src="node_modules/phaser/dist/phaser.min.js"></script>
     <script src="src/arena/data/arenaBalanceConfig.js"></script>
     <script src="src/arena/data/arenaUpgrades.js"></script>
+    <script src="src/arena/data/clickEffectSkins.js"></script>
     <script src="src/arena/systems/NumberFormat.js"></script>
     <script src="src/arena/systems/SoundSystem.js"></script>
+    <script src="src/arena/systems/ClickEffectSkinSystem.js"></script>
     <script src="src/arena/systems/SaveSystem.js"></script>
     <script src="src/arena/systems/UpgradeSystem.js"></script>
     <script src="src/arena/systems/EnemySystem.js"></script>

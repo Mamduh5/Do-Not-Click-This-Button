@@ -32,7 +32,8 @@
 
     this.hud = ARENA.createArenaHud({
       onToggleMute: this.toggleMute.bind(this),
-      onReset: this.resetPrototype.bind(this)
+      onReset: this.resetPrototype.bind(this),
+      onSetClickSkin: this.setClickSkin.bind(this)
     });
     this.panel = ARENA.createUpgradePanel({
       onBuy: this.buyUpgrade.bind(this)
@@ -136,6 +137,18 @@
     this.refreshUi();
   };
 
+  ArenaScene.prototype.setClickSkin = function (id) {
+    if (!ARENA.ClickEffectSkins.setActive(this.state, id)) {
+      this.hud.log("CLICK SKIN LOCKED");
+      this.refreshUi();
+      return;
+    }
+
+    this.hud.log("CLICK SKIN: " + ARENA.ClickEffectSkins.get(id).name);
+    ARENA.Save.save(this.state);
+    this.refreshUi();
+  };
+
   ArenaScene.prototype.resetPrototype = function () {
     this.state = ARENA.Save.reset();
     this.stats = ARENA.Upgrades.computeStats(this.state);
@@ -215,6 +228,9 @@
           killed: result.killed.length
         };
       },
+      setClickSkin: function (id) {
+        scene.setClickSkin(id);
+      },
       getSnapshot: function () {
         return {
           energy: scene.state.energy,
@@ -224,6 +240,8 @@
           helperCursorCount: scene.helperCursorSystem.cursors.length,
           combo: scene.combo,
           effectCounts: Object.assign({}, scene.effectCounts),
+          activeClickSkin: scene.state.activeClickSkin,
+          unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),
           upgrades: Object.assign({}, scene.state.upgrades),
           stats: ARENA.Upgrades.computeStats(scene.state),
           muted: scene.state.muted
