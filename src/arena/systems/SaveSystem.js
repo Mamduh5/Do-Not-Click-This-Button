@@ -17,6 +17,8 @@
       unlockedClickSkins: ARENA.ClickEffectSkins.getDefaultUnlocked(),
       activeEnemySkin: ARENA.EnemySkins.getDefaultSkinId(),
       unlockedEnemySkins: ARENA.EnemySkins.getDefaultUnlocked(),
+      activeBackgroundSkin: ARENA.BackgroundSkins.getDefaultSkinId(),
+      unlockedBackgroundSkins: ARENA.BackgroundSkins.getDefaultUnlocked(),
       upgrades: {}
     };
   }
@@ -58,6 +60,15 @@
       });
     }
     state.activeEnemySkin = typeof source.activeEnemySkin === "string" ? source.activeEnemySkin : state.activeEnemySkin;
+    if (source.unlockedBackgroundSkins && typeof source.unlockedBackgroundSkins === "object") {
+      state.unlockedBackgroundSkins = {};
+      ARENA.BACKGROUND_SKINS.forEach(function (skin) {
+        if (source.unlockedBackgroundSkins[skin.id] === true || skin.unlockedByDefault) {
+          state.unlockedBackgroundSkins[skin.id] = true;
+        }
+      });
+    }
+    state.activeBackgroundSkin = typeof source.activeBackgroundSkin === "string" ? source.activeBackgroundSkin : state.activeBackgroundSkin;
 
     ARENA.UPGRADE_DEFS.forEach(function (upgrade) {
       var level = safeInteger(upgrades[upgrade.id], 0);
@@ -68,6 +79,7 @@
 
     ARENA.ClickEffectSkins.ensureState(state);
     ARENA.EnemySkins.ensureState(state);
+    ARENA.BackgroundSkins.ensureState(state);
     return state;
   }
 

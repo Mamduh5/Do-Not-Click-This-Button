@@ -120,27 +120,56 @@
 
   function drawPixels(scene, skin, x, y, scale) {
     var glitch = scene.add.graphics();
-    var grid = skin.decalGridSize || 4;
     var pixelSize = Math.max(2, skin.pixelSize * scale);
-    glitch.fillStyle(skin.primaryColor, 0.18);
-    glitch.fillRect(x - grid * pixelSize * 0.5, y - grid * pixelSize * 0.5, grid * pixelSize, grid * pixelSize);
-    glitch.lineStyle(Math.max(1, pixelSize * 0.35), skin.secondaryColor, 0.7);
-    for (var line = -2; line <= 2; line += 1) {
-      glitch.lineBetween(x - skin.ringRadius * scale, y + line * pixelSize, x + skin.ringRadius * scale, y + line * pixelSize);
+    var cells = chooseLocalPixelCells(skin, x, y, pixelSize);
+    var width = skin.gridWidthCells * pixelSize;
+    var height = skin.gridHeightCells * pixelSize;
+
+    glitch.lineStyle(1, skin.primaryColor, 0.34);
+    for (var column = 0; column <= skin.gridWidthCells; column += 1) {
+      glitch.lineBetween(x - width * 0.5 + column * pixelSize, y - height * 0.5, x - width * 0.5 + column * pixelSize, y + height * 0.5);
     }
+    for (var row = 0; row <= skin.gridHeightCells; row += 1) {
+      glitch.lineBetween(x - width * 0.5, y - height * 0.5 + row * pixelSize, x + width * 0.5, y - height * 0.5 + row * pixelSize);
+    }
+
+    cells.slice(0, skin.localFlickerCount).forEach(function (cell, index) {
+      glitch.fillStyle(skin.glitchColors[index % skin.glitchColors.length], 0.28);
+      glitch.fillRect(cell.x - pixelSize * 0.5, cell.y - pixelSize * 0.5, pixelSize, pixelSize);
+    });
+
+    cells.slice(0, skin.particleCount).forEach(function (cell, index) {
+      var color = index % 3 === 0 ? skin.secondaryColor : index % 2 === 0 ? skin.primaryColor : skin.particleColor;
+      var chunk = scene.add.rectangle(cell.x, cell.y, pixelSize, pixelSize, color, 0.88);
+      var angle = Phaser.Math.Angle.Between(x, y, cell.x, cell.y) + Phaser.Math.FloatBetween(-0.35, 0.35);
+      scene.tweens.add({
+        targets: chunk,
+        x: cell.x + Math.cos(angle) * skin.chunkTravelDistance * scale,
+        y: cell.y + Math.sin(angle) * skin.chunkTravelDistance * scale,
+        alpha: 0,
+        angle: Phaser.Math.Between(-90, 90),
+        scale: 0.45,
+        duration: skin.durationMs,
+        onComplete: function () {
+          chunk.destroy();
+        }
+      });
+    });
+
+    scene.lastPixelShatterEffect = {
+      type: "localGridBreak",
+      cellCount: cells.length,
+      hasSweepingScanline: false
+    };
     mark(scene, "pixelBreak");
     scene.tweens.add({
       targets: glitch,
-      alpha: 0.18,
-      y: y + Phaser.Math.Between(-2, 2),
-      duration: skin.glitchFlickerMs,
-      yoyo: true,
-      repeat: 1,
+      alpha: 0,
+      duration: skin.localFlickerDurationMs,
       onComplete: function () {
-        fade(scene, glitch, skin.durationMs * 0.45);
+        glitch.destroy();
       }
     });
-    scatter(scene, skin, x, y, scale, "square");
   }
 
   function drawLaser(scene, skin, x, y, scale) {
@@ -159,27 +188,83 @@
 
   function drawGroundBreak(scene, skin, x, y, scale) {
     var cracks = scene.add.graphics();
-    cracks.lineStyle(Math.max(1, skin.crackLineWidth * scale), skin.primaryColor, 0.82);
-    cracks.fillStyle(skin.secondaryColor, 0.08);
-    cracks.fillCircle(x, y, skin.craterRadius * scale);
-    for (var index = 0; index < skin.crackLines; index += 1) {
-      var angle = (Math.PI * 2 * index) / skin.crackLines + Phaser.Math.FloatBetween(-0.22, 0.22);
-      var length = Phaser.Math.Between(skin.crackLengthMin, skin.crackLengthMax) * scale;
-      var endX = x + Math.cos(angle) * length;
-      var endY = y + Math.sin(angle) * length;
-      cracks.lineBetween(x, y, endX, endY);
-      if (Math.random() < skin.crackBranchChance) {
-        var branchAngle = angle + Phaser.Math.FloatBetween(-0.85, 0.85);
-        var branchLength = length * Phaser.Math.FloatBetween(0.25, 0.48);
-        cracks.lineBetween(endX, endY, endX + Math.cos(branchAngle) * branchLength, endY + Math.sin(branchAngle) * branchLength);
+    var chunkCount = Phaser.Math.Between(skin.chunkCountMin, skin.chunkCountMax);
+    var pulse = scene.add.circle(x, y, skin.impactPulseRadius * scale, skin.secondaryColor, 0.08);
+    pulse.setStrokeStyle(2, skin.primaryColor, 0.42);
+    scene.tweens.add({
+      targets: pulse,
+      alpha: 0,
+      scale: 0.72,
+      duration: skin.durationMs * 0.36,
+      onComplete: function () {
+        pulse.destroy();
       }
+    });
+
+    cracks.fillStyle(skin.primaryColor, 0.22);
+    cracks.fillCircle(x, y, skin.centerGapRadius * scale);
+    cracks.lineStyle(2, skin.primaryColor, 0.72);
+    for (var crack = 0; crack < skin.shortCrackCount; crack += 1) {
+      var crackAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var startDistance = Phaser.Math.FloatBetween(skin.centerGapRadius, skin.maxCrackDistanceFromCenter * 0.72) * scale;
+      var length = Phaser.Math.Between(skin.shortCrackLengthMin, skin.shortCrackLengthMax) * scale;
+      var startX = x + Math.cos(crackAngle) * startDistance;
+      var startY = y + Math.sin(crackAngle) * startDistance;
+      var midAngle = crackAngle + Phaser.Math.FloatBetween(-0.55, 0.55);
+      var endX = startX + Math.cos(midAngle) * length;
+      var endY = startY + Math.sin(midAngle) * length;
+      cracks.lineBetween(startX, startY, endX, endY);
     }
+
+    for (var index = 0; index < chunkCount; index += 1) {
+      var angle = (Math.PI * 2 * index) / chunkCount + Phaser.Math.FloatBetween(-0.22, 0.22);
+      var distance = Phaser.Math.FloatBetween(skin.centerGapRadius, skin.collapseRadius) * scale;
+      var size = Phaser.Math.Between(skin.chunkSizeMin, skin.chunkSizeMax) * scale;
+      var chunk = scene.add.rectangle(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance, size, size * Phaser.Math.FloatBetween(0.58, 1.08), index % 2 ? skin.secondaryColor : skin.primaryColor, 0.62);
+      chunk.angle = Phaser.Math.Between(-25, 25);
+      scene.tweens.add({
+        targets: chunk,
+        x: chunk.x + Math.cos(angle) * skin.chunkShiftDistance * scale,
+        y: chunk.y + Math.sin(angle) * skin.chunkShiftDistance * scale + Phaser.Math.Between(1, 5) * scale,
+        alpha: 0,
+        angle: chunk.angle + Phaser.Math.Between(-30, 30),
+        duration: skin.durationMs * 0.78,
+        onComplete: function () {
+          chunk.destroy();
+        }
+      });
+    }
+
     mark(scene, "groundFracture");
+    scene.lastGroundBreakEffect = {
+      type: "localizedCollapse",
+      chunkCount: chunkCount,
+      shortCrackCount: skin.shortCrackCount
+    };
     fade(scene, cracks, skin.durationMs);
     scatter(scene, Object.assign({}, skin, { particleCount: skin.dustParticleCount }), x, y, scale, "dust");
     if (skin.shakeIntensity > 0 && scene.cameras && scene.cameras.main) {
       scene.cameras.main.shake(skin.shakeMs, skin.shakeIntensity);
     }
+  }
+
+  function chooseLocalPixelCells(skin, x, y, pixelSize) {
+    var cells = [];
+    var halfWidth = Math.floor(skin.gridWidthCells / 2);
+    var halfHeight = Math.floor(skin.gridHeightCells / 2);
+    for (var column = -halfWidth; column <= halfWidth; column += 1) {
+      for (var row = -halfHeight; row <= halfHeight; row += 1) {
+        var edgeRatio = Math.max(Math.abs(column) / Math.max(1, halfWidth), Math.abs(row) / Math.max(1, halfHeight));
+        var chance = skin.centerBreakChance + (skin.edgeBreakChance - skin.centerBreakChance) * edgeRatio;
+        if (Math.random() < chance) {
+          cells.push({ x: x + column * pixelSize, y: y + row * pixelSize });
+        }
+      }
+    }
+    if (cells.length === 0) {
+      cells.push({ x: x, y: y });
+    }
+    return cells;
   }
 
   function drawPaper(scene, skin, x, y, scale) {

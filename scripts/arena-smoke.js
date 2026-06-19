@@ -41,6 +41,8 @@ async function run() {
     assert(initial.stats.clickDamage > 0, "arena should expose cursor click damage");
     assert(initial.destructibleBackground.enabled === true, "destructible background should be enabled");
     assert(typeof initial.destructibleBackground.renderTextureUsed === "boolean", "destructible background should expose render texture mode");
+    assert(initial.destructibleBackground.backgroundMaterial.id === "containmentFloor", "destructible background should expose active material");
+    assert(initial.activeBackgroundSkin === "containmentFloor", "arena should expose default active background material");
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
     assert(await page.locator("#arenaSkinSelect option").count() >= 6, "skin selector should render required click skins");
     assert(await page.locator("#arenaEnemySkinSelect option").count() >= 5, "enemy skin selector should render required enemy skins");
@@ -75,13 +77,23 @@ async function run() {
       }
       if (skinId === "pixelShatter") {
         assert(afterEmptySkin.effectCounts.pixelBreak > (beforeEmptySkin.effectCounts.pixelBreak || 0), "Pixel Shatter empty click should create pixel break effect");
-        assert(afterEmptySkin.effectCounts.backgroundDamage_pixelCells > (beforeEmptySkin.effectCounts.backgroundDamage_pixelCells || 0), "Pixel Shatter empty click should damage pixel cells in the background layer");
+        assert(afterEmptySkin.effectCounts.backgroundDamage_localGridBreak > (beforeEmptySkin.effectCounts.backgroundDamage_localGridBreak || 0), "Pixel Shatter empty click should damage local cell grid in the background layer");
+        assert(afterEmptySkin.effectCounts.backgroundDamageResponse_pixelShatter > (beforeEmptySkin.effectCounts.backgroundDamageResponse_pixelShatter || 0), "Pixel Shatter should use material response");
+        assert(afterEmptySkin.destructibleBackground.lastPixelShatterBrush.type === "localGridBreak", "Pixel Shatter should expose local-grid brush debug info");
+        assert(afterEmptySkin.destructibleBackground.lastPixelShatterBrush.cellCount > 0, "Pixel Shatter local-grid brush should remove cells");
+        assert(afterEmptySkin.lastPixelShatterEffect.type === "localGridBreak", "Pixel Shatter foreground should be local grid break");
+        assert(afterEmptySkin.lastPixelShatterEffect.hasSweepingScanline === false, "Pixel Shatter foreground should not use sweeping scanline");
         assert(afterEmptySkin.destructibleBackground.damageCount > beforeEmptySkin.destructibleBackground.damageCount, "Pixel Shatter empty click should increment destructible damage count");
         await page.waitForFunction((before) => window.__containmentArena.getSnapshot().destructibleBackground.repairCount > before, beforeEmptySkin.destructibleBackground.repairCount, { timeout: 2600 });
       }
       if (skinId === "groundBreak") {
         assert(afterEmptySkin.effectCounts.groundFracture > (beforeEmptySkin.effectCounts.groundFracture || 0), "Ground Break empty click should fracture the background");
-        assert(afterEmptySkin.effectCounts.backgroundDamage_cracks > (beforeEmptySkin.effectCounts.backgroundDamage_cracks || 0), "Ground Break empty click should damage cracks in the background layer");
+        assert(afterEmptySkin.effectCounts.backgroundDamage_localizedCollapse > (beforeEmptySkin.effectCounts.backgroundDamage_localizedCollapse || 0), "Ground Break empty click should damage localized collapse in the background layer");
+        assert(afterEmptySkin.effectCounts.backgroundDamageResponse_groundBreak > (beforeEmptySkin.effectCounts.backgroundDamageResponse_groundBreak || 0), "Ground Break should use material response");
+        assert(afterEmptySkin.destructibleBackground.lastGroundBreakBrush.type === "localizedCollapse", "Ground Break should expose localized-collapse brush debug info");
+        assert(afterEmptySkin.destructibleBackground.lastGroundBreakBrush.lineCount > 0, "Ground Break collapse brush should create short crack lines");
+        assert(afterEmptySkin.lastGroundBreakEffect.type === "localizedCollapse", "Ground Break foreground should be localized collapse");
+        assert(afterEmptySkin.lastGroundBreakEffect.chunkCount >= 4 && afterEmptySkin.lastGroundBreakEffect.shortCrackCount <= 8, "Ground Break foreground should use compact chunks and short cracks");
         assert(afterEmptySkin.destructibleBackground.damageCount > beforeEmptySkin.destructibleBackground.damageCount, "Ground Break empty click should increment destructible damage count");
         await page.waitForFunction((before) => window.__containmentArena.getSnapshot().destructibleBackground.repairCount > before, beforeEmptySkin.destructibleBackground.repairCount, { timeout: 2600 });
       }

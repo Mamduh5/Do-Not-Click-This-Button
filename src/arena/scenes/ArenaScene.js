@@ -184,6 +184,8 @@
     this.enemies = [];
     this.effectCounts = {};
     this.enemySerial = 0;
+    this.lastGroundBreakEffect = null;
+    this.lastPixelShatterEffect = null;
     ARENA.DestructibleBackground.clear(this.destructibleBackgroundSystem);
     ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
@@ -260,9 +262,15 @@
       getSnapshot: function () {
         var destructibleSnapshot = ARENA.DestructibleBackground.getSnapshot(scene.destructibleBackgroundSystem);
         window.__arenaDebug = {
+          backgroundMaterial: destructibleSnapshot.backgroundMaterial,
+          lastGroundBreakBrush: destructibleSnapshot.lastGroundBreakBrush,
+          lastPixelShatterBrush: destructibleSnapshot.lastPixelShatterBrush,
+          lastGroundBreakEffect: scene.lastGroundBreakEffect || null,
+          lastPixelShatterEffect: scene.lastPixelShatterEffect || null,
           backgroundDamageCount: destructibleSnapshot.damageCount,
           backgroundRepairCount: destructibleSnapshot.repairCount,
-          activeDamageMarks: destructibleSnapshot.activeDamageMarks
+          activeDamageMarks: destructibleSnapshot.activeDamageMarks,
+          activeTemporaryChunks: destructibleSnapshot.activeTemporaryChunks
         };
         return {
           energy: scene.state.energy,
@@ -297,12 +305,16 @@
           }),
           combo: scene.combo,
           effectCounts: Object.assign({}, scene.effectCounts),
+          lastGroundBreakEffect: scene.lastGroundBreakEffect || null,
+          lastPixelShatterEffect: scene.lastPixelShatterEffect || null,
           destructibleBackground: destructibleSnapshot,
           backgroundDecalCount: scene.backgroundEffectSystem.decals.length,
           activeClickSkin: scene.state.activeClickSkin,
           unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),
           activeEnemySkin: scene.state.activeEnemySkin,
           unlockedEnemySkins: Object.assign({}, scene.state.unlockedEnemySkins),
+          activeBackgroundSkin: scene.state.activeBackgroundSkin,
+          unlockedBackgroundSkins: Object.assign({}, scene.state.unlockedBackgroundSkins),
           upgrades: Object.assign({}, scene.state.upgrades),
           stats: ARENA.Upgrades.computeStats(scene.state),
           muted: scene.state.muted

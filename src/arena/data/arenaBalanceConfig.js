@@ -132,6 +132,7 @@
       enabled: true,
       useRenderTexture: true,
       maxDamageMarks: 80,
+      maxTemporaryChunks: 90,
       surfaceAlpha: 1,
       underlayerAlpha: 1,
       brushScale: 1,

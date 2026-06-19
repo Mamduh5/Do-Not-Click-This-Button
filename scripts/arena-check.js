@@ -31,6 +31,7 @@ global.localStorage = {
   "src/arena/data/arenaUpgrades.js",
   "src/arena/data/clickEffectSkins.js",
   "src/arena/data/enemySkins.js",
+  "src/arena/data/backgroundSkins.js",
   "src/arena/systems/NumberFormat.js",
   "src/arena/systems/DestructibleBackgroundSystem.js",
   "src/arena/systems/ClickEffectSkinSystem.js",
@@ -60,6 +61,19 @@ const requiredSkinIds = ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBr
 const requiredEnemySkinIds = ["ant", "eyes", "tank", "hat", "worm"];
 
 assert(ARENA.UPGRADE_DEFS.length >= 5, "arena should define at least five upgrades");
+assert(ARENA.BACKGROUND_SKINS.length >= 1, "arena should define background material profiles");
+const backgroundSkin = ARENA.BackgroundSkins.get("containmentFloor");
+assert(backgroundSkin.id === "containmentFloor", "Containment Floor background material should exist");
+assert(backgroundSkin.surface && backgroundSkin.surface.gridSize > 0, "background material should define surface style");
+assert(backgroundSkin.underlayer && backgroundSkin.underlayer.voidColor !== undefined, "background material should define underlayer style");
+assert(backgroundSkin.repair && backgroundSkin.repair.durationMs > 0, "background material should define repair style");
+assert(backgroundSkin.damageResponses.groundBreak.type === "localizedCollapse", "Ground Break should use material localized collapse response");
+assert(backgroundSkin.damageResponses.pixelShatter.type === "localGridBreak", "Pixel Shatter should use material local-grid response");
+assert(backgroundSkin.damageResponses.groundBreak.collapseRadius <= 32, "Ground Break collapse should stay compact");
+assert(backgroundSkin.damageResponses.groundBreak.shortCrackLengthMax <= 24, "Ground Break should avoid long spider-web spokes");
+assert(backgroundSkin.damageResponses.groundBreak.chunkCountMin >= 4, "Ground Break material response should define broken floor chunks");
+assert(backgroundSkin.damageResponses.pixelShatter.gridWidthCells > 0 && backgroundSkin.damageResponses.pixelShatter.gridHeightCells > 0, "Pixel Shatter material response should define local grid dimensions");
+assert(backgroundSkin.damageResponses.pixelShatter.repairMode === "cell", "Pixel Shatter material response should repair as cells");
 assert(ARENA.CLICK_EFFECT_SKINS.length >= 6, "arena should define required click effect skins");
 const soundSignatures = new Set();
 requiredSkinIds.forEach((id) => {
@@ -85,23 +99,22 @@ assert(arrowSkin.thunkSound && arrowSkin.thunkSound.durationSeconds > 0, "Arrow 
 assert(arrowSkin.decal.type === "arrowRain", "Arrow Rain should define arrow rain background decal");
 const groundSkin = ARENA.ClickEffectSkins.get("groundBreak");
 assert(groundSkin.shakeIntensity === 0, "Ground Break shake should be disabled by default");
-assert(groundSkin.crackLines >= 12, "Ground Break should define stronger crack count");
-assert(groundSkin.decal.branchChance > 0, "Ground Break decal should define branch cracks");
-assert(groundSkin.backgroundDamage && groundSkin.backgroundDamage.type === "cracks", "Ground Break should define destructible crack brush");
-assert(groundSkin.backgroundDamage.crackWidth > 0, "Ground Break destructible crack width should be configurable");
-assert(groundSkin.backgroundDamage.centralBreakRadius > 0, "Ground Break central break radius should be configurable");
+assert(groundSkin.collapseRadius <= 32, "Ground Break should define compact collapse radius");
+assert(groundSkin.shortCrackCount > 0 && groundSkin.shortCrackLengthMax <= 24, "Ground Break should define short local cracks");
+assert(groundSkin.chunkCountMin >= 4 && groundSkin.chunkCountMax <= 8, "Ground Break should define compact floor chunk choreography");
+assert(groundSkin.backgroundDamage && groundSkin.backgroundDamage.response === "groundBreak", "Ground Break should request material damage response");
 assert(groundSkin.decal.enabled === false, "Ground Break should not use old top-layer sticker decal as primary feedback");
 const pixelSkin = ARENA.ClickEffectSkins.get("pixelShatter");
-assert(pixelSkin.pixelSize > 0 && pixelSkin.decal.gridSize > 0, "Pixel Shatter should define square pixel background values");
-assert(pixelSkin.particleCount >= 20, "Pixel Shatter should define stronger square particle burst");
-assert(pixelSkin.backgroundDamage && pixelSkin.backgroundDamage.type === "pixelCells", "Pixel Shatter should define destructible pixel-cell brush");
-assert(pixelSkin.backgroundDamage.cellSize > 0, "Pixel Shatter cell size should be configurable");
-assert(pixelSkin.backgroundDamage.repairMode === "cell", "Pixel Shatter repair mode should be configurable as cell repair");
+assert(pixelSkin.pixelSize > 0 && pixelSkin.gridWidthCells > 0 && pixelSkin.gridHeightCells > 0, "Pixel Shatter should define local square grid choreography");
+assert(pixelSkin.hasSweepingScanline === false, "Pixel Shatter should explicitly remove sweeping scanline");
+assert(pixelSkin.localFlickerCount > 0 && pixelSkin.localFlickerDurationMs > 0, "Pixel Shatter should define local flicker only");
+assert(pixelSkin.backgroundDamage && pixelSkin.backgroundDamage.response === "pixelShatter", "Pixel Shatter should request material damage response");
 assert(pixelSkin.decal.enabled === false, "Pixel Shatter should not use old top-layer sticker decal as primary feedback");
 assert(ARENA.DestructibleBackground && typeof ARENA.DestructibleBackground.create === "function", "destructible background system should exist");
 assert(ARENA.BALANCE_CONFIG.destructibleBackground.enabled === true, "destructible background should be configurable and enabled");
 assert(ARENA.BALANCE_CONFIG.destructibleBackground.useRenderTexture === true, "destructible background should prefer RenderTexture");
 assert(ARENA.BALANCE_CONFIG.destructibleBackground.maxDamageMarks > 0, "destructible damage marks should be capped");
+assert(ARENA.BALANCE_CONFIG.destructibleBackground.maxTemporaryChunks > 0, "destructible temporary chunks should be capped");
 assert(ARENA.BALANCE_CONFIG.destructibleBackground.repairDelayMs > 0, "destructible repair delay should be configurable");
 assert(ARENA.BALANCE_CONFIG.destructibleBackground.repairDurationMs > 0, "destructible repair duration should be configurable");
 assert(!ARENA.BALANCE_CONFIG.feedback.sharedBlackCircle, "no shared generic black circle config should exist");
@@ -129,7 +142,9 @@ assert(wormSkin.animation.wormWiggleAmplitude > 0, "Worm should define crawl wig
 assert(state.activeClickSkin === "meteorImpact", "default active click skin");
 assert(state.unlockedClickSkins.groundBreak === true, "default unlocked click skins");
 assert(state.activeEnemySkin === "ant", "default enemy skin");
+assert(state.activeBackgroundSkin === "containmentFloor", "default active background material");
 assert(state.unlockedEnemySkins.hat === true, "default unlocked enemy skins");
+assert(state.unlockedBackgroundSkins.containmentFloor === true, "default background material should be unlocked");
 assert(state.unlockedEnemySkins.worm === true, "worm enemy skin should be unlocked by default");
 assert(!state.unlockedEnemySkins.tree, "tree enemy skin should not be unlocked by default");
 assert(ARENA.BALANCE_CONFIG.backgroundEffects.maxDecals > 0, "background decal cap should be configured");
@@ -191,6 +206,7 @@ assert(loaded.activeClickSkin === "sciFiLaser", "active skin should persist");
 assert(loaded.unlockedClickSkins.meteorImpact === true, "unlocked skins should persist");
 assert(loaded.activeEnemySkin === "eyes", "active enemy skin should persist");
 assert(loaded.unlockedEnemySkins.ant === true, "unlocked enemy skins should persist");
+assert(loaded.activeBackgroundSkin === "containmentFloor", "active background material should persist");
 
 const migratedTreeSave = ARENA.Save.validateState({
   activeEnemySkin: "tree",
