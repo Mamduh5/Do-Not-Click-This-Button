@@ -26,10 +26,11 @@
     this.enemySerial = 0;
     this.spawningEnabled = true;
     this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2 };
-    this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
-    this.helperCursorSystem = ARENA.HelperCursors.create(this);
 
     drawRoom(this);
+    this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
+    this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.input.on("pointerdown", this.handlePointerDown, this);
 
     this.hud = ARENA.createArenaHud({
@@ -183,7 +184,9 @@
     this.enemies = [];
     this.effectCounts = {};
     this.enemySerial = 0;
+    ARENA.DestructibleBackground.clear(this.destructibleBackgroundSystem);
     ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
+    this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.hud.log("PROTOTYPE SAVE RESET");
@@ -255,6 +258,12 @@
         scene.setEnemySkin(id);
       },
       getSnapshot: function () {
+        var destructibleSnapshot = ARENA.DestructibleBackground.getSnapshot(scene.destructibleBackgroundSystem);
+        window.__arenaDebug = {
+          backgroundDamageCount: destructibleSnapshot.damageCount,
+          backgroundRepairCount: destructibleSnapshot.repairCount,
+          activeDamageMarks: destructibleSnapshot.activeDamageMarks
+        };
         return {
           energy: scene.state.energy,
           wave: scene.state.wave,
@@ -288,6 +297,7 @@
           }),
           combo: scene.combo,
           effectCounts: Object.assign({}, scene.effectCounts),
+          destructibleBackground: destructibleSnapshot,
           backgroundDecalCount: scene.backgroundEffectSystem.decals.length,
           activeClickSkin: scene.state.activeClickSkin,
           unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),

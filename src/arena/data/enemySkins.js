@@ -33,7 +33,7 @@
         segmentCount: 3,
         headRadius: 0.4,
         thoraxRadius: 0.43,
-        abdomenRadius: 0.58,
+        abdomenRadius: 0.64,
         waistWidth: 0.12,
         antennaLength: 0.68,
         legPairs: 3

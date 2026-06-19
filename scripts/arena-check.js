@@ -32,6 +32,7 @@ global.localStorage = {
   "src/arena/data/clickEffectSkins.js",
   "src/arena/data/enemySkins.js",
   "src/arena/systems/NumberFormat.js",
+  "src/arena/systems/DestructibleBackgroundSystem.js",
   "src/arena/systems/ClickEffectSkinSystem.js",
   "src/arena/systems/EnemySkinSystem.js",
   "src/arena/systems/SaveSystem.js",
@@ -66,7 +67,7 @@ requiredSkinIds.forEach((id) => {
   assert(skin.id === id, id + " skin should exist");
   assert(skin.unlockedByDefault === true, id + " should be unlocked by default for testing");
   assert(skin.sound && skin.sound.durationSeconds > 0, id + " should define generated sound");
-  assert(skin.decal && skin.decal.enabled === true, id + " should define background decal config");
+  assert((skin.decal && skin.decal.enabled === true) || (skin.backgroundDamage && skin.backgroundDamage.enabled === true), id + " should define background interaction config");
   soundSignatures.add([skin.sound.frequency, skin.sound.endFrequency, skin.sound.durationSeconds, skin.sound.type].join(":"));
 });
 assert(soundSignatures.size === requiredSkinIds.length, "all click skins should have unique sound config");
@@ -86,9 +87,23 @@ const groundSkin = ARENA.ClickEffectSkins.get("groundBreak");
 assert(groundSkin.shakeIntensity === 0, "Ground Break shake should be disabled by default");
 assert(groundSkin.crackLines >= 12, "Ground Break should define stronger crack count");
 assert(groundSkin.decal.branchChance > 0, "Ground Break decal should define branch cracks");
+assert(groundSkin.backgroundDamage && groundSkin.backgroundDamage.type === "cracks", "Ground Break should define destructible crack brush");
+assert(groundSkin.backgroundDamage.crackWidth > 0, "Ground Break destructible crack width should be configurable");
+assert(groundSkin.backgroundDamage.centralBreakRadius > 0, "Ground Break central break radius should be configurable");
+assert(groundSkin.decal.enabled === false, "Ground Break should not use old top-layer sticker decal as primary feedback");
 const pixelSkin = ARENA.ClickEffectSkins.get("pixelShatter");
 assert(pixelSkin.pixelSize > 0 && pixelSkin.decal.gridSize > 0, "Pixel Shatter should define square pixel background values");
 assert(pixelSkin.particleCount >= 20, "Pixel Shatter should define stronger square particle burst");
+assert(pixelSkin.backgroundDamage && pixelSkin.backgroundDamage.type === "pixelCells", "Pixel Shatter should define destructible pixel-cell brush");
+assert(pixelSkin.backgroundDamage.cellSize > 0, "Pixel Shatter cell size should be configurable");
+assert(pixelSkin.backgroundDamage.repairMode === "cell", "Pixel Shatter repair mode should be configurable as cell repair");
+assert(pixelSkin.decal.enabled === false, "Pixel Shatter should not use old top-layer sticker decal as primary feedback");
+assert(ARENA.DestructibleBackground && typeof ARENA.DestructibleBackground.create === "function", "destructible background system should exist");
+assert(ARENA.BALANCE_CONFIG.destructibleBackground.enabled === true, "destructible background should be configurable and enabled");
+assert(ARENA.BALANCE_CONFIG.destructibleBackground.useRenderTexture === true, "destructible background should prefer RenderTexture");
+assert(ARENA.BALANCE_CONFIG.destructibleBackground.maxDamageMarks > 0, "destructible damage marks should be capped");
+assert(ARENA.BALANCE_CONFIG.destructibleBackground.repairDelayMs > 0, "destructible repair delay should be configurable");
+assert(ARENA.BALANCE_CONFIG.destructibleBackground.repairDurationMs > 0, "destructible repair duration should be configurable");
 assert(!ARENA.BALANCE_CONFIG.feedback.sharedBlackCircle, "no shared generic black circle config should exist");
 assert(ARENA.EnemySkins.setActive(ARENA.Save.createDefaultState(), "tree") === false, "removed Tree skin should not be selectable");
 requiredEnemySkinIds.forEach((id) => {
@@ -105,6 +120,7 @@ const antSkin = ARENA.EnemySkins.get("ant");
 assert(antSkin.ant && antSkin.ant.segmentCount === 3, "Ant should define three segmented body sections");
 assert(antSkin.ant.legPairs === 3, "Ant should define three leg pairs");
 assert(antSkin.ant.waistWidth > 0, "Ant should define narrow waist config");
+assert(antSkin.ant.abdomenRadius >= 0.64, "Ant rear abdomen should be explicitly larger");
 assert(antSkin.scale < 1, "Ant should be slightly smaller");
 assert(antSkin.bodyColor !== 0x161312 && antSkin.accentColor > antSkin.bodyColor, "Ant should use red/dark red colors");
 const wormSkin = ARENA.EnemySkins.get("worm");

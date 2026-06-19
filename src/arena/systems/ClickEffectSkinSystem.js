@@ -81,6 +81,10 @@
       drawArrowRain(scene, skin, x, y, scale);
     }
 
+    if (ARENA.DestructibleBackground && scene.destructibleBackgroundSystem && !(options && options.noDecal)) {
+      ARENA.DestructibleBackground.apply(scene.destructibleBackgroundSystem, skin, x, y, scale);
+    }
+
     if (ARENA.BackgroundEffects && !(options && options.noDecal)) {
       ARENA.BackgroundEffects.add(scene.backgroundEffectSystem, skin, x, y, scale);
     }

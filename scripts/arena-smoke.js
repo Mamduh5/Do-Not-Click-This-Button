@@ -39,6 +39,8 @@ async function run() {
     assert(initial.wave === 1, "arena should start at wave 1");
     assert(initial.stats.clickRadius > 0, "arena should expose cursor click radius");
     assert(initial.stats.clickDamage > 0, "arena should expose cursor click damage");
+    assert(initial.destructibleBackground.enabled === true, "destructible background should be enabled");
+    assert(typeof initial.destructibleBackground.renderTextureUsed === "boolean", "destructible background should expose render texture mode");
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
     assert(await page.locator("#arenaSkinSelect option").count() >= 6, "skin selector should render required click skins");
     assert(await page.locator("#arenaEnemySkinSelect option").count() >= 5, "enemy skin selector should render required enemy skins");
@@ -68,14 +70,20 @@ async function run() {
       assert(afterEmptySkin.energy === beforeEmptySkin.energy, skinId + " empty click should not grant Energy");
       assert(afterEmptySkin.effectCounts.missImpact > (beforeEmptySkin.effectCounts.missImpact || 0), skinId + " empty click should create miss feedback");
       assert(afterEmptySkin.effectCounts["skin_" + skinId] > (beforeEmptySkin.effectCounts["skin_" + skinId] || 0), skinId + " empty click should create active skin effect");
-      assert(afterEmptySkin.effectCounts.backgroundDecals > (beforeEmptySkin.effectCounts.backgroundDecals || 0), skinId + " empty click should create a background decal");
+      if (skinId !== "pixelShatter" && skinId !== "groundBreak") {
+        assert(afterEmptySkin.effectCounts.backgroundDecals > (beforeEmptySkin.effectCounts.backgroundDecals || 0), skinId + " empty click should create a background decal");
+      }
       if (skinId === "pixelShatter") {
         assert(afterEmptySkin.effectCounts.pixelBreak > (beforeEmptySkin.effectCounts.pixelBreak || 0), "Pixel Shatter empty click should create pixel break effect");
-        assert(afterEmptySkin.effectCounts.backgroundPixels > (beforeEmptySkin.effectCounts.backgroundPixels || 0), "Pixel Shatter empty click should create pixel background residue");
+        assert(afterEmptySkin.effectCounts.backgroundDamage_pixelCells > (beforeEmptySkin.effectCounts.backgroundDamage_pixelCells || 0), "Pixel Shatter empty click should damage pixel cells in the background layer");
+        assert(afterEmptySkin.destructibleBackground.damageCount > beforeEmptySkin.destructibleBackground.damageCount, "Pixel Shatter empty click should increment destructible damage count");
+        await page.waitForFunction((before) => window.__containmentArena.getSnapshot().destructibleBackground.repairCount > before, beforeEmptySkin.destructibleBackground.repairCount, { timeout: 2600 });
       }
       if (skinId === "groundBreak") {
         assert(afterEmptySkin.effectCounts.groundFracture > (beforeEmptySkin.effectCounts.groundFracture || 0), "Ground Break empty click should fracture the background");
-        assert(afterEmptySkin.effectCounts.backgroundCracks > (beforeEmptySkin.effectCounts.backgroundCracks || 0), "Ground Break empty click should create crack decal");
+        assert(afterEmptySkin.effectCounts.backgroundDamage_cracks > (beforeEmptySkin.effectCounts.backgroundDamage_cracks || 0), "Ground Break empty click should damage cracks in the background layer");
+        assert(afterEmptySkin.destructibleBackground.damageCount > beforeEmptySkin.destructibleBackground.damageCount, "Ground Break empty click should increment destructible damage count");
+        await page.waitForFunction((before) => window.__containmentArena.getSnapshot().destructibleBackground.repairCount > before, beforeEmptySkin.destructibleBackground.repairCount, { timeout: 2600 });
       }
       if (skinId === "arrowStrike") {
         assert(afterEmptySkin.effectCounts.arrowRain > (beforeEmptySkin.effectCounts.arrowRain || 0), "Arrow Rain empty click should create arrow rain effect");
@@ -105,7 +113,11 @@ async function run() {
       const skinSnapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
       assert(skinSnapshot.activeClickSkin === skinId, skinId + " should become active");
       assert(skinSnapshot.effectCounts["skin_" + skinId] > 0, skinId + " should create skin-specific effects");
-      assert(skinSnapshot.effectCounts.backgroundDecals > 0, skinId + " should create background decals");
+      if (skinId === "pixelShatter" || skinId === "groundBreak") {
+        assert(skinSnapshot.destructibleBackground.damageCount > beforeSkinSnapshot.destructibleBackground.damageCount, skinId + " should damage the destructible background on enemy click");
+      } else {
+        assert(skinSnapshot.effectCounts.backgroundDecals > 0, skinId + " should create background decals");
+      }
       if (skinId === "arrowStrike") {
         assert(skinSnapshot.effectCounts.arrowRain > (beforeSkinSnapshot.effectCounts.arrowRain || 0), "Arrow Rain should create multi-arrow visual");
         await page.waitForFunction((before) => window.__containmentArena.getSnapshot().effectCounts.arrowRainArrow >= before + 3, beforeSkinSnapshot.effectCounts.arrowRainArrow || 0, { timeout: 1500 });

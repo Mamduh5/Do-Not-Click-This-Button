@@ -28,6 +28,15 @@
       particleCount: 14,
       particleSize: 4,
       particleDistance: 44,
+      backgroundDamage: {
+        enabled: true,
+        type: "scorch",
+        radius: 18,
+        repairDelayMs: 850,
+        repairDurationMs: 1200,
+        underlayerColor: 0x351d17,
+        detailColor: 0x6a2b18
+      },
       decal: { enabled: true, type: "scorch", color: 0x5c2a14, alpha: 0.18, radius: 24, lines: 0, fadeMs: 3800 },
       shakeMs: 45,
       shakeIntensity: 0.0015,
@@ -53,7 +62,21 @@
       pixelSpread: 46,
       decalGridSize: 5,
       glitchFlickerMs: 150,
-      decal: { enabled: true, type: "pixels", color: 0xaa2a2a, alpha: 0.18, radius: 22, blocks: 14, gridSize: 5, fadeMs: 3600 },
+      backgroundDamage: {
+        enabled: true,
+        type: "pixelCells",
+        cellSize: 6,
+        gridRadius: 6,
+        missingCellChance: 0.58,
+        chunkCount: 22,
+        chunkDistance: 52,
+        repairMode: "cell",
+        repairDelayMs: 850,
+        repairDurationMs: 1400,
+        glitchColor: 0xaa2a2a,
+        glitchAlpha: 0.45
+      },
+      decal: { enabled: false, type: "pixels", color: 0xaa2a2a, alpha: 0.08, radius: 14, blocks: 4, gridSize: 5, fadeMs: 1200 },
       shakeMs: 0,
       shakeIntensity: 0,
       sound: { frequency: 220, endFrequency: 75, durationSeconds: 0.075, type: "square", volume: 0.13 }
@@ -77,6 +100,16 @@
       particleDistance: 34,
       beamHeight: 220,
       beamWidth: 5,
+      backgroundDamage: {
+        enabled: true,
+        type: "burn",
+        radius: 10,
+        lineLength: 28,
+        repairDelayMs: 650,
+        repairDurationMs: 900,
+        underlayerColor: 0x123843,
+        detailColor: 0x19d8ff
+      },
       decal: { enabled: true, type: "burn", color: 0x19d8ff, alpha: 0.16, radius: 16, lines: 2 },
       sound: { frequency: 760, endFrequency: 410, durationSeconds: 0.08, type: "sawtooth", volume: 0.12 }
     },
@@ -103,7 +136,22 @@
       crackLineWidth: 2,
       dustParticleCount: 18,
       craterRadius: 16,
-      decal: { enabled: true, type: "cracks", color: 0x5f4a3a, alpha: 0.24, radius: 42, lines: 14, branchChance: 0.45, lineWidth: 2, fadeMs: 5200 },
+      backgroundDamage: {
+        enabled: true,
+        type: "cracks",
+        crackCount: 14,
+        crackLengthMin: 28,
+        crackLengthMax: 74,
+        crackJaggedness: 0.34,
+        crackWidth: 5,
+        branchChance: 0.46,
+        centralBreakRadius: 15,
+        repairDelayMs: 1050,
+        repairDurationMs: 1500,
+        detailColor: 0x15191c,
+        underlayerColor: 0x2b2522
+      },
+      decal: { enabled: false, type: "cracks", color: 0x5f4a3a, alpha: 0.08, radius: 18, lines: 4, branchChance: 0.2, lineWidth: 1, fadeMs: 1200 },
       shakeMs: 0,
       shakeIntensity: 0,
       sound: { frequency: 140, endFrequency: 46, durationSeconds: 0.12, type: "triangle", volume: 0.15 }
@@ -127,6 +175,7 @@
       particleCount: 13,
       particleSize: 4,
       particleDistance: 34,
+      backgroundDamage: { enabled: false },
       decal: { enabled: true, type: "paper", color: 0xe8dec8, alpha: 0.22, radius: 18, blocks: 5 },
       sound: { frequency: 420, endFrequency: 190, durationSeconds: 0.09, type: "triangle", volume: 0.11 }
     },
@@ -165,6 +214,17 @@
       particleCount: 4,
       particleSize: 3,
       particleDistance: 18,
+      backgroundDamage: {
+        enabled: true,
+        type: "punctures",
+        count: 5,
+        radius: 24,
+        holeRadius: 3,
+        repairDelayMs: 720,
+        repairDurationMs: 900,
+        underlayerColor: 0x2a211a,
+        detailColor: 0x6f4a25
+      },
       decal: { enabled: true, type: "arrowRain", color: 0x6f4a25, alpha: 0.2, radius: 22, arrows: 4, punctures: 5, fadeMs: 3600 },
       sound: { frequency: 540, endFrequency: 420, durationSeconds: 0.05, type: "triangle", volume: 0.09 },
       thunkSound: { frequency: 150, endFrequency: 70, durationSeconds: 0.045, type: "triangle", volume: 0.09, delaySeconds: 0.055 }

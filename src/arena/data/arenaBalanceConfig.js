@@ -128,6 +128,34 @@
       lineWidth: 2
     },
 
+    destructibleBackground: {
+      enabled: true,
+      useRenderTexture: true,
+      maxDamageMarks: 80,
+      surfaceAlpha: 1,
+      underlayerAlpha: 1,
+      brushScale: 1,
+      repairDelayMs: 900,
+      repairDurationMs: 1200,
+      surfaceColor: 0xf4f7f8,
+      surfaceGridColor: 0xd9e2e6,
+      surfaceBorderColor: 0xbac8ce,
+      surfaceDetailColor: 0x9caeb6,
+      underlayerColor: 0x252c31,
+      underlayerCrackColor: 0x11181d,
+      underlayerGlowColor: 0x8f2a3a,
+      underlayerGridAlpha: 0.22,
+      gridSize: 48,
+      borderInset: 18,
+      coreRingRadius: 64,
+      underlayerDepth: -19,
+      surfaceDepth: -18,
+      repairDepth: -17,
+      fallbackDamageDepth: -16,
+      fallbackDamageAlpha: 0.34,
+      repairPatchAlpha: 0.98
+    },
+
     autosaveMs: 5000,
 
     audio: {
