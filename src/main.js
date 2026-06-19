@@ -1,28 +1,45 @@
 (function () {
   "use strict";
 
-  var config = {
-    type: Phaser.AUTO,
-    parent: "game",
-    backgroundColor: "#07090d",
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight,
-      min: {
-        width: 360,
-        height: 560
-      }
-    },
-    scene: [DNC.GameScene]
-  };
-
   window.addEventListener("load", function () {
     if (!window.Phaser) {
-      document.getElementById("game").textContent = "Phaser failed to load.";
+      document.getElementById("consoleLog").textContent = "> Phaser failed to load.";
       return;
     }
 
-    new Phaser.Game(config);
+    var controller = DNC.bindDomUi();
+
+    var tickScene = {
+      key: "DomTickScene",
+      create: function () {
+        this.time.addEvent({
+          delay: 250,
+          loop: true,
+          callback: function () {
+            controller.tick(0.25);
+          }
+        });
+
+        this.time.addEvent({
+          delay: 5000,
+          loop: true,
+          callback: function () {
+            controller.save();
+          }
+        });
+      }
+    };
+
+    new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: "phaser-root",
+      width: 1,
+      height: 1,
+      transparent: true,
+      audio: {
+        noAudio: true
+      },
+      scene: [tickScene]
+    });
   });
 })();

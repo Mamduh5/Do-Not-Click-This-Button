@@ -4,38 +4,123 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Do Not Click This Button</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-        background: #07090d;
-        overflow: hidden;
-        font-family: Arial, Helvetica, sans-serif;
-      }
-
-      #game {
-        width: 100vw;
-        height: 100vh;
-      }
-
-      canvas {
-        display: block;
-      }
-    </style>
+    <link rel="stylesheet" href="src/styles/dnc.css">
   </head>
   <body>
-    <div id="game"></div>
+    <div class="dnc-root" id="gameRoot">
+      <div id="phaser-root" aria-hidden="true"></div>
+      <div class="scanlines"></div>
+      <div class="overlay-warning" id="overlayWarning"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+      <div class="dnc-header">
+        <div class="state-indicator" id="stateDot"></div>
+        <div class="dnc-title" id="headlineText">&#9888; CONTAINMENT SYSTEM ARMED &#9888;</div>
+        <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07</div>
+      </div>
+
+      <div class="status-bar">
+        <div class="stat-block">
+          <div class="stat-label">Power</div>
+          <div class="stat-value cyan" id="powerDisplay">0</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Instability</div>
+          <div class="stat-value danger" id="instabilityDisplay">0%</div>
+          <div class="instability-bar"><div class="instability-fill" id="instabilityFill" style="width:0%"></div></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Per Click</div>
+          <div class="stat-value" id="perClickDisplay">1</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Per Second</div>
+          <div class="stat-value amber" id="perSecDisplay">0</div>
+        </div>
+      </div>
+
+      <div class="main-area">
+        <div class="center-panel">
+          <div class="warning-headline" id="warnHeadline">DO NOT CLICK THIS BUTTON</div>
+
+          <div class="button-container" id="btnContainer">
+            <div class="hazard-stripe"></div>
+            <div class="containment-ring"></div>
+            <div class="containment-ring-2"></div>
+            <button class="forbidden-btn" id="mainBtn" type="button" aria-label="The forbidden button. Do not click.">
+              DO NOT<br>CLICK
+            </button>
+          </div>
+
+          <div class="click-count" id="clickCount">TOTAL INTERACTIONS: 0</div>
+          <div class="state-badge stable" id="stateBadge">&#9632; STABLE</div>
+        </div>
+
+        <div class="side-panel">
+          <div class="tab-row">
+            <button class="tab-btn active" type="button" data-tab="power">PWR</button>
+            <button class="tab-btn" type="button" data-tab="auto">AUTO</button>
+            <button class="tab-btn" type="button" data-tab="contain">CTN</button>
+            <button class="tab-btn" type="button" data-tab="risk">RISK</button>
+          </div>
+
+          <div class="tab-panel" id="tab-power" data-tab-panel="power">
+            <div class="panel-label">Power Upgrades</div>
+            <div class="upgrade-list" id="list-power"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-auto" data-tab-panel="auto" hidden>
+            <div class="panel-label">Automation</div>
+            <div class="upgrade-list" id="list-auto"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-contain" data-tab-panel="contain" hidden>
+            <div class="panel-label">Containment</div>
+            <div class="upgrade-list" id="list-contain"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-risk" data-tab-panel="risk" hidden>
+            <div class="panel-label">Risk Upgrades</div>
+            <div class="upgrade-list" id="list-risk"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="instability-warning" id="instabWarn">&#9888; CONTAINMENT DEGRADING &mdash; BREACH IMMINENT</div>
+
+      <div class="bottom-area">
+        <div class="console-label">// SYSTEM LOG &mdash; UNIT-07 CONTAINMENT CONSOLE</div>
+        <div id="consoleLog"></div>
+      </div>
+
+      <div class="settings-row">
+        <button class="settings-btn" type="button" id="motionBtn">MOTION: ON</button>
+        <button class="settings-btn" type="button" id="resetBtn">RESET</button>
+      </div>
+
+      <div class="breach-overlay" id="breachOverlay" role="dialog" aria-modal="true" aria-labelledby="breachTitle">
+        <div class="breach-text" id="breachTitle">REALITY BREACH DETECTED</div>
+        <div class="breach-modal">
+          <h3>Containment failed.</h3>
+          <div class="shard-count" id="shardCount">+0</div>
+          <div class="shard-label">Anomaly Shards Gained</div>
+          <p>Anomaly Shards gained: <span id="shardLine">0</span></p>
+          <p>Total interactions before breach: <span id="breachClicks">0</span></p>
+          <button class="breach-btn" type="button" id="breachContinueBtn">REINITIALIZE SYSTEM</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
     <script src="src/game/systems/NumberFormat.js"></script>
     <script src="src/game/systems/GameState.js"></script>
     <script src="src/game/data/upgrades.js"></script>
     <script src="src/game/systems/UpgradeSystem.js"></script>
     <script src="src/game/systems/InstabilitySystem.js"></script>
     <script src="src/game/systems/SaveSystem.js"></script>
-    <script src="src/game/scenes/GameScene.js"></script>
+    <script src="src/game/ui/consoleLog.js"></script>
+    <script src="src/game/ui/tabs.js"></script>
+    <script src="src/game/ui/breachModal.js"></script>
+    <script src="src/game/ui/bindDomUi.js"></script>
     <script src="src/main.js"></script>
   </body>
 </html>

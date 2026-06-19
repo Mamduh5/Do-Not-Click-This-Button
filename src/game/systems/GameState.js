@@ -27,6 +27,7 @@
       instabilityPerSecond: BASE_STATS.instabilityPerSecond,
       containmentPerSecond: BASE_STATS.containmentPerSecond,
       upgrades: {},
+      totalClicks: 0,
       lastSavedAt: Date.now(),
       reducedMotion: false
     };
@@ -56,13 +57,22 @@
     state.instability = clamp(toSafeNumber(source.instability, state.instability), 0, 100);
     state.breachCount = toSafeInteger(source.breachCount, state.breachCount);
     state.anomalyShards = toSafeInteger(source.anomalyShards, state.anomalyShards);
+    state.totalClicks = toSafeInteger(source.totalClicks, state.totalClicks);
     state.lastSavedAt = Math.max(0, toSafeNumber(source.lastSavedAt, state.lastSavedAt));
     state.reducedMotion = Boolean(source.reducedMotion);
 
+    var legacyUpgradeIds = {
+      reinforcedButton: "reinfBtn",
+      autoPresser: "autoPress",
+      containmentField: "conField",
+      forbiddenMultiplier: "forbMult"
+    };
+
     Object.keys(upgrades).forEach(function (id) {
+      var targetId = legacyUpgradeIds[id] || id;
       var level = toSafeInteger(upgrades[id], 0);
       if (level > 0) {
-        state.upgrades[id] = level;
+        state.upgrades[targetId] = (state.upgrades[targetId] || 0) + level;
       }
     });
 

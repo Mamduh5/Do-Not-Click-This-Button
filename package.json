@@ -1,0 +1,15 @@
+{
+  "name": "do-not-click-this-button",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "start": "vite --host 127.0.0.1",
+    "check": "node scripts/check.js"
+  },
+  "dependencies": {
+    "phaser": "3.90.0",
+    "vite": "latest"
+  },
+  "devDependencies": {}
+}

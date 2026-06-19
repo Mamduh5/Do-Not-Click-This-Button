@@ -1,0 +1,852 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap');
+
+  .dnc-root {
+    background: #0a0c0f;
+    color: #c8d0d8;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 600px;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  }
+
+  .dnc-header {
+    background: #0d0f14;
+    border-bottom: 1px solid #1f2a1a;
+    padding: 8px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative; z-index: 10;
+  }
+
+  .dnc-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: #e84040; letter-spacing: 3px; text-transform: uppercase;
+  }
+
+  .dnc-sys {
+    font-size: 10px; color: #3a4a3a; letter-spacing: 1px;
+  }
+
+  .status-bar {
+    background: #0d1117;
+    border-bottom: 1px solid #1a2030;
+    padding: 8px 16px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; position: relative; z-index: 10;
+  }
+
+  .stat-block { text-align: center; }
+  .stat-label { font-size: 9px; color: #3a5040; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+  .stat-value { font-size: 18px; color: #e0ffe0; font-family: 'Rajdhani', sans-serif; font-weight: 700; line-height: 1; }
+  .stat-value.danger { color: #e84040; }
+  .stat-value.amber { color: #f0a020; }
+  .stat-value.cyan { color: #20d0e0; }
+
+  .instability-bar {
+    height: 3px; background: #111820;
+    margin: 4px 0 0; border-radius: 2px; overflow: hidden;
+  }
+  .instability-fill {
+    height: 100%; background: #20d0e0;
+    transition: width 0.3s, background 0.3s;
+    border-radius: 2px;
+  }
+
+  .main-area {
+    display: grid; grid-template-columns: 1fr 200px;
+    gap: 0; height: 420px;
+    position: relative; z-index: 5;
+  }
+
+  .center-panel {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 20px; position: relative;
+  }
+
+  .warning-headline {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: #e84040; letter-spacing: 4px; text-transform: uppercase;
+    margin-bottom: 20px; text-align: center;
+    animation: pulse-text 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-text {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .button-container {
+    position: relative; margin: 10px 0;
+  }
+
+  .containment-ring {
+    position: absolute; inset: -16px;
+    border-radius: 50%;
+    border: 2px solid #e8404030;
+    animation: rotate-ring 8s linear infinite;
+  }
+  .containment-ring-2 {
+    position: absolute; inset: -8px;
+    border-radius: 50%;
+    border: 1px dashed #f0a02050;
+    animation: rotate-ring 12s linear infinite reverse;
+  }
+
+  @keyframes rotate-ring { to { transform: rotate(360deg); } }
+
+  .hazard-stripe {
+    position: absolute; inset: -24px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(#e8404010 0deg 10deg, transparent 10deg 20deg);
+    animation: rotate-ring 20s linear infinite;
+  }
+
+  .forbidden-btn {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #c83030, #8b1a1a, #3a0808);
+    border: 3px solid #e84040;
+    cursor: pointer;
+    position: relative; z-index: 2;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px; font-weight: 700;
+    color: #fff; letter-spacing: 1px; text-transform: uppercase;
+    transition: transform 0.08s, box-shadow 0.1s;
+    outline: none;
+    box-shadow: 0 0 20px #e8404040, 0 0 40px #e8404020, inset 0 2px 4px rgba(255,255,255,0.15);
+  }
+
+  .forbidden-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 30px #e8404070, 0 0 60px #e8404030, inset 0 2px 4px rgba(255,255,255,0.2);
+  }
+
+  .forbidden-btn:active {
+    transform: scale(0.96);
+    box-shadow: 0 0 10px #e84040, inset 0 4px 8px rgba(0,0,0,0.4);
+  }
+
+  .forbidden-btn.critical {
+    animation: btn-critical 0.4s ease-in-out infinite alternate;
+    border-color: #ff6060;
+  }
+
+  @keyframes btn-critical {
+    from { box-shadow: 0 0 30px #e84040, 0 0 60px #e8404050; }
+    to { box-shadow: 0 0 50px #ff2020, 0 0 100px #e8404080; }
+  }
+
+  .click-feedback {
+    position: absolute; pointer-events: none; z-index: 20;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    color: #20d0e0; font-size: 16px;
+    animation: float-up 0.8s ease-out forwards;
+    top: 50%; left: 50%; transform: translateX(-50%);
+  }
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-40px); }
+  }
+
+  .click-count {
+    font-size: 10px; color: #2a4030; margin-top: 12px; letter-spacing: 1px;
+  }
+
+  .state-badge {
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 3px;
+    border: 1px solid currentColor; margin-top: 8px;
+  }
+  .state-badge.stable { color: #20c060; }
+  .state-badge.disturbed { color: #f0a020; }
+  .state-badge.unstable { color: #e06020; }
+  .state-badge.critical { color: #e84040; animation: pulse-text 0.5s infinite; }
+
+  .side-panel {
+    background: #0a0e14;
+    border-left: 1px solid #141c24;
+    overflow-y: auto; padding: 8px;
+  }
+
+  .panel-label {
+    font-size: 9px; color: #2a4040; letter-spacing: 2px;
+    text-transform: uppercase; padding: 6px 4px 4px;
+    border-bottom: 1px solid #141c24; margin-bottom: 6px;
+  }
+
+  .upgrade-card {
+    background: #0f1520;
+    border: 1px solid #1a2530;
+    border-radius: 4px; padding: 8px; margin-bottom: 6px;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .upgrade-card:hover:not(.unaffordable) {
+    background: #141c28; border-color: #20d0e060;
+  }
+  .upgrade-card.unaffordable { opacity: 0.4; cursor: not-allowed; }
+  .upgrade-card.dangerous { border-color: #e8404040; }
+  .upgrade-card.dangerous:hover { border-color: #e8404090; }
+  .upgrade-card.containment { border-color: #20d0e020; }
+  .upgrade-card.containment:hover { border-color: #20d0e060; }
+  .upgrade-card.purchased { border-color: #20c06050; }
+
+  .upgrade-name { font-size: 11px; color: #c0d0b0; margin-bottom: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 700; }
+  .upgrade-cost { font-size: 10px; color: #20d0e0; }
+  .upgrade-effect { font-size: 9px; color: #3a5040; margin-top: 2px; }
+  .upgrade-tag {
+    position: absolute; top: 4px; right: 4px;
+    font-size: 8px; padding: 1px 4px; border-radius: 2px;
+  }
+  .tag-danger { background: #e8404020; color: #e84040; border: 1px solid #e8404040; }
+  .tag-safe { background: #20d0e020; color: #20d0e0; border: 1px solid #20d0e040; }
+  .tag-owned { background: #20c06020; color: #20c060; border: 1px solid #20c06040; }
+
+  .bottom-area {
+    border-top: 1px solid #141c24;
+    background: #090c10;
+    padding: 8px 12px;
+    height: 120px; overflow: hidden;
+    position: relative; z-index: 5;
+  }
+
+  .console-label {
+    font-size: 9px; color: #2a4030; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+
+  .console-line { font-size: 10px; line-height: 1.6; }
+  .console-line.normal { color: #2a5040; }
+  .console-line.warning { color: #f0a020; }
+  .console-line.critical { color: #e84040; }
+  .console-line.corrupt { color: #e06040; font-family: 'Share Tech Mono', monospace; }
+
+  .cursor { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .overlay-warning {
+    position: absolute; inset: 0; z-index: 15; pointer-events: none;
+    border: 2px solid #e84040;
+    animation: border-pulse 0.4s ease-in-out infinite alternate;
+    display: none;
+    border-radius: 8px;
+  }
+  @keyframes border-pulse {
+    from { border-color: #e84040; }
+    to { border-color: #ff2020; }
+  }
+
+  .breach-overlay {
+    position: absolute; inset: 0; z-index: 50;
+    background: #0a0c0f;
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; border-radius: 8px;
+  }
+
+  .breach-text {
+    font-family: 'Rajdhani', sans-serif; font-size: 36px; font-weight: 700;
+    color: #e84040; letter-spacing: 6px; text-transform: uppercase;
+    animation: glitch 0.3s ease-in-out infinite;
+    text-align: center;
+  }
+  @keyframes glitch {
+    0%, 90%, 100% { transform: translateX(0); }
+    92% { transform: translateX(-4px); }
+    95% { transform: translateX(4px); }
+    98% { transform: translateX(-2px); }
+  }
+
+  .breach-modal {
+    background: #0d1520;
+    border: 1px solid #e84040;
+    border-radius: 6px; padding: 24px 32px; margin-top: 20px;
+    text-align: center; max-width: 320px;
+  }
+  .breach-modal h3 {
+    font-family: 'Rajdhani', sans-serif; font-size: 14px;
+    color: #e84040; letter-spacing: 3px; margin: 0 0 12px;
+    text-transform: uppercase;
+  }
+  .shard-count {
+    font-family: 'Rajdhani', sans-serif; font-size: 32px; color: #20d0e0; font-weight: 700;
+  }
+  .shard-label { font-size: 10px; color: #2a5060; letter-spacing: 2px; text-transform: uppercase; }
+
+  .breach-modal p { font-size: 11px; color: #3a5060; margin: 12px 0; line-height: 1.6; }
+
+  .breach-btn {
+    background: #e84040; border: none; color: #fff;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 10px 24px; border-radius: 4px; cursor: pointer;
+    margin-top: 12px; transition: background 0.15s;
+  }
+  .breach-btn:hover { background: #ff6060; }
+
+  .settings-row {
+    position: absolute; top: 8px; right: 16px; z-index: 20;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .settings-btn {
+    background: none; border: 1px solid #1a2030; color: #2a4040;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    padding: 3px 8px; border-radius: 3px; cursor: pointer;
+    letter-spacing: 1px; transition: color 0.15s, border-color 0.15s;
+  }
+  .settings-btn:hover { color: #c0d0b0; border-color: #3a5060; }
+
+  .instability-warning {
+    position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+    background: #e8404015; border: 1px solid #e8404040;
+    font-size: 10px; color: #e84040; padding: 4px 12px; border-radius: 3px;
+    letter-spacing: 1px; white-space: nowrap; z-index: 10;
+    display: none;
+    animation: pulse-text 0.6s infinite;
+  }
+
+  .state-indicator {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #20c060;
+    animation: dot-pulse 2s ease-in-out infinite;
+  }
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .shake {
+    animation: shake-mild 0.3s ease-in-out;
+  }
+  @keyframes shake-mild {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px) rotate(-0.5deg); }
+    75% { transform: translateX(3px) rotate(0.5deg); }
+  }
+
+  .wiggle {
+    animation: wiggle-card 4s ease-in-out infinite;
+  }
+  @keyframes wiggle-card {
+    0%, 90%, 100% { transform: rotate(0deg); }
+    92% { transform: rotate(-1deg); }
+    95% { transform: rotate(1deg); }
+  }
+
+  .flicker {
+    animation: flicker-text 3s ease-in-out infinite;
+  }
+  @keyframes flicker-text {
+    0%, 85%, 100% { opacity: 1; }
+    87% { opacity: 0.3; }
+    89% { opacity: 1; }
+    91% { opacity: 0.1; }
+    93% { opacity: 1; }
+  }
+
+  .tab-row {
+    display: flex; gap: 4px; padding: 4px 4px 0;
+  }
+  .tab-btn {
+    background: none; border: 1px solid #1a2030;
+    border-bottom: none; color: #2a4040; font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; padding: 3px 8px; cursor: pointer; border-radius: 2px 2px 0 0;
+    letter-spacing: 1px; transition: color 0.1s, background 0.1s;
+  }
+  .tab-btn.active { color: #20d0e0; background: #0f1520; border-color: #20d0e040; }
+  .tab-btn:hover:not(.active) { color: #6a9090; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #090c10; }
+  ::-webkit-scrollbar-thumb { background: #1a2530; border-radius: 2px; }
+</style>
+
+<div class="dnc-root" id="gameRoot">
+  <div class="scanlines"></div>
+  <div class="overlay-warning" id="overlayWarning"></div>
+
+  <div class="dnc-header">
+    <div class="state-indicator" id="stateDot"></div>
+    <div class="dnc-title" id="headlineText">⚠ CONTAINMENT SYSTEM ARMED ⚠</div>
+    <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07</div>
+  </div>
+
+  <div class="status-bar">
+    <div class="stat-block">
+      <div class="stat-label">Power</div>
+      <div class="stat-value cyan" id="powerDisplay">0</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">Instability</div>
+      <div class="stat-value danger" id="instabilityDisplay">0%</div>
+      <div class="instability-bar"><div class="instability-fill" id="instabilityFill" style="width:0%"></div></div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">Per Click</div>
+      <div class="stat-value" id="perClickDisplay">1</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">Per Second</div>
+      <div class="stat-value amber" id="perSecDisplay">0</div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="center-panel">
+      <div class="warning-headline" id="warnHeadline">DO NOT CLICK THIS BUTTON</div>
+
+      <div class="button-container" id="btnContainer">
+        <div class="hazard-stripe"></div>
+        <div class="containment-ring"></div>
+        <div class="containment-ring-2"></div>
+        <button class="forbidden-btn" id="mainBtn" onclick="handleClick()" aria-label="The forbidden button. Do not click.">
+          DO NOT<br>CLICK
+        </button>
+      </div>
+
+      <div class="click-count" id="clickCount">TOTAL INTERACTIONS: 0</div>
+
+      <div class="state-badge stable" id="stateBadge">■ STABLE</div>
+    </div>
+
+    <div class="side-panel">
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchTab('power', this)">PWR</button>
+        <button class="tab-btn" onclick="switchTab('auto', this)">AUTO</button>
+        <button class="tab-btn" onclick="switchTab('contain', this)">CTN</button>
+        <button class="tab-btn" onclick="switchTab('risk', this)">RISK</button>
+      </div>
+
+      <div id="tab-power">
+        <div class="panel-label">Power Upgrades</div>
+        <div class="upgrade-card" onclick="buyUpgrade('powerTap')" id="card-powerTap">
+          <div class="upgrade-name">Power Tap</div>
+          <div class="upgrade-cost" id="cost-powerTap">⚡ 10</div>
+          <div class="upgrade-effect">+1 power per click</div>
+        </div>
+        <div class="upgrade-card unaffordable" onclick="buyUpgrade('doubleContact')" id="card-doubleContact">
+          <div class="upgrade-name">Double Contact</div>
+          <div class="upgrade-cost" id="cost-doubleContact">⚡ 50</div>
+          <div class="upgrade-effect">×2 click power</div>
+        </div>
+        <div class="upgrade-card unaffordable" onclick="buyUpgrade('conductFinger')" id="card-conductFinger">
+          <div class="upgrade-name">Conductive Finger</div>
+          <div class="upgrade-cost" id="cost-conductFinger">⚡ 200</div>
+          <div class="upgrade-effect">+5 per click</div>
+        </div>
+      </div>
+
+      <div id="tab-auto" style="display:none">
+        <div class="panel-label">Automation</div>
+        <div class="upgrade-card unaffordable" onclick="buyUpgrade('autoPress')" id="card-autoPress">
+          <div class="upgrade-name">Auto-Presser</div>
+          <div class="upgrade-cost" id="cost-autoPress">⚡ 75</div>
+          <div class="upgrade-effect">+1 power/sec</div>
+        </div>
+        <div class="upgrade-card unaffordable" onclick="buyUpgrade('mechIntern')" id="card-mechIntern">
+          <div class="upgrade-name">Mechanical Intern</div>
+          <div class="upgrade-cost" id="cost-mechIntern">⚡ 250</div>
+          <div class="upgrade-effect">+5 power/sec</div>
+        </div>
+        <div class="upgrade-card unaffordable" onclick="buyUpgrade('loopMacro')" id="card-loopMacro">
+          <div class="upgrade-name">Looping Macro</div>
+          <div class="upgrade-cost" id="cost-loopMacro">⚡ 1000</div>
+          <div class="upgrade-effect">×2 auto power</div>
+        </div>
+      </div>
+
+      <div id="tab-contain" style="display:none">
+        <div class="panel-label">Containment</div>
+        <div class="upgrade-card containment unaffordable" onclick="buyUpgrade('reinfBtn')" id="card-reinfBtn">
+          <span class="upgrade-tag tag-safe">SAFE</span>
+          <div class="upgrade-name">Reinforced Button</div>
+          <div class="upgrade-cost" id="cost-reinfBtn">⚡ 40</div>
+          <div class="upgrade-effect">-5% instability rate</div>
+        </div>
+        <div class="upgrade-card containment unaffordable" onclick="buyUpgrade('conField')" id="card-conField">
+          <span class="upgrade-tag tag-safe">SAFE</span>
+          <div class="upgrade-name">Containment Field</div>
+          <div class="upgrade-cost" id="cost-conField">⚡ 300</div>
+          <div class="upgrade-effect">Caps instability at 85%</div>
+        </div>
+        <div class="upgrade-card containment unaffordable" onclick="buyUpgrade('realityPatch')" id="card-realityPatch">
+          <span class="upgrade-tag tag-safe">SAFE</span>
+          <div class="upgrade-name">Reality Patch</div>
+          <div class="upgrade-cost" id="cost-realityPatch">⚡ 800</div>
+          <div class="upgrade-effect">Reset instability 20%</div>
+        </div>
+      </div>
+
+      <div id="tab-risk" style="display:none">
+        <div class="panel-label">Risk Upgrades</div>
+        <div class="upgrade-card dangerous unaffordable" onclick="buyUpgrade('warnSuppress')" id="card-warnSuppress">
+          <span class="upgrade-tag tag-danger">⚠ RISK</span>
+          <div class="upgrade-name">Warning Suppressor</div>
+          <div class="upgrade-cost" id="cost-warnSuppress">⚡ 100</div>
+          <div class="upgrade-effect">Hide instability indicator</div>
+        </div>
+        <div class="upgrade-card dangerous unaffordable" onclick="buyUpgrade('unsafeOC')" id="card-unsafeOC">
+          <span class="upgrade-tag tag-danger">⚠ RISK</span>
+          <div class="upgrade-name">Unsafe Overclock</div>
+          <div class="upgrade-cost" id="cost-unsafeOC">⚡ 500</div>
+          <div class="upgrade-effect">×3 power, +2 instab/s</div>
+        </div>
+        <div class="upgrade-card dangerous unaffordable" onclick="buyUpgrade('forbMult')" id="card-forbMult">
+          <span class="upgrade-tag tag-danger">⚠ RISK</span>
+          <div class="upgrade-name">Forbidden Multiplier</div>
+          <div class="upgrade-cost" id="cost-forbMult">⚡ 2000</div>
+          <div class="upgrade-effect">×10 everything. Breach imminent.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="instability-warning" id="instabWarn">⚠ CONTAINMENT DEGRADING — BREACH IMMINENT</div>
+
+  <div class="bottom-area">
+    <div class="console-label">// SYSTEM LOG — UNIT-07 CONTAINMENT CONSOLE</div>
+    <div id="consoleLog">
+      <div class="console-line normal">&gt; System online. Containment nominal.</div>
+      <div class="console-line normal">&gt; All parameters within expected range.</div>
+      <div class="console-line normal">&gt; User compliance: pending verification.</div>
+      <div class="console-line normal">&gt; <span class="cursor">_</span></div>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <button class="settings-btn" onclick="toggleMotion()" id="motionBtn">MOTION: ON</button>
+    <button class="settings-btn" onclick="resetGame()">RESET</button>
+  </div>
+
+  <div class="breach-overlay" id="breachOverlay">
+    <div class="breach-text" id="breachTitle">CONTAINMENT<br>BREACH</div>
+    <div class="breach-modal">
+      <h3>Anomaly Event Logged</h3>
+      <div class="shard-count" id="shardCount">+7</div>
+      <div class="shard-label">Anomaly Shards Earned</div>
+      <p>The button has destabilized local reality. Containment protocols have failed.<br>Total clicks before breach: <span id="breachClicks">—</span></p>
+      <p style="color:#2a4020; font-size:10px;">Anomaly Shards unlock cross-breach multipliers in future runs.</p>
+      <button class="breach-btn" onclick="resetAfterBreach()">REINITIALIZE SYSTEM</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var G = {
+  power: 0,
+  instability: 0,
+  clicks: 0,
+  perClick: 1,
+  perSec: 0,
+  instabPerSec: 0.4,
+  motionEnabled: true,
+  owned: {},
+  totalClicks: 0
+};
+
+var upgrades = {
+  powerTap:      { cost:10, effect: function() { G.perClick += 1; } },
+  doubleContact: { cost:50, effect: function() { G.perClick *= 2; } },
+  conductFinger: { cost:200, effect: function() { G.perClick += 5; } },
+  autoPress:     { cost:75, effect: function() { G.perSec += 1; } },
+  mechIntern:    { cost:250, effect: function() { G.perSec += 5; } },
+  loopMacro:     { cost:1000, effect: function() { G.perSec *= 2; } },
+  reinfBtn:      { cost:40, effect: function() { G.instabPerSec *= 0.95; } },
+  conField:      { cost:300, effect: function() { G._capInstab = true; } },
+  realityPatch:  { cost:800, effect: function() { G.instability = Math.max(0, G.instability - 20); } },
+  warnSuppress:  { cost:100, effect: function() { document.getElementById('instabilityDisplay').style.visibility='hidden'; } },
+  unsafeOC:      { cost:500, effect: function() { G.perClick *= 3; G.perSec *= 3; G.instabPerSec += 2; } },
+  forbMult:      { cost:2000, effect: function() { G.perClick *= 10; G.perSec *= 10; G.instabPerSec += 5; } }
+};
+
+var consoleMessages = {
+  normal: [
+    'Structural integrity at acceptable parameters.',
+    'Button surface temperature: nominal.',
+    'User proximity detected. Initiating compliance audit.',
+    'Log entry 4471: No anomalous readings this cycle.',
+    'Reality coherence: 100%.'
+  ],
+  disturbed: [
+    'WARNING: Temporal displacement detected. Minor.',
+    'User has pressed the button. This is not permitted.',
+    'Button surface showing micro-fractures. Acceptable.',
+    'System log integrity: minor corruption detected.',
+    'ERR: Reality coherence falling. Monitor advised.'
+  ],
+  unstable: [
+    'ALARM: Containment field showing resonance cascade risk.',
+    '!!REPT: B̴̢̛̰ͅu̷̼̕t̴͓̀t̵̺̚ǫ̶̀n̸̲͑ state undefined.',
+    'Critical: DO NOT INTERACT WITH THE BUTTON.',
+    'LOG CORRUPTION: F̸a̴i̸l̵i̷n̸g̵ t̷o̴ maintain ̷c̴o̷h̶e̸r̴e̵n̷c̵e.',
+    'WARNING: MULTIPLE TIMELINE FORKS DETECTED.'
+  ],
+  critical: [
+    '🚨 BREACH THRESHOLD APPROACHING. EVACUATE.',
+    'CRITICAL: ALL CONTAINMENT LAYERS FAILING.',
+    '!!! R̸̢͓̙͊̒̇E̶̻̪͗̂̾A̷̭̿̎L̷̤̏I̸̝̊T̸̹̓Y̷̺̤̐̄ ̵̡̹̆̌U̷͍̰͗̈́N̵̡̄̊Ȓ̷͍A̷̽͜V̶̲̿̇Ȇ̵͓L̶̛͙̾̽I̸͕͒̒N̵͓̩̾G̸̲̘̅',
+    '!!! BUTTON COMPLIANCE: TERMINAL FAILURE.',
+    'LAST LOG: containment has failed. breach in '
+  ]
+};
+
+var lastConsoleTime = 0;
+var lastState = 'stable';
+
+function getState() {
+  if (G.instability < 25) return 'stable';
+  if (G.instability < 50) return 'disturbed';
+  if (G.instability < 75) return 'unstable';
+  if (G.instability < 100) return 'critical';
+  return 'breach';
+}
+
+function handleClick() {
+  G.power += G.perClick;
+  G.clicks++;
+  G.totalClicks++;
+  G.instability = Math.min(100, G.instability + 0.5);
+
+  showClickFeedback();
+  updateUI();
+  addConsoleMessage();
+}
+
+function showClickFeedback() {
+  var btn = document.getElementById('btnContainer');
+  var el = document.createElement('div');
+  el.className = 'click-feedback';
+  el.textContent = '+' + G.perClick;
+  btn.appendChild(el);
+  setTimeout(function() { el.remove(); }, 800);
+
+  if (G.motionEnabled && G.instability > 25) {
+    document.getElementById('gameRoot').classList.add('shake');
+    setTimeout(function() { document.getElementById('gameRoot').classList.remove('shake'); }, 300);
+  }
+}
+
+function addConsoleMessage() {
+  var now = Date.now();
+  if (now - lastConsoleTime < 1500) return;
+  lastConsoleTime = now;
+
+  var state = getState();
+  var pool, cls;
+  if (state === 'stable') { pool = consoleMessages.normal; cls = 'normal'; }
+  else if (state === 'disturbed') { pool = consoleMessages.disturbed; cls = 'warning'; }
+  else if (state === 'unstable') { pool = consoleMessages.unstable; cls = 'corrupt'; }
+  else { pool = consoleMessages.critical; cls = 'critical'; }
+
+  var msg = pool[Math.floor(Math.random() * pool.length)];
+  var log = document.getElementById('consoleLog');
+  var lines = log.querySelectorAll('.console-line');
+  if (lines.length >= 4) lines[0].remove();
+
+  var cursor = log.querySelector('.cursor');
+  if (cursor) cursor.parentElement.remove();
+
+  var line = document.createElement('div');
+  line.className = 'console-line ' + cls;
+  line.textContent = '> ' + msg;
+  log.appendChild(line);
+
+  var cur = document.createElement('div');
+  cur.className = 'console-line normal';
+  cur.innerHTML = '> <span class="cursor">_</span>';
+  log.appendChild(cur);
+}
+
+function buyUpgrade(id) {
+  if (G.owned[id]) return;
+  var u = upgrades[id];
+  if (!u || G.power < u.cost) return;
+  G.power -= u.cost;
+  G.owned[id] = true;
+  u.effect();
+
+  var card = document.getElementById('card-' + id);
+  if (card) {
+    card.classList.add('purchased');
+    card.classList.remove('unaffordable', 'dangerous', 'containment');
+    var tag = card.querySelector('.upgrade-tag');
+    if (!tag) { tag = document.createElement('span'); tag.className = 'upgrade-tag'; card.appendChild(tag); }
+    tag.className = 'upgrade-tag tag-owned';
+    tag.textContent = '✓ OWNED';
+    card.onclick = null;
+  }
+
+  updateUI();
+  addConsoleMessage();
+}
+
+function switchTab(name, btn) {
+  ['power','auto','contain','risk'].forEach(function(t) {
+    var el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+function updateUI() {
+  document.getElementById('powerDisplay').textContent = Math.floor(G.power).toLocaleString();
+  document.getElementById('instabilityDisplay').textContent = Math.floor(G.instability) + '%';
+  document.getElementById('perClickDisplay').textContent = G.perClick;
+  document.getElementById('perSecDisplay').textContent = G.perSec.toFixed(1);
+  document.getElementById('clickCount').textContent = 'TOTAL INTERACTIONS: ' + G.totalClicks;
+
+  var fill = document.getElementById('instabilityFill');
+  var pct = Math.min(100, G.instability);
+  fill.style.width = pct + '%';
+  fill.style.background = pct < 50 ? '#20d0e0' : pct < 75 ? '#f0a020' : '#e84040';
+
+  var state = getState();
+  applyState(state);
+  updateCards();
+
+  if (state !== lastState) {
+    lastState = state;
+    addConsoleMessage();
+  }
+}
+
+function applyState(state) {
+  var badge = document.getElementById('stateBadge');
+  var btn = document.getElementById('mainBtn');
+  var warn = document.getElementById('instabWarn');
+  var overlay = document.getElementById('overlayWarning');
+  var dot = document.getElementById('stateDot');
+  var headline = document.getElementById('warnHeadline');
+  var root = document.getElementById('gameRoot');
+
+  root.classList.remove('wiggle');
+
+  var headlines = ['DO NOT CLICK THIS BUTTON', 'USER COMPLIANCE: FAILING', 'CONTAINMENT DEGRADING', 'BREACH IMMINENT — STOP'];
+
+  if (state === 'stable') {
+    badge.className = 'state-badge stable'; badge.textContent = '■ STABLE';
+    dot.style.background = '#20c060';
+    btn.classList.remove('critical');
+    overlay.style.display = 'none';
+    warn.style.display = 'none';
+    headline.textContent = headlines[0];
+    headline.style.color = '#e84040';
+  } else if (state === 'disturbed') {
+    badge.className = 'state-badge disturbed'; badge.textContent = '▲ DISTURBED';
+    dot.style.background = '#f0a020';
+    btn.classList.remove('critical');
+    overlay.style.display = 'none';
+    warn.style.display = 'none';
+    headline.textContent = headlines[1];
+    headline.style.color = '#f0a020';
+  } else if (state === 'unstable') {
+    badge.className = 'state-badge unstable'; badge.textContent = '◆ UNSTABLE';
+    dot.style.background = '#e06020';
+    btn.classList.remove('critical');
+    overlay.style.display = 'none';
+    warn.style.display = 'none';
+    headline.textContent = headlines[2];
+    headline.style.color = '#e06020';
+    if (G.motionEnabled) root.classList.add('wiggle');
+  } else if (state === 'critical') {
+    badge.className = 'state-badge critical'; badge.textContent = '⚠ CRITICAL';
+    dot.style.background = '#e84040';
+    btn.classList.add('critical');
+    overlay.style.display = 'block';
+    warn.style.display = 'block';
+    headline.textContent = headlines[3];
+    headline.style.color = '#ff4040';
+  } else if (state === 'breach') {
+    triggerBreach();
+  }
+}
+
+function updateCards() {
+  var all = ['powerTap','doubleContact','conductFinger','autoPress','mechIntern','loopMacro','reinfBtn','conField','realityPatch','warnSuppress','unsafeOC','forbMult'];
+  all.forEach(function(id) {
+    if (G.owned[id]) return;
+    var card = document.getElementById('card-' + id);
+    var u = upgrades[id];
+    if (!card || !u) return;
+    if (G.power >= u.cost) {
+      card.classList.remove('unaffordable');
+    } else {
+      card.classList.add('unaffordable');
+    }
+  });
+}
+
+function triggerBreach() {
+  G.instability = 100;
+  var shards = Math.floor(G.totalClicks / 10) + 1;
+  document.getElementById('shardCount').textContent = '+' + shards;
+  document.getElementById('breachClicks').textContent = G.totalClicks;
+  var overlay = document.getElementById('breachOverlay');
+  overlay.style.display = 'flex';
+}
+
+function resetAfterBreach() {
+  G.power = 0;
+  G.instability = 0;
+  G.perClick = 1;
+  G.perSec = 0;
+  G.instabPerSec = 0.4;
+  G.owned = {};
+  G.clicks = 0;
+
+  document.getElementById('breachOverlay').style.display = 'none';
+  document.getElementById('instabilityDisplay').style.visibility = 'visible';
+
+  var all = ['powerTap','doubleContact','conductFinger','autoPress','mechIntern','loopMacro','reinfBtn','conField','realityPatch','warnSuppress','unsafeOC','forbMult'];
+  all.forEach(function(id) {
+    var card = document.getElementById('card-' + id);
+    if (!card) return;
+    card.classList.add('unaffordable');
+    card.classList.remove('purchased');
+    var tag = card.querySelector('.upgrade-tag');
+    if (tag) {
+      if (id === 'reinfBtn' || id === 'conField' || id === 'realityPatch') { tag.className='upgrade-tag tag-safe'; tag.textContent='SAFE'; }
+      else if (id === 'warnSuppress' || id === 'unsafeOC' || id === 'forbMult') { tag.className='upgrade-tag tag-danger'; tag.textContent='⚠ RISK'; }
+      else tag.remove();
+    }
+    card.onclick = function() { buyUpgrade(id); };
+    if (id === 'reinfBtn' || id === 'conField' || id === 'realityPatch') card.classList.add('containment');
+    else if (id === 'warnSuppress' || id === 'unsafeOC' || id === 'forbMult') card.classList.add('dangerous');
+  });
+
+  var log = document.getElementById('consoleLog');
+  log.innerHTML = '<div class="console-line normal">&gt; System reinitiated. Containment nominal.</div><div class="console-line normal">&gt; User compliance: unverified.<span class="cursor">_</span></div>';
+
+  updateUI();
+}
+
+function resetGame() {
+  G.totalClicks = 0;
+  resetAfterBreach();
+}
+
+function toggleMotion() {
+  G.motionEnabled = !G.motionEnabled;
+  document.getElementById('motionBtn').textContent = 'MOTION: ' + (G.motionEnabled ? 'ON' : 'OFF');
+}
+
+setInterval(function() {
+  if (getState() === 'breach') return;
+  G.power += G.perSec / 10;
+  G.instability = Math.min(100, G.instability + G.instabPerSec / 10);
+  if (G._capInstab) G.instability = Math.min(85, G.instability);
+  updateUI();
+}, 100);
+
+updateUI();
+</script>
