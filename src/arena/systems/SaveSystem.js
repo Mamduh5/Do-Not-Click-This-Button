@@ -15,6 +15,8 @@
       muted: CONFIG.initialState.muted,
       activeClickSkin: ARENA.ClickEffectSkins.getDefaultSkinId(),
       unlockedClickSkins: ARENA.ClickEffectSkins.getDefaultUnlocked(),
+      activeEnemySkin: ARENA.EnemySkins.getDefaultSkinId(),
+      unlockedEnemySkins: ARENA.EnemySkins.getDefaultUnlocked(),
       upgrades: {}
     };
   }
@@ -47,6 +49,15 @@
       });
     }
     state.activeClickSkin = typeof source.activeClickSkin === "string" ? source.activeClickSkin : state.activeClickSkin;
+    if (source.unlockedEnemySkins && typeof source.unlockedEnemySkins === "object") {
+      state.unlockedEnemySkins = {};
+      ARENA.ENEMY_SKINS.forEach(function (skin) {
+        if (source.unlockedEnemySkins[skin.id] === true || skin.unlockedByDefault) {
+          state.unlockedEnemySkins[skin.id] = true;
+        }
+      });
+    }
+    state.activeEnemySkin = typeof source.activeEnemySkin === "string" ? source.activeEnemySkin : state.activeEnemySkin;
 
     ARENA.UPGRADE_DEFS.forEach(function (upgrade) {
       var level = safeInteger(upgrades[upgrade.id], 0);
@@ -56,6 +67,7 @@
     });
 
     ARENA.ClickEffectSkins.ensureState(state);
+    ARENA.EnemySkins.ensureState(state);
     return state;
   }
 

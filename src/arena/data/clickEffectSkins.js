@@ -28,6 +28,7 @@
       particleCount: 14,
       particleSize: 4,
       particleDistance: 44,
+      decal: { enabled: true, type: "scorch", color: 0x5c2a14, alpha: 0.18, radius: 24, lines: 0 },
       shakeMs: 80,
       shakeIntensity: 0.004,
       sound: { frequency: 92, endFrequency: 28, durationSeconds: 0.13, type: "sawtooth", volume: 0.18 }
@@ -48,6 +49,7 @@
       particleCount: 18,
       particleSize: 5,
       particleDistance: 38,
+      decal: { enabled: true, type: "pixels", color: 0xaa2a2a, alpha: 0.14, radius: 18, blocks: 7 },
       shakeMs: 30,
       shakeIntensity: 0.002,
       sound: { frequency: 220, endFrequency: 75, durationSeconds: 0.075, type: "square", volume: 0.13 }
@@ -71,6 +73,7 @@
       particleDistance: 34,
       beamHeight: 220,
       beamWidth: 5,
+      decal: { enabled: true, type: "burn", color: 0x19d8ff, alpha: 0.16, radius: 16, lines: 2 },
       sound: { frequency: 760, endFrequency: 410, durationSeconds: 0.08, type: "sawtooth", volume: 0.12 }
     },
     {
@@ -90,9 +93,52 @@
       particleDistance: 42,
       crackLines: 9,
       crackLength: 38,
+      decal: { enabled: true, type: "cracks", color: 0x5f4a3a, alpha: 0.2, radius: 34, lines: 8 },
       shakeMs: 55,
       shakeIntensity: 0.003,
       sound: { frequency: 140, endFrequency: 46, durationSeconds: 0.12, type: "triangle", volume: 0.15 }
+    },
+    {
+      id: "paperDrop",
+      name: "Paper Drop",
+      unlockedByDefault: true,
+      helperScale: 0.58,
+      missScale: 0.7,
+      hitScale: 1,
+      killScale: 1.15,
+      primaryColor: 0xfffbec,
+      secondaryColor: 0xd8c9a9,
+      particleColor: 0xffffff,
+      durationMs: 320,
+      paperWidth: 34,
+      paperHeight: 46,
+      paperOffsetY: -64,
+      slashLength: 42,
+      particleCount: 13,
+      particleSize: 4,
+      particleDistance: 34,
+      decal: { enabled: true, type: "paper", color: 0xe8dec8, alpha: 0.22, radius: 18, blocks: 5 },
+      sound: { frequency: 420, endFrequency: 190, durationSeconds: 0.09, type: "triangle", volume: 0.11 }
+    },
+    {
+      id: "arrowStrike",
+      name: "Arrow Strike",
+      unlockedByDefault: true,
+      helperScale: 0.62,
+      missScale: 0.68,
+      hitScale: 1,
+      killScale: 1.18,
+      primaryColor: 0x26313a,
+      secondaryColor: 0xf2f7fa,
+      particleColor: 0x9fb3c0,
+      durationMs: 260,
+      streakLength: 72,
+      arrowSize: 15,
+      particleCount: 8,
+      particleSize: 3,
+      particleDistance: 26,
+      decal: { enabled: true, type: "puncture", color: 0x1d252b, alpha: 0.18, radius: 15, lines: 4 },
+      sound: { frequency: 520, endFrequency: 115, durationSeconds: 0.065, type: "square", volume: 0.12 }
     }
   ];
 })();

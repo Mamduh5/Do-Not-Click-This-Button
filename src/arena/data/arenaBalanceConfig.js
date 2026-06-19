@@ -102,6 +102,14 @@
       comboFlashAlpha: 0.12
     },
 
+    backgroundEffects: {
+      maxDecals: 42,
+      fadeMs: 4200,
+      defaultAlpha: 0.16,
+      defaultRadius: 22,
+      lineWidth: 2
+    },
+
     autosaveMs: 5000,
 
     audio: {

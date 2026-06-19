@@ -19,13 +19,18 @@
       });
     }
     var color = hit ? 0x171717 : 0x7f8a90;
-    var ring = scene.add.circle(x, y, radius, color, 0.08);
-    ring.setStrokeStyle(Math.max(2, 3 * scale), color, hit ? 0.9 : 0.42);
     showCursorFlash(scene, x, y, color, scale);
+
+    if (hit) {
+      return;
+    }
+
+    var ring = scene.add.circle(x, y, Math.max(6, radius * 0.28), color, 0.02);
+    ring.setStrokeStyle(1, color, 0.24);
     scene.tweens.add({
       targets: ring,
       alpha: 0,
-      scale: hit ? 1.35 : 0.9,
+      scale: 0.75,
       duration: CONFIG.feedback.impactMs,
       onComplete: function () {
         ring.destroy();
@@ -90,12 +95,12 @@
     }
   }
 
-  function showSplatter(scene, x, y, scale) {
+  function showSplatter(scene, x, y, scale, color) {
     var count = Math.max(1, Math.floor(CONFIG.feedback.splatterParticleCount * scale));
     mark(scene, "splatter");
 
     for (var index = 0; index < count; index += 1) {
-      var particle = scene.add.circle(x, y, Phaser.Math.Between(2, 5), 0xd82626, 0.75);
+      var particle = scene.add.circle(x, y, Phaser.Math.Between(2, 5), color || 0xd82626, 0.75);
       var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       var distance = Phaser.Math.Between(12, 42) * scale;
       scene.tweens.add({

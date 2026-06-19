@@ -75,6 +75,14 @@
       drawLaser(scene, skin, x, y, scale);
     } else if (skin.id === "groundBreak") {
       drawGroundBreak(scene, skin, x, y, scale);
+    } else if (skin.id === "paperDrop") {
+      drawPaper(scene, skin, x, y, scale);
+    } else if (skin.id === "arrowStrike") {
+      drawArrow(scene, skin, x, y, scale);
+    }
+
+    if ((hit || kill) && ARENA.BackgroundEffects) {
+      ARENA.BackgroundEffects.add(scene.backgroundEffectSystem, skin, x, y, scale);
     }
 
     if (!helper && !(options && options.silent)) {
@@ -107,7 +115,11 @@
   }
 
   function drawPixels(scene, skin, x, y, scale) {
-    ring(scene, x, y, skin.ringRadius * scale, skin.primaryColor, 0.45, skin.durationMs);
+    var glitch = scene.add.graphics();
+    glitch.lineStyle(Math.max(1, 2 * scale), skin.secondaryColor, 0.68);
+    glitch.lineBetween(x - skin.ringRadius * scale, y - 4 * scale, x + skin.ringRadius * scale, y - 4 * scale);
+    glitch.lineBetween(x - skin.ringRadius * 0.65 * scale, y + 5 * scale, x + skin.ringRadius * 0.65 * scale, y + 5 * scale);
+    fade(scene, glitch, skin.durationMs * 0.65);
     scatter(scene, skin, x, y, scale, "square");
   }
 
@@ -140,12 +152,52 @@
     }
   }
 
+  function drawPaper(scene, skin, x, y, scale) {
+    var paper = scene.add.rectangle(x, y + skin.paperOffsetY * scale, skin.paperWidth * scale, skin.paperHeight * scale, skin.primaryColor, 0.92);
+    paper.setStrokeStyle(1, skin.secondaryColor, 0.85);
+    scene.tweens.add({
+      targets: paper,
+      y: y,
+      angle: Phaser.Math.Between(-10, 10),
+      scaleY: 0.18,
+      alpha: 0,
+      duration: skin.durationMs * 0.62,
+      onComplete: function () {
+        paper.destroy();
+      }
+    });
+
+    var slash = scene.add.line(0, 0, x - skin.slashLength * 0.5 * scale, y - skin.slashLength * 0.18 * scale, x + skin.slashLength * 0.5 * scale, y + skin.slashLength * 0.18 * scale, skin.secondaryColor, 0.82).setOrigin(0, 0);
+    fade(scene, slash, skin.durationMs * 0.78);
+    scatter(scene, skin, x, y, scale, "paper");
+  }
+
+  function drawArrow(scene, skin, x, y, scale) {
+    var startX = x - skin.streakLength * scale;
+    var startY = y - skin.streakLength * 0.35 * scale;
+    var streak = scene.add.line(0, 0, startX, startY, x, y, skin.primaryColor, 0.78).setOrigin(0, 0);
+    var head = scene.add.triangle(x, y, 0, -skin.arrowSize * scale, skin.arrowSize * scale, 0, 0, skin.arrowSize * scale, skin.primaryColor, 0.9);
+    head.rotation = Phaser.Math.Angle.Between(startX, startY, x, y);
+    scene.tweens.add({
+      targets: head,
+      x: x + 5 * scale,
+      y: y + 2 * scale,
+      alpha: 0,
+      duration: skin.durationMs,
+      onComplete: function () {
+        head.destroy();
+      }
+    });
+    fade(scene, streak, skin.durationMs * 0.72);
+    scatter(scene, skin, x, y, scale, "spark");
+  }
+
   function scatter(scene, skin, x, y, scale, shape) {
     for (var index = 0; index < skin.particleCount; index += 1) {
       var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       var distance = Phaser.Math.Between(skin.particleDistance * 0.35, skin.particleDistance) * scale;
       var size = Math.max(2, skin.particleSize * scale);
-      var particle = shape === "square" ? scene.add.rectangle(x, y, size, size, index % 2 ? skin.secondaryColor : skin.particleColor, 0.86) : scene.add.circle(x, y, size * 0.5, index % 2 ? skin.secondaryColor : skin.particleColor, 0.78);
+      var particle = shape === "square" || shape === "paper" ? scene.add.rectangle(x, y, shape === "paper" ? size * 1.4 : size, size, index % 2 ? skin.secondaryColor : skin.particleColor, 0.86) : scene.add.circle(x, y, size * 0.5, index % 2 ? skin.secondaryColor : skin.particleColor, 0.78);
 
       scene.tweens.add({
         targets: particle,

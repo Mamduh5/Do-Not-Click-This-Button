@@ -17,16 +17,23 @@
 
   function create(scene, x, y, wave, forcedHealth) {
     var health = CONFIG.enemy.baseHealth * (1 + (wave - 1) * CONFIG.enemy.waveHealthScale);
+    var skin = ARENA.EnemySkins.get(scene.state.activeEnemySkin);
     var shadow = scene.add.circle(x + 2, y + 4, CONFIG.enemy.radius * CONFIG.enemy.visualScale * 1.15, CONFIG.enemy.shadowColor, CONFIG.enemy.shadowAlpha);
-    var enemy = scene.add.circle(x, y, CONFIG.enemy.radius, CONFIG.enemy.fillColor, 0.96);
+    var enemy = scene.add.container(x, y);
+    var graphics = scene.add.graphics();
     var speedVariance = 1 + Phaser.Math.FloatBetween(-CONFIG.enemy.speedVariance, CONFIG.enemy.speedVariance);
 
+    enemy.add(graphics);
+    enemy.graphics = graphics;
+    enemy.enemySkin = skin;
+    enemy.baseRadius = CONFIG.enemy.radius;
+    enemy.radius = CONFIG.enemy.radius;
     enemy.maxHealth = forcedHealth || health;
     enemy.health = enemy.maxHealth;
     enemy.speed = CONFIG.enemy.baseSpeed * speedVariance * (1 + (wave - 1) * CONFIG.enemy.waveSpeedScale);
     enemy.reward = CONFIG.enemy.baseReward * (1 + (wave - 1) * CONFIG.enemy.waveRewardScale);
     enemy.hitFlashUntil = 0;
-    enemy.hitRadius = CONFIG.enemy.radius * CONFIG.enemy.visualScale + CONFIG.enemy.clickPadding;
+    enemy.hitRadius = CONFIG.enemy.radius * CONFIG.enemy.visualScale * skin.scale + CONFIG.enemy.clickPadding;
     enemy.shadow = shadow;
     enemy.knockbackX = 0;
     enemy.knockbackY = 0;
@@ -35,20 +42,21 @@
     enemy.nextTurnAt = scene.time.now + Phaser.Math.Between(CONFIG.enemy.directionChangeMs * 0.5, CONFIG.enemy.directionChangeMs * 1.5);
     enemy.setScale(0.25);
     enemy.setAlpha(0);
-    enemy.setStrokeStyle(CONFIG.enemy.outlineWidth, CONFIG.enemy.outlineColor, CONFIG.enemy.outlineAlpha);
+    ARENA.EnemySkins.draw(enemy);
+    shadow.setDepth(-1);
     shadow.setScale(0.25);
     shadow.setAlpha(0);
     showSpawn(scene, x, y);
     scene.tweens.add({
       targets: enemy,
       alpha: 0.96,
-      scale: CONFIG.enemy.visualScale,
+      scale: CONFIG.enemy.visualScale * skin.scale,
       duration: CONFIG.enemy.spawnFadeMs
     });
     scene.tweens.add({
       targets: shadow,
       alpha: CONFIG.enemy.shadowAlpha,
-      scale: CONFIG.enemy.visualScale,
+      scale: CONFIG.enemy.visualScale * skin.shadowScale,
       duration: CONFIG.enemy.spawnFadeMs
     });
     return enemy;
@@ -82,8 +90,8 @@
       }
 
       if (scene.time.now > enemy.hitFlashUntil) {
-        enemy.setFillStyle(CONFIG.enemy.fillColor, 0.96);
-        enemy.setScale(CONFIG.enemy.visualScale);
+        ARENA.EnemySkins.draw(enemy);
+        enemy.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.scale);
       }
 
       if (enemy.x < -CONFIG.enemy.spawnMargin || enemy.x > CONFIG.canvas.width + CONFIG.enemy.spawnMargin) {
@@ -103,8 +111,8 @@
 
     enemy.health -= amount;
     enemy.hitFlashUntil = scene.time.now + CONFIG.enemy.hitFlashMs;
-    enemy.setFillStyle(CONFIG.enemy.hitColor, 1);
-    enemy.setScale(CONFIG.enemy.visualScale * 1.35, CONFIG.enemy.visualScale * 0.62);
+    ARENA.EnemySkins.draw(enemy, enemy.enemySkin.hitColor);
+    enemy.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.scale * 1.35, CONFIG.enemy.visualScale * enemy.enemySkin.scale * 0.62);
 
     if (sourceX !== undefined && sourceY !== undefined) {
       var angle = Phaser.Math.Angle.Between(sourceX, sourceY, enemy.x, enemy.y);

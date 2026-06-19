@@ -51,7 +51,7 @@
   function damageEnemy(scene, enemy, damage, x, y, stats, helper) {
     if (!ARENA.Enemies.damage(scene, enemy, damage, x, y)) {
       ARENA.ImpactEffects.showHitText(scene, helper ? "tap" : "HIT", enemy.x, enemy.y, helper ? 0x646464 : 0x171717);
-      ARENA.ImpactEffects.showHitParticles(scene, enemy.x, enemy.y, helper ? ARENA.BALANCE_CONFIG.cursor.helperImpactScale : stats.feedbackScale, 0x171717);
+      ARENA.ImpactEffects.showHitParticles(scene, enemy.x, enemy.y, helper ? ARENA.BALANCE_CONFIG.cursor.helperImpactScale : stats.feedbackScale, enemy.enemySkin ? enemy.enemySkin.hitColor : 0x171717);
       return false;
     }
 
@@ -74,7 +74,7 @@
     scene.soundSystem.play("kill");
     ARENA.ImpactEffects.showHitText(scene, "+" + ARENA.formatNumber(reward), x, y, 0xd82626);
     ARENA.ImpactEffects.showKillBurst(scene, x, y, stats.feedbackScale * ARENA.BALANCE_CONFIG.feedback.killImpactScale);
-    ARENA.ImpactEffects.showSplatter(scene, x, y, stats.feedbackScale);
+    ARENA.ImpactEffects.showSplatter(scene, x, y, stats.feedbackScale, enemy.enemySkin ? enemy.enemySkin.deathColor : 0xd82626);
 
     if (stats.shockRadius > 0) {
       shock(scene, x, y, stats);

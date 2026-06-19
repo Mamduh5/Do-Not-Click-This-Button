@@ -25,6 +25,7 @@
     this.effectCounts = {};
     this.spawningEnabled = true;
     this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2 };
+    this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
 
     drawRoom(this);
@@ -33,7 +34,8 @@
     this.hud = ARENA.createArenaHud({
       onToggleMute: this.toggleMute.bind(this),
       onReset: this.resetPrototype.bind(this),
-      onSetClickSkin: this.setClickSkin.bind(this)
+      onSetClickSkin: this.setClickSkin.bind(this),
+      onSetEnemySkin: this.setEnemySkin.bind(this)
     });
     this.panel = ARENA.createUpgradePanel({
       onBuy: this.buyUpgrade.bind(this)
@@ -149,6 +151,18 @@
     this.refreshUi();
   };
 
+  ArenaScene.prototype.setEnemySkin = function (id) {
+    if (!ARENA.EnemySkins.setActive(this.state, id)) {
+      this.hud.log("ENEMY SKIN LOCKED");
+      this.refreshUi();
+      return;
+    }
+
+    this.hud.log("ENEMY SKIN: " + ARENA.EnemySkins.get(id).name);
+    ARENA.Save.save(this.state);
+    this.refreshUi();
+  };
+
   ArenaScene.prototype.resetPrototype = function () {
     this.state = ARENA.Save.reset();
     this.stats = ARENA.Upgrades.computeStats(this.state);
@@ -166,6 +180,8 @@
     });
     this.enemies = [];
     this.effectCounts = {};
+    ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
+    this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.hud.log("PROTOTYPE SAVE RESET");
     this.refreshUi();
@@ -178,6 +194,7 @@
 
   function drawRoom(scene) {
     var graphics = scene.add.graphics();
+    graphics.setDepth(-20);
     graphics.fillStyle(CONFIG.canvas.background, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
     graphics.lineStyle(1, 0xd9e2e6, 0.9);
@@ -231,6 +248,9 @@
       setClickSkin: function (id) {
         scene.setClickSkin(id);
       },
+      setEnemySkin: function (id) {
+        scene.setEnemySkin(id);
+      },
       getSnapshot: function () {
         return {
           energy: scene.state.energy,
@@ -240,8 +260,11 @@
           helperCursorCount: scene.helperCursorSystem.cursors.length,
           combo: scene.combo,
           effectCounts: Object.assign({}, scene.effectCounts),
+          backgroundDecalCount: scene.backgroundEffectSystem.decals.length,
           activeClickSkin: scene.state.activeClickSkin,
           unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),
+          activeEnemySkin: scene.state.activeEnemySkin,
+          unlockedEnemySkins: Object.assign({}, scene.state.unlockedEnemySkins),
           upgrades: Object.assign({}, scene.state.upgrades),
           stats: ARENA.Upgrades.computeStats(scene.state),
           muted: scene.state.muted

@@ -17,6 +17,12 @@ async function waitForArena(page) {
 async function run() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1280, height: 820 } });
+  const consoleErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      consoleErrors.push(message.text());
+    }
+  });
 
   try {
     await page.goto(url, { waitUntil: "networkidle" });
@@ -34,11 +40,16 @@ async function run() {
     assert(initial.stats.clickRadius > 0, "arena should expose cursor click radius");
     assert(initial.stats.clickDamage > 0, "arena should expose cursor click damage");
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
-    assert(await page.locator("#arenaSkinSelect option").count() >= 4, "skin selector should render required skins");
+    assert(await page.locator("#arenaSkinSelect option").count() >= 6, "skin selector should render required click skins");
+    assert(await page.locator("#arenaEnemySkinSelect option").count() >= 5, "enemy skin selector should render required enemy skins");
     assert(initial.activeClickSkin === "meteorImpact", "default active click skin should be Meteor Impact");
+    assert(initial.activeEnemySkin === "ant", "default enemy skin should be Ant");
     await page.selectOption("#arenaSkinSelect", "pixelShatter");
     const afterUiSkinSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterUiSkinSwitch.activeClickSkin === "pixelShatter", "skin selector should update active skin");
+    await page.selectOption("#arenaEnemySkinSelect", "eyes");
+    const afterEnemyUiSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterEnemyUiSwitch.activeEnemySkin === "eyes", "enemy skin selector should update active enemy skin");
 
     const missResult = await page.evaluate(() => window.__containmentArena.clickAt(40, 40));
     const afterMiss = await page.evaluate(() => window.__containmentArena.getSnapshot());
@@ -57,7 +68,7 @@ async function run() {
     assert(afterClickKill.effectCounts.killBurst > 0, "click kill should create kill burst feedback");
     assert(afterClickKill.effectCounts.splatter > 0, "click kill should create splatter feedback");
 
-    for (const skinId of ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak"]) {
+    for (const skinId of ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak", "paperDrop", "arrowStrike"]) {
       await page.evaluate((id) => {
         window.__containmentArena.setClickSkin(id);
         window.__containmentArena.clearEnemies();
@@ -67,6 +78,19 @@ async function run() {
       const skinSnapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
       assert(skinSnapshot.activeClickSkin === skinId, skinId + " should become active");
       assert(skinSnapshot.effectCounts["skin_" + skinId] > 0, skinId + " should create skin-specific effects");
+      assert(skinSnapshot.effectCounts.backgroundDecals > 0, skinId + " should create background decals");
+    }
+
+    for (const enemySkinId of ["ant", "eyes", "tank", "tree", "hat"]) {
+      await page.evaluate((id) => {
+        window.__containmentArena.setEnemySkin(id);
+        window.__containmentArena.clearEnemies();
+        window.__containmentArena.spawnEnemyAt(340, 260, 1);
+        window.__containmentArena.clickAt(340, 260);
+      }, enemySkinId);
+      const enemySkinSnapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
+      assert(enemySkinSnapshot.activeEnemySkin === enemySkinId, enemySkinId + " enemy skin should become active");
+      assert(enemySkinSnapshot.totalDefeated > initial.totalDefeated, enemySkinId + " enemy skin should remain killable");
     }
 
     await page.evaluate(() => window.__containmentArena.grantEnergy(500));
@@ -107,13 +131,16 @@ async function run() {
     const afterHelperKill = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterHelperKill.totalDefeated === beforeHelperKill.totalDefeated + 1, "helper cursor should not double-award a single enemy");
     assert(afterHelperKill.effectCounts.hitImpact > afterHelperUpgrade.effectCounts.hitImpact, "helper cursor should create click feedback");
+    assert(afterHelperKill.backgroundDecalCount <= 42, "background decals should stay capped");
 
     await page.click("#arenaMuteBtn");
     await page.reload({ waitUntil: "networkidle" });
     await waitForArena(page);
     const persisted = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(persisted.muted === true, "mute setting should persist after reload");
-    assert(persisted.activeClickSkin === "groundBreak", "active click skin should persist after reload");
+    assert(persisted.activeClickSkin === "arrowStrike", "active click skin should persist after reload");
+    assert(persisted.activeEnemySkin === "hat", "active enemy skin should persist after reload");
+    assert(consoleErrors.length === 0, "arena smoke should have no console errors: " + consoleErrors.join(" | "));
   } finally {
     await browser.close();
   }

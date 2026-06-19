@@ -11,6 +11,7 @@
       combo: document.getElementById("arenaCombo"),
       log: document.getElementById("arenaLog"),
       skinSelect: document.getElementById("arenaSkinSelect"),
+      enemySkinSelect: document.getElementById("arenaEnemySkinSelect"),
       mute: document.getElementById("arenaMuteBtn"),
       reset: document.getElementById("arenaResetBtn")
     };
@@ -20,12 +21,21 @@
     elements.skinSelect.addEventListener("change", function () {
       options.onSetClickSkin(elements.skinSelect.value);
     });
+    elements.enemySkinSelect.addEventListener("change", function () {
+      options.onSetEnemySkin(elements.enemySkinSelect.value);
+    });
 
     ARENA.CLICK_EFFECT_SKINS.forEach(function (skin) {
       var option = document.createElement("option");
       option.value = skin.id;
       option.textContent = skin.name;
       elements.skinSelect.appendChild(option);
+    });
+    ARENA.ENEMY_SKINS.forEach(function (skin) {
+      var option = document.createElement("option");
+      option.value = skin.id;
+      option.textContent = skin.name;
+      elements.enemySkinSelect.appendChild(option);
     });
 
     function update(state, combo) {
@@ -35,9 +45,13 @@
       elements.combo.textContent = combo > 1 ? combo + "x" : "0x";
       elements.mute.textContent = "Sound: " + (state.muted ? "OFF" : "ON");
       elements.skinSelect.value = state.activeClickSkin;
+      elements.enemySkinSelect.value = state.activeEnemySkin;
 
       Array.from(elements.skinSelect.options).forEach(function (option) {
         option.disabled = !state.unlockedClickSkins[option.value];
+      });
+      Array.from(elements.enemySkinSelect.options).forEach(function (option) {
+        option.disabled = !state.unlockedEnemySkins[option.value];
       });
     }
 

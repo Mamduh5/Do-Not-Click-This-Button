@@ -8,4 +8,6 @@ Edit upgrade costs, cost multipliers, max levels, labels, descriptions, and effe
 
 Edit click effect skin labels, unlock defaults, effect colors, particle counts, durations, shake values, helper scales, and skin-specific generated sound tones in `clickEffectSkins.js`.
 
+Edit enemy skin labels, unlock defaults, procedural colors, hit/death colors, outlines, and visual scale in `enemySkins.js`.
+
 Systems and UI should consume these data files and avoid hardcoded balance values.
