@@ -10,6 +10,7 @@ global.window = global;
   "src/game/data/balanceConfig.js",
   "src/game/data/shardUpgrades.js",
   "src/game/systems/ShardUpgradeSystem.js",
+  "src/game/systems/SoundSystem.js",
   "src/game/systems/GameState.js",
   "src/game/data/upgrades.js",
   "src/game/systems/UpgradeSystem.js",
@@ -59,6 +60,14 @@ const motionState = DNC.validateState({ reducedMotion: true, instability: 82 });
 assert(motionState.reducedMotion === true, "reduced motion should survive save validation");
 assert(DNC.Instability.getBand(motionState.instability) === "critical", "reduced motion must not suppress critical state");
 
+const audioState = DNC.validateState({ audioEnabled: false, anomalyShards: 3, breachCount: 2 });
+assert(audioState.audioEnabled === false, "sound toggle state should survive save validation");
+assert(audioState.anomalyShards === 3, "shards should survive save validation");
+assert(audioState.breachCount === 2, "breaches should survive save validation");
+const sound = DNC.createSoundSystem(audioState);
+assert(sound.isSupported() === false, "sound system should tolerate missing AudioContext in checks");
+assert(sound.play("click") === false, "sound play should not throw without audio support or unlock");
+
 const shardState = DNC.createDefaultState();
 assert(DNC.ShardUpgrades.getCost(shardState, "containmentMemory") === 1, "containmentMemory cost level 0");
 assert(!DNC.ShardUpgrades.canBuy(shardState, "containmentMemory"), "cannot buy shard upgrade without shards");
@@ -69,6 +78,9 @@ assert(shardState.anomalyShards === 2, "shard upgrade should spend shards");
 assert(shardState.shardUpgrades.containmentMemory === 1, "shard upgrade level should increase");
 near(shardState.instabilityPerClick, 0.65 * 0.96, "containmentMemory modifies instability per click");
 assert(DNC.ShardUpgrades.getCost(shardState, "containmentMemory") === 2, "containmentMemory cost level 1");
+shardState.shardUpgrades.containmentMemory = 5;
+assert(!DNC.ShardUpgrades.canBuy(shardState, "containmentMemory"), "maxed shard upgrade should not be purchasable");
+shardState.shardUpgrades.containmentMemory = 1;
 
 shardState.anomalyShards = 10;
 assert(DNC.ShardUpgrades.buy(shardState, "residualCharge"), "should buy residualCharge");

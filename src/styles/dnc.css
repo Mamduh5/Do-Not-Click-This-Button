@@ -76,6 +76,11 @@ button {
   letter-spacing: 1px;
 }
 
+.sys-metric {
+  color: #20d0e0;
+  margin-left: 10px;
+}
+
 .status-bar {
   background: #0d1117;
   border-bottom: 1px solid #1a2030;
@@ -300,6 +305,12 @@ button {
   animation-duration: 0.95s;
 }
 
+.click-feedback.auto {
+  color: #8fd7ff;
+  font-size: 13px;
+  top: 60%;
+}
+
 @keyframes float-up {
   0% {
     opacity: 1;
@@ -448,10 +459,104 @@ button {
   border: 1px solid #20d0e040;
 }
 
+.tag-shard {
+  background: #7c4dff25;
+  color: #a98cff;
+  border: 1px solid #7c4dff60;
+}
+
 .tag-owned {
   background: #20c06020;
   color: #20c060;
   border: 1px solid #20c06040;
+}
+
+.shard-empty,
+.shard-summary {
+  border: 1px solid #253044;
+  background: #0d1420;
+  color: #6d8b9d;
+  font-size: 9px;
+  line-height: 1.4;
+  margin: 6px 0;
+  padding: 7px;
+}
+
+.shard-summary {
+  color: #8aa9b8;
+  border-color: #273b4d;
+}
+
+.shard-card {
+  border-color: #674cc850;
+  background: #101320;
+  padding-right: 38px;
+}
+
+.shard-card:hover:not(.unaffordable):not(.purchased) {
+  border-color: #9c7cff90;
+  background: #15182a;
+}
+
+.shard-name {
+  color: #d5ccff;
+}
+
+.shard-cost {
+  color: #a98cff;
+  line-height: 1.35;
+  margin: 2px 0;
+}
+
+.shard-effect {
+  color: #7d929c;
+  line-height: 1.35;
+}
+
+.auto-cursor {
+  align-items: center;
+  color: #8fd7ff;
+  display: none;
+  flex-direction: column;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 8px;
+  gap: 1px;
+  left: 8px;
+  letter-spacing: 1px;
+  pointer-events: none;
+  position: absolute;
+  text-shadow: 0 0 8px #20d0e0;
+  top: 28px;
+  transform: translate(-10px, 0) rotate(45deg);
+  z-index: 4;
+}
+
+.auto-cursor.active {
+  display: flex;
+}
+
+.auto-cursor-pointer {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.auto-cursor.cycle {
+  animation: auto-cursor-cycle var(--auto-travel-ms) ease-in-out;
+}
+
+@keyframes auto-cursor-cycle {
+  0% {
+    opacity: 0.5;
+    transform: translate(-10px, 0) rotate(45deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(48px, 48px) rotate(45deg) scale(1.08);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translate(42px, 42px) rotate(45deg) scale(0.92);
+  }
 }
 
 .bottom-area {

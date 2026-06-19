@@ -25,7 +25,8 @@
       shardUpgrades: {},
       totalClicks: BASE_STATS.totalClicks,
       lastSavedAt: Date.now(),
-      reducedMotion: BASE_STATS.reducedMotion
+      reducedMotion: BASE_STATS.reducedMotion,
+      audioEnabled: BASE_STATS.audioEnabled
     };
   }
 
@@ -57,6 +58,7 @@
     state.totalClicks = toSafeInteger(source.totalClicks, state.totalClicks);
     state.lastSavedAt = Math.max(0, toSafeNumber(source.lastSavedAt, state.lastSavedAt));
     state.reducedMotion = Boolean(source.reducedMotion);
+    state.audioEnabled = typeof source.audioEnabled === "boolean" ? source.audioEnabled : BASE_STATS.audioEnabled;
 
     var legacyUpgradeIds = {
       reinforcedButton: "reinfBtn",

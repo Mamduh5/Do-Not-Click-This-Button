@@ -18,7 +18,8 @@
       instabilityPerSecond: 0,
       containmentPerSecond: 0,
       totalClicks: 0,
-      reducedMotion: false
+      reducedMotion: false,
+      audioEnabled: true
     },
 
     statCaps: {
@@ -53,6 +54,15 @@
       maxVisibleLines: 4
     },
 
+    shardUi: {
+      tabLabel: "SHARD",
+      emptyTitle: "No anomaly shards available.",
+      emptyHint: "Trigger a containment breach to harvest shards.",
+      summaryTitle: "PERMANENT EFFECTS",
+      shardLabel: "SHARDS",
+      breachLabel: "BREACHES"
+    },
+
     breachRewards: {
       totalPowerDivisor: 80,
       breachCountBonus: 0.5,
@@ -73,6 +83,38 @@
         shake: true
       },
       criticalLabelStepFrames: 18
+    },
+
+    autoCursor: {
+      clickIntervalMs: 1000,
+      travelMs: 260,
+      pressMs: 120,
+      feedbackMs: 700,
+      maxVisibleCursors: 1,
+      label: "AUTO",
+      consoleCooldownMs: 5000
+    },
+
+    audio: {
+      enabledByDefault: true,
+      masterVolume: 0.28,
+      clickVolume: 0.35,
+      autoClickVolume: 0.18,
+      upgradeVolume: 0.25,
+      shardUpgradeVolume: 0.24,
+      errorVolume: 0.2,
+      warningVolume: 0.22,
+      breachVolume: 0.42,
+      sounds: {
+        click: { frequency: 96, endFrequency: 42, durationMs: 75, type: "sawtooth" },
+        clickCritical: { frequency: 130, endFrequency: 46, durationMs: 95, type: "square" },
+        autoClick: { frequency: 520, endFrequency: 340, durationMs: 45, type: "square" },
+        upgrade: { frequency: 640, endFrequency: 920, durationMs: 110, type: "sine" },
+        shardUpgrade: { frequency: 740, endFrequency: 1180, durationMs: 180, type: "triangle" },
+        error: { frequency: 150, endFrequency: 90, durationMs: 140, type: "sawtooth" },
+        warning: { frequency: 440, endFrequency: 260, durationMs: 180, type: "square" },
+        breach: { frequency: 120, endFrequency: 38, durationMs: 520, type: "sawtooth" }
+      }
     }
   };
 })();

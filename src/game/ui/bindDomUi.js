@@ -51,6 +51,7 @@
     var resetConfirmUntil = 0;
     var criticalLabelIndex = 0;
     var firstClickLogged = state.totalClicks > 0;
+    var autoCursorAccumulatorMs = 0;
 
     var elements = {
       root: root,
@@ -70,12 +71,15 @@
       btnContainer: getElement("btnContainer"),
       overlayWarning: getElement("overlayWarning"),
       instabWarn: getElement("instabWarn"),
+      soundBtn: getElement("soundBtn"),
       motionBtn: getElement("motionBtn"),
       resetBtn: getElement("resetBtn"),
       consoleLog: getElement("consoleLog")
     };
 
     var consoleLog = DNC.createConsoleLog(elements.consoleLog);
+    var sound = DNC.createSoundSystem(state);
+    var autoCursor = DNC.createAutoCursorView(elements.btnContainer);
     var tabs = DNC.initTabs(root);
     var breachModal = DNC.createBreachModal({
       overlay: getElement("breachOverlay"),
@@ -95,6 +99,7 @@
 
     function bindEvents() {
       elements.mainBtn.addEventListener("click", handleClick);
+      elements.soundBtn.addEventListener("click", toggleSound);
       elements.motionBtn.addEventListener("click", toggleMotion);
       elements.resetBtn.addEventListener("click", confirmReset);
 
@@ -132,19 +137,33 @@
 
     function renderShardUpgradeCards() {
       var list = getElement("list-shard");
+      var empty = document.createElement("div");
+      var summary = document.createElement("div");
+
+      empty.className = "shard-empty";
+      empty.id = "shard-empty";
+      empty.innerHTML = [
+        "<div>" + CONFIG.shardUi.emptyTitle + "</div>",
+        "<div>" + CONFIG.shardUi.emptyHint + "</div>"
+      ].join("");
+      list.appendChild(empty);
+
+      summary.className = "shard-summary";
+      summary.id = "shard-summary";
+      list.appendChild(summary);
 
       DNC.SHARD_UPGRADE_DEFS.forEach(function (upgrade) {
         var card = document.createElement("button");
 
         card.type = "button";
-        card.className = "upgrade-card containment";
+        card.className = "upgrade-card shard-card";
         card.id = "shard-card-" + upgrade.id;
         card.dataset.shardUpgradeId = upgrade.id;
         card.innerHTML = [
-          "<span class=\"upgrade-tag tag-safe\">PERM</span>",
-          "<div class=\"upgrade-name\">" + upgrade.name + "</div>",
-          "<div class=\"upgrade-cost\" id=\"shard-cost-" + upgrade.id + "\"></div>",
-          "<div class=\"upgrade-effect\">" + upgrade.description + "</div>"
+          "<span class=\"upgrade-tag tag-shard\">PERM</span>",
+          "<div class=\"upgrade-name shard-name\">" + upgrade.name + "</div>",
+          "<div class=\"upgrade-cost shard-cost\" id=\"shard-cost-" + upgrade.id + "\"></div>",
+          "<div class=\"upgrade-effect shard-effect\">" + getShardEffectText(upgrade) + "</div>"
         ].join("");
         card.addEventListener("click", function () {
           buyShardUpgrade(upgrade.id);
@@ -159,6 +178,7 @@
         return;
       }
 
+      sound.unlock();
       state.power += state.powerPerClick;
       state.totalPowerEarned += state.powerPerClick;
       state.totalClicks += 1;
@@ -172,6 +192,7 @@
 
       showClickFeedback();
       pulseButton();
+      playClickSound();
       maybeLogRandom();
 
       if (state.instability >= CONFIG.instability.breachAt) {
@@ -188,11 +209,13 @@
 
       if (!DNC.ShardUpgrades.buy(state, id)) {
         consoleLog.add("Shard purchase denied. Insufficient Shards.", "warning");
+        sound.play("error");
         return;
       }
 
       var upgrade = DNC.ShardUpgrades.get(id);
       consoleLog.add(upgrade.name + " stabilized. Level " + DNC.ShardUpgrades.getLevel(state, id) + ".", "normal");
+      sound.play("shardUpgrade");
       save();
       refresh();
     }
@@ -204,11 +227,13 @@
 
       if (!DNC.Upgrades.buy(state, id)) {
         consoleLog.add("Purchase denied. Insufficient Power.", "warning");
+        sound.play("error");
         return;
       }
 
       var upgrade = DNC.Upgrades.get(id);
       consoleLog.add(upgrade.name + " installed. Level " + DNC.Upgrades.getLevel(state, id) + ".", upgrade.category === "risk" ? "critical" : "normal");
+      sound.play("upgrade");
       save();
       refresh();
     }
@@ -224,6 +249,7 @@
       if (powerGain > 0) {
         state.power += powerGain;
         state.totalPowerEarned += powerGain;
+        updateAutoCursor(deltaSeconds);
       }
 
       if (instabilityGain !== 0) {
@@ -251,6 +277,7 @@
       DNC.resetRunAfterBreach(state, shardsEarned);
       consoleLog.add("REALITY BREACH DETECTED. Containment failed.", "critical");
       breachModal.show(shardsEarned, state.anomalyShards, clickCountThisRun || state.totalClicks, state.breachCount);
+      sound.play("breach");
 
       if (!state.reducedMotion) {
         root.classList.add("shake");
@@ -268,6 +295,7 @@
       clickCountThisRun = 0;
       breachModal.hide();
       consoleLog.add("System reinitialized. Shards retained.", "normal");
+      addPermanentEffectConsole();
       refresh();
     }
 
@@ -293,6 +321,20 @@
       consoleLog.add("Save reset. Fresh containment session started.", "warning");
       save();
       tabs.activate("power");
+      refresh();
+    }
+
+    function toggleSound() {
+      state.audioEnabled = !state.audioEnabled;
+      sound.setEnabled(state.audioEnabled);
+      sound.unlock();
+
+      if (state.audioEnabled) {
+        sound.play("upgrade");
+      }
+
+      consoleLog.add("Sound " + (state.audioEnabled ? "enabled." : "muted."), "normal");
+      save();
       refresh();
     }
 
@@ -326,6 +368,7 @@
       elements.stateDot.style.background = bandData.color;
       elements.warnHeadline.textContent = bandData.headline;
       elements.warnHeadline.style.color = bandData.headlineColor;
+      elements.soundBtn.textContent = "SOUND: " + (state.audioEnabled ? "ON" : "OFF");
       elements.motionBtn.textContent = "MOTION: " + (state.reducedMotion ? "OFF" : "ON");
       elements.root.classList.toggle("reduced-motion", state.reducedMotion);
 
@@ -345,15 +388,19 @@
         lastBand = band;
         if (band === "disturbed") {
           consoleLog.add("DISTURBED state entered. Watch the meter.", "warning");
+          sound.play("warning");
         } else if (band === "unstable") {
           consoleLog.add("UNSTABLE state entered. Containment advised.", "corrupt");
+          sound.play("warning");
         } else if (band === "critical") {
           consoleLog.add("CRITICAL state entered. Stop pressing.", "critical");
+          sound.play("warning");
         }
       }
 
       refreshCards();
       refreshShardCards();
+      autoCursor.setActive(state.powerPerSecond > 0);
     }
 
     function formatRate(value) {
@@ -362,6 +409,22 @@
       }
 
       return DNC.formatNumber(value);
+    }
+
+    function getShardEffectText(upgrade) {
+      if (upgrade.effect.type === "instabilityPerClickMultiplier") {
+        return "Permanent: Instability per click x" + upgrade.effect.value.toFixed(2) + " per level";
+      }
+
+      if (upgrade.effect.type === "startingPowerAdd") {
+        return "Permanent: +" + DNC.formatNumber(upgrade.effect.value) + " starting Power per level";
+      }
+
+      if (upgrade.effect.type === "powerPerClickMultiplier") {
+        return "Permanent: Power per click x" + upgrade.effect.value.toFixed(2) + " per level";
+      }
+
+      return upgrade.description;
     }
 
     function refreshCards() {
@@ -393,6 +456,23 @@
     }
 
     function refreshShardCards() {
+      var empty = getElement("shard-empty");
+      var summary = getElement("shard-summary");
+      var summaryValues = DNC.ShardUpgrades.getPermanentSummary(state);
+
+      if (empty) {
+        empty.hidden = state.anomalyShards > 0;
+      }
+
+      if (summary) {
+        summary.innerHTML = [
+          "<div class=\"panel-label\">" + CONFIG.shardUi.summaryTitle + "</div>",
+          "<div>Click Power: x" + summaryValues.powerPerClickMultiplier.toFixed(2) + "</div>",
+          "<div>Instability Click: x" + summaryValues.instabilityPerClickMultiplier.toFixed(2) + "</div>",
+          "<div>Starting Power: +" + DNC.formatNumber(summaryValues.startingPowerBonus) + "</div>"
+        ].join("");
+      }
+
       DNC.SHARD_UPGRADE_DEFS.forEach(function (upgrade) {
         var card = getElement("shard-card-" + upgrade.id);
         var costEl = getElement("shard-cost-" + upgrade.id);
@@ -405,7 +485,7 @@
         card.classList.toggle("unaffordable", !affordable && !maxed);
         card.classList.toggle("purchased", maxed);
         card.disabled = maxed || !affordable;
-        costEl.textContent = maxed ? "Level " + level + " / OWNED" : "Level " + level + "  Cost " + DNC.formatNumber(cost) + " Shards";
+        costEl.innerHTML = maxed ? "MAXED" : "LV " + level + " / " + upgrade.maxLevel + "<br>Cost: \u25c6 " + DNC.formatNumber(cost) + " Shards";
 
         if (maxed && !existingOwnedTag) {
           var tag = document.createElement("span");
@@ -419,10 +499,18 @@
     }
 
     function showClickFeedback() {
+      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerClick), "");
+    }
+
+    function showAutoFeedback() {
+      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerSecond) + " AUTO", "auto");
+    }
+
+    function showFloatingFeedback(text, extraClass) {
       var feedback = document.createElement("div");
       var band = DNC.Instability.getBand(state.instability);
-      feedback.className = "click-feedback " + band;
-      feedback.textContent = "+" + DNC.formatNumber(state.powerPerClick);
+      feedback.className = "click-feedback " + band + (extraClass ? " " + extraClass : "");
+      feedback.textContent = text;
       elements.btnContainer.appendChild(feedback);
       window.setTimeout(function () {
         feedback.remove();
@@ -441,6 +529,46 @@
         window.setTimeout(function () {
           root.classList.remove("shake");
         }, CONFIG.timing.clickShakeMs);
+      }
+    }
+
+    function updateAutoCursor(deltaSeconds) {
+      autoCursorAccumulatorMs += deltaSeconds * 1000;
+
+      if (autoCursorAccumulatorMs < CONFIG.autoCursor.clickIntervalMs) {
+        return;
+      }
+
+      autoCursorAccumulatorMs %= CONFIG.autoCursor.clickIntervalMs;
+      autoCursor.playCycle();
+      showAutoFeedback();
+      elements.mainBtn.classList.add("pressed");
+      window.setTimeout(function () {
+        elements.mainBtn.classList.remove("pressed");
+      }, CONFIG.autoCursor.pressMs);
+      sound.play("autoClick");
+
+      if (autoCursor.canLog(Date.now())) {
+        consoleLog.add("Auto-Presser cycle completed.", "normal");
+      }
+    }
+
+    function playClickSound() {
+      var band = DNC.Instability.getBand(state.instability);
+      sound.play(band === "critical" ? "clickCritical" : "click");
+    }
+
+    function addPermanentEffectConsole() {
+      var summary = DNC.ShardUpgrades.getPermanentSummary(state);
+
+      if (summary.startingPowerBonus > 0) {
+        consoleLog.add("Residual Charge restored " + DNC.formatNumber(summary.startingPowerBonus) + " starting Power.", "normal");
+      }
+      if (summary.instabilityPerClickMultiplier < 1) {
+        consoleLog.add("Containment Memory reducing click instability.", "normal");
+      }
+      if (summary.powerPerClickMultiplier > 1) {
+        consoleLog.add("Shard Resonance amplifying manual input.", "normal");
       }
     }
 

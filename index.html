@@ -15,7 +15,7 @@
       <div class="dnc-header">
         <div class="state-indicator" id="stateDot"></div>
         <div class="dnc-title" id="headlineText">&#9888; CONTAINMENT SYSTEM ARMED &#9888;</div>
-        <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07 // SHARDS <span id="shardsDisplay">0</span> // BREACHES <span id="breachesDisplay">0</span></div>
+        <div class="dnc-sys">SYS-CTRL v0.9.4 // UNIT-07 <span class="sys-metric">SHARDS: <span id="shardsDisplay">0</span></span> <span class="sys-metric">BREACHES: <span id="breachesDisplay">0</span></span></div>
       </div>
 
       <div class="status-bar">
@@ -99,6 +99,7 @@
       </div>
 
       <div class="settings-row">
+        <button class="settings-btn" type="button" id="soundBtn">SOUND: ON</button>
         <button class="settings-btn" type="button" id="motionBtn">MOTION: ON</button>
         <button class="settings-btn" type="button" id="resetBtn">RESET</button>
       </div>
@@ -122,6 +123,7 @@
     <script src="src/game/data/balanceConfig.js"></script>
     <script src="src/game/data/shardUpgrades.js"></script>
     <script src="src/game/systems/ShardUpgradeSystem.js"></script>
+    <script src="src/game/systems/SoundSystem.js"></script>
     <script src="src/game/systems/GameState.js"></script>
     <script src="src/game/data/upgrades.js"></script>
     <script src="src/game/systems/UpgradeSystem.js"></script>
@@ -129,6 +131,7 @@
     <script src="src/game/systems/SaveSystem.js"></script>
     <script src="src/game/ui/consoleLog.js"></script>
     <script src="src/game/ui/tabs.js"></script>
+    <script src="src/game/ui/autoCursor.js"></script>
     <script src="src/game/ui/breachModal.js"></script>
     <script src="src/game/ui/bindDomUi.js"></script>
     <script src="src/main.js"></script>
