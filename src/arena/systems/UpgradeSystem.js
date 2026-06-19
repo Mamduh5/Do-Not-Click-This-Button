@@ -48,7 +48,13 @@
       helperClickIntervalMs: CONFIG.cursor.helperClickIntervalMs,
       helperClickDamage: CONFIG.cursor.helperClickDamage,
       helperClickRadius: CONFIG.cursor.helperClickRadius,
-      helperMoveSpeed: CONFIG.cursor.helperMoveSpeed,
+      helperTravelSpeed: CONFIG.cursor.helperTravelSpeed,
+      helperMaxTravelDurationMs: CONFIG.cursor.helperMaxTravelDurationMs,
+      helperRetreatDistance: CONFIG.cursor.helperRetreatDistance,
+      helperWanderRadius: CONFIG.cursor.helperWanderRadius,
+      helperWanderSpeed: CONFIG.cursor.helperWanderSpeed,
+      helperTargetReacquireDelayMs: CONFIG.cursor.helperTargetReacquireDelayMs,
+      helperClickEffectScale: CONFIG.cursor.helperClickEffectScale,
       feedbackScale: CONFIG.cursor.feedbackScale,
       rewardMultiplier: 1
     };

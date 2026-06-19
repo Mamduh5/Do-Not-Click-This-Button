@@ -76,8 +76,13 @@
       helperClickIntervalMs: 1450,
       helperClickDamage: 1,
       helperClickRadius: 18,
-      helperMoveSpeed: 0.22,
-      helperImpactScale: 0.62,
+      helperTravelSpeed: 260,
+      helperMaxTravelDurationMs: 1100,
+      helperRetreatDistance: 72,
+      helperWanderRadius: 150,
+      helperWanderSpeed: 92,
+      helperTargetReacquireDelayMs: 170,
+      helperClickEffectScale: 0.62,
       feedbackScale: 1
     },
 

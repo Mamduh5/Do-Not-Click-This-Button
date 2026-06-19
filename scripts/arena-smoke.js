@@ -69,6 +69,7 @@ async function run() {
     assert(afterClickKill.effectCounts.splatter > 0, "click kill should create splatter feedback");
 
     for (const skinId of ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak", "paperDrop", "arrowStrike"]) {
+      const beforeSkinSnapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
       await page.evaluate((id) => {
         window.__containmentArena.setClickSkin(id);
         window.__containmentArena.clearEnemies();
@@ -79,7 +80,38 @@ async function run() {
       assert(skinSnapshot.activeClickSkin === skinId, skinId + " should become active");
       assert(skinSnapshot.effectCounts["skin_" + skinId] > 0, skinId + " should create skin-specific effects");
       assert(skinSnapshot.effectCounts.backgroundDecals > 0, skinId + " should create background decals");
+      if (skinId === "arrowStrike") {
+        assert(skinSnapshot.effectCounts.arrowProjectile > (beforeSkinSnapshot.effectCounts.arrowProjectile || 0), "Arrow Strike should create a flying arrow projectile visual");
+      }
     }
+
+    await page.evaluate(() => {
+      window.__containmentArena.setEnemySkin("ant");
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.spawnEnemyAt(160, 260, 99);
+    });
+    await page.waitForTimeout(350);
+    const antMotionSnapshot = await page.evaluate(() => {
+      const snapshot = window.__containmentArena.getSnapshot();
+      const enemy = snapshot.enemySnapshots[0];
+      function normalize(angle) {
+        while (angle > Math.PI) {
+          angle -= Math.PI * 2;
+        }
+        while (angle < -Math.PI) {
+          angle += Math.PI * 2;
+        }
+        return angle;
+      }
+      return {
+        enemy,
+        orientationDelta: enemy ? Math.abs(normalize(enemy.rotation - (enemy.lastMoveAngle + enemy.forwardAngleOffset))) : null
+      };
+    });
+    assert(antMotionSnapshot.enemy && antMotionSnapshot.enemy.skin === "ant", "ant enemy should spawn for movement orientation smoke");
+    assert(antMotionSnapshot.enemy.segmentCount === 3, "ant snapshot should expose segmented ant config");
+    assert(antMotionSnapshot.enemy.movingAmount > 0, "ant enemy should report movement animation state");
+    assert(antMotionSnapshot.orientationDelta < 1.25, "ant enemy should rotate toward movement direction");
 
     for (const enemySkinId of ["ant", "eyes", "tank", "tree", "hat"]) {
       await page.evaluate((id) => {
@@ -121,6 +153,17 @@ async function run() {
     await page.waitForFunction(() => window.__containmentArena.getSnapshot().helperCursorCount > 0, null, { timeout: 3000 });
     const afterHelperUpgrade = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterHelperUpgrade.helperCursorCount > 0, "auto tapper should create visible helper cursors");
+    await page.evaluate(() => {
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.spawnEnemyAt(520, 320, 6);
+    });
+    const beforeHelperTap = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    await page.waitForFunction((before) => window.__containmentArena.getSnapshot().effectCounts.hitImpact > before, beforeHelperTap.effectCounts.hitImpact || 0, { timeout: 4000 });
+    await page.waitForTimeout(250);
+    const afterHelperTap = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterHelperTap.helperCursorSnapshots.some((cursor) => cursor.state === "retreat" || cursor.state === "cooldownWander"), "helper cursor should retreat or wander after a tap");
+    assert(afterHelperTap.helperCursorSnapshots.every((cursor) => !(cursor.cooldownRemainingMs > 0 && cursor.targetActive && cursor.targetDistance <= afterHelperTap.stats.helperClickRadius)), "helper cursor should not stay attached to a target during cooldown");
+
     await page.evaluate(() => {
       window.__containmentArena.clearEnemies();
       window.__containmentArena.spawnEnemyAt(520, 320, 1);

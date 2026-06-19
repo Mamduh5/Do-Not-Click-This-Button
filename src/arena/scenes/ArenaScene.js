@@ -23,6 +23,7 @@
     this.combo = 0;
     this.comboExpiresAt = 0;
     this.effectCounts = {};
+    this.enemySerial = 0;
     this.spawningEnabled = true;
     this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2 };
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
@@ -180,6 +181,7 @@
     });
     this.enemies = [];
     this.effectCounts = {};
+    this.enemySerial = 0;
     ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
@@ -258,6 +260,31 @@
           totalDefeated: scene.state.totalDefeated,
           enemyCount: scene.enemies.length,
           helperCursorCount: scene.helperCursorSystem.cursors.length,
+          helperCursorSnapshots: scene.helperCursorSystem.cursors.map(function (cursor) {
+            return {
+              state: cursor.state,
+              x: cursor.x,
+              y: cursor.y,
+              targetActive: Boolean(cursor.target && cursor.target.active),
+              targetDistance: cursor.target && cursor.target.active ? Phaser.Math.Distance.Between(cursor.x, cursor.y, cursor.target.x, cursor.target.y) : null,
+              cooldownRemainingMs: Math.max(0, cursor.cooldownUntil - scene.time.now)
+            };
+          }),
+          enemySnapshots: scene.enemies.filter(function (enemy) {
+            return enemy.active;
+          }).map(function (enemy) {
+            return {
+              id: enemy.debugId,
+              x: enemy.x,
+              y: enemy.y,
+              rotation: enemy.rotation,
+              lastMoveAngle: enemy.lastMoveAngle,
+              movingAmount: enemy.movingAmount,
+              skin: enemy.enemySkin.id,
+              forwardAngleOffset: enemy.enemySkin.animation.forwardAngleOffset,
+              segmentCount: enemy.enemySkin.ant ? enemy.enemySkin.ant.segmentCount : null
+            };
+          }),
           combo: scene.combo,
           effectCounts: Object.assign({}, scene.effectCounts),
           backgroundDecalCount: scene.backgroundEffectSystem.decals.length,

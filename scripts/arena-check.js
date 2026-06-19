@@ -37,7 +37,8 @@ global.localStorage = {
   "src/arena/systems/SaveSystem.js",
   "src/arena/systems/UpgradeSystem.js",
   "src/arena/systems/SoundSystem.js",
-  "src/arena/systems/CursorAttackSystem.js"
+  "src/arena/systems/CursorAttackSystem.js",
+  "src/arena/systems/HelperCursorSystem.js"
 ].forEach((file) => {
   runInThisContext(readFileSync(file, "utf8"), { filename: file });
 });
@@ -69,12 +70,28 @@ requiredSkinIds.forEach((id) => {
   soundSignatures.add([skin.sound.frequency, skin.sound.endFrequency, skin.sound.durationSeconds, skin.sound.type].join(":"));
 });
 assert(soundSignatures.size === requiredSkinIds.length, "all click skins should have unique sound config");
+const arrowSkin = ARENA.ClickEffectSkins.get("arrowStrike");
+["arrowSpawnDistance", "arrowTravelDurationMs", "arrowShaftLength", "arrowShaftWidth", "arrowHeadSize", "trailAlpha", "impactParticleCount", "punctureDecalDurationMs"].forEach((key) => {
+  assert(arrowSkin[key] > 0, "Arrow Strike should define projectile value " + key);
+});
+assert(arrowSkin.arrowColor !== undefined, "Arrow Strike should define arrow color");
+assert(arrowSkin.trailColor !== undefined, "Arrow Strike should define trail color");
+assert(arrowSkin.thunkSound && arrowSkin.thunkSound.durationSeconds > 0, "Arrow Strike should define thunk sound config");
 assert(!ARENA.BALANCE_CONFIG.feedback.sharedBlackCircle, "no shared generic black circle config should exist");
 requiredEnemySkinIds.forEach((id) => {
   const skin = ARENA.EnemySkins.get(id);
   assert(skin.id === id, id + " enemy skin should exist");
   assert(skin.unlockedByDefault === true, id + " enemy skin should be unlocked by default");
+  assert(skin.animation && typeof skin.animation.forwardAngleOffset === "number", id + " should define forward orientation config");
+  assert(skin.animation.rotationSmoothing > 0, id + " should define rotation smoothing");
+  assert(skin.animation.bodyWobbleSpeed > 0, id + " should define movement animation speed");
+  assert(skin.animation.hitSquashDurationMs > 0, id + " should define hit squash duration");
+  assert(skin.animation.deathFadeMs > 0, id + " should define death animation value");
 });
+const antSkin = ARENA.EnemySkins.get("ant");
+assert(antSkin.ant && antSkin.ant.segmentCount === 3, "Ant should define three segmented body sections");
+assert(antSkin.ant.legPairs === 3, "Ant should define three leg pairs");
+assert(antSkin.ant.waistWidth > 0, "Ant should define narrow waist config");
 assert(state.activeClickSkin === "meteorImpact", "default active click skin");
 assert(state.unlockedClickSkins.groundBreak === true, "default unlocked click skins");
 assert(state.activeEnemySkin === "ant", "default enemy skin");
@@ -85,6 +102,13 @@ near(baseStats.clickRadius, ARENA.BALANCE_CONFIG.cursor.clickRadius, "base click
 assert(baseStats.helperCursors === 0, "helper cursors should start locked");
 assert(ARENA.BALANCE_CONFIG.enemy.clickPadding > 0, "enemy click padding should be configurable");
 assert(ARENA.BALANCE_CONFIG.enemy.speedVariance > 0, "enemy speed variance should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperTravelSpeed > 0, "helper travel speed should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperMaxTravelDurationMs > 0, "helper max travel duration should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperRetreatDistance > 0, "helper retreat distance should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperWanderRadius > 0, "helper wander radius should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperWanderSpeed > 0, "helper wander speed should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperTargetReacquireDelayMs > 0, "helper target reacquire delay should be configurable");
+assert(ARENA.BALANCE_CONFIG.cursor.helperClickEffectScale > 0, "helper click effect scale should be configurable");
 assert(ARENA.BALANCE_CONFIG.feedback.hitParticleCount > 0, "hit particles should be configurable");
 assert(ARENA.BALANCE_CONFIG.audio.sounds.kill.durationSeconds > 0, "sound tone duration should be configurable");
 
@@ -103,6 +127,10 @@ assert(upgradedStats.doubleTapChance > baseStats.doubleTapChance, "double tap sh
 assert(upgradedStats.rewardMultiplier > baseStats.rewardMultiplier, "collector should improve rewards");
 assert(upgradedStats.shockRadius > baseStats.shockRadius, "shock click should add area radius");
 assert(upgradedStats.helperCursors === 1, "auto tapper should add a visible helper cursor");
+assert(upgradedStats.helperTravelSpeed === ARENA.BALANCE_CONFIG.cursor.helperTravelSpeed, "helper travel speed should flow through computed stats");
+assert(upgradedStats.helperClickEffectScale === ARENA.BALANCE_CONFIG.cursor.helperClickEffectScale, "helper click effect scale should flow through computed stats");
+assert(ARENA.HelperCursors.STATES.TRAVEL_TO_TARGET === "travelToTarget", "helper cursor should expose travel state");
+assert(ARENA.HelperCursors.STATES.COOLDOWN_WANDER === "cooldownWander", "helper cursor should expose cooldown wander state");
 
 const spentState = ARENA.Save.validateState(JSON.parse(JSON.stringify(state)));
 assert(spentState.upgrades.heavierCursor === 1, "save validation should preserve upgrades");

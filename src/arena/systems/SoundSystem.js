@@ -64,6 +64,23 @@
       return true;
     }
 
+    function playTone(context, tone, delaySeconds) {
+      var oscillator = context.createOscillator();
+      var gain = context.createGain();
+      var now = context.currentTime;
+      var startAt = now + (delaySeconds || tone.delaySeconds || 0);
+
+      oscillator.type = tone.type;
+      oscillator.frequency.setValueAtTime(tone.frequency, startAt);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, tone.endFrequency), startAt + tone.durationSeconds);
+      gain.gain.setValueAtTime(CONFIG.audio.masterVolume * tone.volume, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + tone.durationSeconds);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + tone.durationSeconds);
+    }
+
     function playClickSkin(skinId) {
       var context = getContext();
       var skin = ARENA.ClickEffectSkins.get(skinId);
@@ -73,19 +90,12 @@
         return false;
       }
 
-      var oscillator = context.createOscillator();
-      var gain = context.createGain();
-      var now = context.currentTime;
+      playTone(context, tone, 0);
 
-      oscillator.type = tone.type;
-      oscillator.frequency.setValueAtTime(tone.frequency, now);
-      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, tone.endFrequency), now + tone.durationSeconds);
-      gain.gain.setValueAtTime(CONFIG.audio.masterVolume * tone.volume, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + tone.durationSeconds);
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + tone.durationSeconds);
+      if (skin.thunkSound) {
+        playTone(context, skin.thunkSound, skin.thunkSound.delaySeconds);
+      }
+
       return true;
     }
 

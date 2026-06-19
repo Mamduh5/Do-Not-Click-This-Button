@@ -26,6 +26,7 @@
     enemy.add(graphics);
     enemy.graphics = graphics;
     enemy.enemySkin = skin;
+    enemy.debugId = scene.enemySerial === undefined ? 0 : scene.enemySerial++;
     enemy.baseRadius = CONFIG.enemy.radius;
     enemy.radius = CONFIG.enemy.radius;
     enemy.maxHealth = forcedHealth || health;
@@ -38,9 +39,14 @@
     enemy.knockbackX = 0;
     enemy.knockbackY = 0;
     enemy.spawnSeed = Math.random() * 1000;
+    enemy.animationPhase = Math.random() * 1000;
+    enemy.movingAmount = 0;
+    enemy.lastMoveAngle = Phaser.Math.Angle.Between(x, y, CONFIG.canvas.width / 2, CONFIG.canvas.height / 2);
     enemy.driftAngle = Phaser.Math.Angle.Between(x, y, CONFIG.canvas.width / 2, CONFIG.canvas.height / 2) + Phaser.Math.FloatBetween(-0.9, 0.9);
     enemy.nextTurnAt = scene.time.now + Phaser.Math.Between(CONFIG.enemy.directionChangeMs * 0.5, CONFIG.enemy.directionChangeMs * 1.5);
+    enemy.spawnedAt = scene.time.now;
     enemy.setScale(0.25);
+    enemy.rotation = enemy.lastMoveAngle + skin.animation.forwardAngleOffset;
     enemy.setAlpha(0);
     ARENA.EnemySkins.draw(enemy);
     shadow.setDepth(-1);
@@ -75,6 +81,8 @@
         enemy.nextTurnAt = scene.time.now + Phaser.Math.Between(CONFIG.enemy.directionChangeMs * 0.65, CONFIG.enemy.directionChangeMs * 1.35);
       }
 
+      var previousX = enemy.x;
+      var previousY = enemy.y;
       var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
       var angle = enemy.driftAngle + wiggle * 0.01;
       enemy.x += Math.cos(angle) * enemy.speed * deltaSeconds;
@@ -83,6 +91,7 @@
       enemy.y += enemy.knockbackY * deltaSeconds;
       enemy.knockbackX *= Math.pow(CONFIG.enemy.knockbackDecay, deltaMs / 16.67);
       enemy.knockbackY *= Math.pow(CONFIG.enemy.knockbackDecay, deltaMs / 16.67);
+      updateOrientation(enemy, enemy.x - previousX, enemy.y - previousY, deltaMs);
 
       if (enemy.shadow && enemy.shadow.active) {
         enemy.shadow.x = enemy.x + 2;
@@ -91,7 +100,11 @@
 
       if (scene.time.now > enemy.hitFlashUntil) {
         ARENA.EnemySkins.draw(enemy);
-        enemy.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.scale);
+        if (scene.time.now - enemy.spawnedAt >= CONFIG.enemy.spawnFadeMs) {
+          enemy.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.scale);
+        }
+      } else {
+        ARENA.EnemySkins.draw(enemy, enemy.enemySkin.hitColor);
       }
 
       if (enemy.x < -CONFIG.enemy.spawnMargin || enemy.x > CONFIG.canvas.width + CONFIG.enemy.spawnMargin) {
@@ -110,9 +123,9 @@
     }
 
     enemy.health -= amount;
-    enemy.hitFlashUntil = scene.time.now + CONFIG.enemy.hitFlashMs;
+    enemy.hitFlashUntil = scene.time.now + (enemy.enemySkin.animation.hitSquashDurationMs || CONFIG.enemy.hitFlashMs);
     ARENA.EnemySkins.draw(enemy, enemy.enemySkin.hitColor);
-    enemy.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.scale * 1.35, CONFIG.enemy.visualScale * enemy.enemySkin.scale * 0.62);
+    enemy.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.scale * enemy.enemySkin.animation.hitSquashScaleX, CONFIG.enemy.visualScale * enemy.enemySkin.scale * enemy.enemySkin.animation.hitSquashScaleY);
 
     if (sourceX !== undefined && sourceY !== undefined) {
       var angle = Phaser.Math.Angle.Between(sourceX, sourceY, enemy.x, enemy.y);
@@ -135,6 +148,42 @@
         ring.destroy();
       }
     });
+  }
+
+  function updateOrientation(enemy, moveX, moveY, deltaMs) {
+    var distance = Math.sqrt(moveX * moveX + moveY * moveY);
+    var animation = enemy.enemySkin.animation;
+
+    enemy.movingAmount = Math.min(1, distance / Math.max(0.001, enemy.speed * deltaMs / 1000));
+    enemy.animationPhase += deltaMs * Math.max(0.1, enemy.movingAmount);
+
+    if (distance <= 0.05) {
+      return;
+    }
+
+    enemy.lastMoveAngle = Math.atan2(moveY, moveX);
+    enemy.rotation = rotateToward(
+      enemy.rotation,
+      enemy.lastMoveAngle + animation.forwardAngleOffset,
+      animation.rotationSmoothing,
+      deltaMs
+    );
+  }
+
+  function rotateToward(current, target, smoothing, deltaMs) {
+    var delta = normalizeAngle(target - current);
+    var amount = 1 - Math.pow(1 - smoothing, deltaMs / 16.67);
+    return current + delta * amount;
+  }
+
+  function normalizeAngle(angle) {
+    while (angle > Math.PI) {
+      angle -= Math.PI * 2;
+    }
+    while (angle < -Math.PI) {
+      angle += Math.PI * 2;
+    }
+    return angle;
   }
 
   ARENA.Enemies = {

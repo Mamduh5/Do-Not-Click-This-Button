@@ -132,13 +132,25 @@
       secondaryColor: 0xf2f7fa,
       particleColor: 0x9fb3c0,
       durationMs: 260,
-      streakLength: 72,
-      arrowSize: 15,
-      particleCount: 8,
+      arrowSpawnDistance: 92,
+      arrowTravelDurationMs: 115,
+      arrowShaftLength: 46,
+      arrowShaftWidth: 3,
+      arrowHeadSize: 13,
+      arrowColor: 0x26313a,
+      arrowFletchingColor: 0xcfd8dd,
+      trailColor: 0x26313a,
+      trailAlpha: 0.22,
+      incomingAngle: -2.75,
+      incomingJitter: 0.38,
+      impactParticleCount: 7,
+      punctureDecalDurationMs: 920,
+      particleCount: 7,
       particleSize: 3,
-      particleDistance: 26,
+      particleDistance: 22,
       decal: { enabled: true, type: "puncture", color: 0x1d252b, alpha: 0.18, radius: 15, lines: 4 },
-      sound: { frequency: 520, endFrequency: 115, durationSeconds: 0.065, type: "square", volume: 0.12 }
+      sound: { frequency: 640, endFrequency: 360, durationSeconds: 0.045, type: "triangle", volume: 0.1 },
+      thunkSound: { frequency: 135, endFrequency: 52, durationSeconds: 0.055, type: "square", volume: 0.13, delaySeconds: 0.07 }
     }
   ];
 })();

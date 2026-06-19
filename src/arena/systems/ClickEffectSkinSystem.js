@@ -173,23 +173,52 @@
   }
 
   function drawArrow(scene, skin, x, y, scale) {
-    var startX = x - skin.streakLength * scale;
-    var startY = y - skin.streakLength * 0.35 * scale;
-    var streak = scene.add.line(0, 0, startX, startY, x, y, skin.primaryColor, 0.78).setOrigin(0, 0);
-    var head = scene.add.triangle(x, y, 0, -skin.arrowSize * scale, skin.arrowSize * scale, 0, 0, skin.arrowSize * scale, skin.primaryColor, 0.9);
-    head.rotation = Phaser.Math.Angle.Between(startX, startY, x, y);
+    var incomingAngle = skin.incomingAngle + Phaser.Math.FloatBetween(-skin.incomingJitter, skin.incomingJitter);
+    var startX = x + Math.cos(incomingAngle) * skin.arrowSpawnDistance * scale;
+    var startY = y + Math.sin(incomingAngle) * skin.arrowSpawnDistance * scale;
+    var travelAngle = Phaser.Math.Angle.Between(startX, startY, x, y);
+    var arrow = scene.add.container(startX, startY);
+    var shaft = scene.add.graphics();
+    var trail = scene.add.line(
+      0,
+      0,
+      startX - Math.cos(travelAngle) * skin.arrowShaftLength * scale * 0.75,
+      startY - Math.sin(travelAngle) * skin.arrowShaftLength * scale * 0.75,
+      startX,
+      startY,
+      skin.trailColor,
+      skin.trailAlpha
+    ).setOrigin(0, 0);
+
+    shaft.lineStyle(Math.max(1, skin.arrowShaftWidth * scale), skin.arrowColor, 0.95);
+    shaft.lineBetween(-skin.arrowShaftLength * scale, 0, -skin.arrowHeadSize * 0.55 * scale, 0);
+    shaft.fillStyle(skin.arrowColor, 0.98);
+    shaft.fillTriangle(0, 0, -skin.arrowHeadSize * scale, -skin.arrowHeadSize * 0.48 * scale, -skin.arrowHeadSize * scale, skin.arrowHeadSize * 0.48 * scale);
+    shaft.fillStyle(skin.arrowFletchingColor, 0.86);
+    shaft.fillTriangle(-skin.arrowShaftLength * scale, 0, -skin.arrowShaftLength * 0.78 * scale, -skin.arrowShaftWidth * 2.2 * scale, -skin.arrowShaftLength * 0.72 * scale, 0);
+    shaft.fillTriangle(-skin.arrowShaftLength * scale, 0, -skin.arrowShaftLength * 0.78 * scale, skin.arrowShaftWidth * 2.2 * scale, -skin.arrowShaftLength * 0.72 * scale, 0);
+    arrow.add(shaft);
+    arrow.rotation = travelAngle;
+    mark(scene, "arrowProjectile");
     scene.tweens.add({
-      targets: head,
-      x: x + 5 * scale,
-      y: y + 2 * scale,
-      alpha: 0,
-      duration: skin.durationMs,
+      targets: arrow,
+      x: x,
+      y: y,
+      duration: skin.arrowTravelDurationMs,
+      ease: "Cubic.easeIn",
       onComplete: function () {
-        head.destroy();
+        scatter(scene, Object.assign({}, skin, { particleCount: skin.impactParticleCount }), x, y, scale, "spark");
+        fade(scene, arrow, skin.punctureDecalDurationMs * 0.34);
       }
     });
-    fade(scene, streak, skin.durationMs * 0.72);
-    scatter(scene, skin, x, y, scale, "spark");
+    scene.tweens.add({
+      targets: trail,
+      alpha: 0,
+      duration: skin.arrowTravelDurationMs * 1.45,
+      onComplete: function () {
+        trail.destroy();
+      }
+    });
   }
 
   function scatter(scene, skin, x, y, scale, shape) {
