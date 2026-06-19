@@ -2,6 +2,9 @@
   "use strict";
 
   window.DNC = window.DNC || {};
+  var CONFIG = DNC.BALANCE_CONFIG;
+  var THRESHOLDS = CONFIG.instability;
+  var REWARDS = CONFIG.breachRewards;
 
   var BAND_COPY = {
     stable: {
@@ -37,19 +40,19 @@
   };
 
   function getBand(instability) {
-    if (instability >= 100) {
+    if (instability >= THRESHOLDS.breachAt) {
       return "breach";
     }
 
-    if (instability >= 75) {
+    if (instability >= THRESHOLDS.criticalAt) {
       return "critical";
     }
 
-    if (instability >= 50) {
+    if (instability >= THRESHOLDS.unstableAt) {
       return "unstable";
     }
 
-    if (instability >= 25) {
+    if (instability >= THRESHOLDS.disturbedAt) {
       return "disturbed";
     }
 
@@ -62,9 +65,9 @@
   }
 
   function getShardReward(state) {
-    var powerReward = Math.sqrt(state.totalPowerEarned / 80);
-    var repeatReward = state.breachCount * 0.5;
-    return Math.max(1, Math.floor(powerReward + repeatReward));
+    var powerReward = Math.sqrt(state.totalPowerEarned / REWARDS.totalPowerDivisor);
+    var repeatReward = state.breachCount * REWARDS.breachCountBonus;
+    return Math.max(REWARDS.minimumShards, Math.floor(powerReward + repeatReward));
   }
 
   DNC.Instability = {

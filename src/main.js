@@ -8,20 +8,21 @@
     }
 
     var controller = DNC.bindDomUi();
+    var timing = DNC.BALANCE_CONFIG.timing;
 
     var tickScene = {
       key: "DomTickScene",
       create: function () {
         this.time.addEvent({
-          delay: 250,
+          delay: timing.tickMs,
           loop: true,
           callback: function () {
-            controller.tick(0.25);
+            controller.tick(timing.tickMs / 1000);
           }
         });
 
         this.time.addEvent({
-          delay: 5000,
+          delay: timing.autosaveMs,
           loop: true,
           callback: function () {
             controller.save();

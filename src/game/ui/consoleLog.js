@@ -2,6 +2,7 @@
   "use strict";
 
   window.DNC = window.DNC || {};
+  var CONFIG = DNC.BALANCE_CONFIG;
 
   var MESSAGE_POOLS = {
     stable: [
@@ -43,7 +44,7 @@
   };
 
   function createConsoleLog(logElement) {
-    var maxLines = 4;
+    var maxLines = CONFIG.console.maxVisibleLines;
 
     function add(message, severity) {
       var cursor = logElement.querySelector(".cursor");

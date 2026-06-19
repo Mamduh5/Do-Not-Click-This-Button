@@ -2,6 +2,7 @@
   "use strict";
 
   window.DNC = window.DNC || {};
+  var CONFIG = DNC.BALANCE_CONFIG;
 
   var STATE_LABELS = {
     stable: {
@@ -133,7 +134,7 @@
       state.totalPowerEarned += state.powerPerClick;
       state.totalClicks += 1;
       clickCountThisRun += 1;
-      state.instability = DNC.clamp(state.instability + state.instabilityPerClick, 0, 100);
+      state.instability = DNC.clamp(state.instability + state.instabilityPerClick, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability);
 
       if (!firstClickLogged) {
         firstClickLogged = true;
@@ -144,7 +145,7 @@
       pulseButton();
       maybeLogRandom();
 
-      if (state.instability >= 100) {
+      if (state.instability >= CONFIG.instability.breachAt) {
         triggerBreach();
       }
 
@@ -181,10 +182,10 @@
       }
 
       if (instabilityGain !== 0) {
-        state.instability = DNC.clamp(state.instability + instabilityGain, 0, 100);
+        state.instability = DNC.clamp(state.instability + instabilityGain, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability);
       }
 
-      if (state.instability >= 100) {
+      if (state.instability >= CONFIG.instability.breachAt) {
         triggerBreach();
       }
 
@@ -214,7 +215,7 @@
         root.classList.add("shake");
         window.setTimeout(function () {
           root.classList.remove("shake");
-        }, 320);
+        }, CONFIG.timing.breachShakeMs);
       }
 
       save();
@@ -235,7 +236,7 @@
         return;
       }
 
-      resetConfirmUntil = Date.now() + 4000;
+      resetConfirmUntil = Date.now() + CONFIG.timing.resetConfirmMs;
       elements.resetBtn.textContent = "CONFIRM?";
     }
 
@@ -272,7 +273,7 @@
 
       elements.powerDisplay.textContent = DNC.formatNumber(state.power);
       elements.instabilityDisplay.textContent = Math.floor(state.instability) + "%";
-      elements.instabilityFill.style.width = DNC.clamp(state.instability, 0, 100) + "%";
+      elements.instabilityFill.style.width = DNC.clamp(state.instability, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability) + "%";
       elements.instabilityFill.style.background = bandData.fill;
       elements.perClickDisplay.textContent = DNC.formatNumber(state.powerPerClick);
       elements.perSecDisplay.textContent = formatRate(state.powerPerSecond);
@@ -292,7 +293,7 @@
 
       if (band === "critical") {
         criticalLabelIndex += 1;
-        elements.mainBtn.innerHTML = CRITICAL_BUTTON_LABELS[Math.floor(criticalLabelIndex / 18) % CRITICAL_BUTTON_LABELS.length];
+        elements.mainBtn.innerHTML = CRITICAL_BUTTON_LABELS[Math.floor(criticalLabelIndex / CONFIG.feedback.criticalLabelStepFrames) % CRITICAL_BUTTON_LABELS.length];
       } else {
         elements.mainBtn.innerHTML = "DO NOT<br>CLICK";
       }
@@ -355,28 +356,28 @@
       elements.btnContainer.appendChild(feedback);
       window.setTimeout(function () {
         feedback.remove();
-      }, state.reducedMotion ? 300 : 850);
+      }, state.reducedMotion ? CONFIG.timing.reducedMotionFloatingTextMs : CONFIG.timing.floatingTextMs);
     }
 
     function pulseButton() {
       elements.mainBtn.classList.add("pressed");
       window.setTimeout(function () {
         elements.mainBtn.classList.remove("pressed");
-      }, 100);
+      }, CONFIG.timing.clickFeedbackMs);
 
       var band = DNC.Instability.getBand(state.instability);
-      if (!state.reducedMotion && (band === "disturbed" || band === "unstable" || band === "critical")) {
+      if (!state.reducedMotion && CONFIG.feedback[band] && CONFIG.feedback[band].shake) {
         root.classList.add("shake");
         window.setTimeout(function () {
           root.classList.remove("shake");
-        }, 300);
+        }, CONFIG.timing.clickShakeMs);
       }
     }
 
     function maybeLogRandom() {
       var now = Date.now();
 
-      if (now - lastConsoleAt < 1500) {
+      if (now - lastConsoleAt < CONFIG.timing.consoleCooldownMs) {
         return;
       }
 

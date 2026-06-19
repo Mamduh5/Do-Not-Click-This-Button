@@ -13,9 +13,9 @@
       maxLevel: null,
       tab: "power",
       category: "power",
-      apply: function (state, level) {
-        state.powerPerClick += level;
-      }
+      effects: [
+        { stat: "powerPerClick", op: "addPerLevel", value: 1 }
+      ]
     },
     {
       id: "doubleContact",
@@ -26,9 +26,9 @@
       maxLevel: 5,
       tab: "power",
       category: "power",
-      apply: function (state, level) {
-        state.powerPerClick *= Math.pow(2, level);
-      }
+      effects: [
+        { stat: "powerPerClick", op: "multiplyPerLevel", value: 2 }
+      ]
     },
     {
       id: "conductFinger",
@@ -39,9 +39,9 @@
       maxLevel: null,
       tab: "power",
       category: "power",
-      apply: function (state, level) {
-        state.powerPerClick += 5 * level;
-      }
+      effects: [
+        { stat: "powerPerClick", op: "addPerLevel", value: 5 }
+      ]
     },
     {
       id: "autoPress",
@@ -52,10 +52,10 @@
       maxLevel: null,
       tab: "auto",
       category: "automation",
-      apply: function (state, level) {
-        state.powerPerSecond += level;
-        state.instabilityPerSecond += 0.12 * level;
-      }
+      effects: [
+        { stat: "powerPerSecond", op: "addPerLevel", value: 1 },
+        { stat: "instabilityPerSecond", op: "addPerLevel", value: 0.12 }
+      ]
     },
     {
       id: "mechIntern",
@@ -66,10 +66,10 @@
       maxLevel: null,
       tab: "auto",
       category: "automation",
-      apply: function (state, level) {
-        state.powerPerSecond += 5 * level;
-        state.instabilityPerSecond += 0.45 * level;
-      }
+      effects: [
+        { stat: "powerPerSecond", op: "addPerLevel", value: 5 },
+        { stat: "instabilityPerSecond", op: "addPerLevel", value: 0.45 }
+      ]
     },
     {
       id: "loopMacro",
@@ -80,9 +80,9 @@
       maxLevel: 5,
       tab: "auto",
       category: "automation",
-      apply: function (state, level) {
-        state.powerPerSecond *= Math.pow(2, level);
-      }
+      effects: [
+        { stat: "powerPerSecond", op: "multiplyPerLevel", value: 2 }
+      ]
     },
     {
       id: "reinfBtn",
@@ -94,9 +94,9 @@
       tab: "contain",
       category: "containment",
       tag: "SAFE",
-      apply: function (state, level) {
-        state.instabilityPerClick -= 0.1 * level;
-      }
+      effects: [
+        { stat: "instabilityPerClick", op: "addPerLevel", value: -0.1 }
+      ]
     },
     {
       id: "conField",
@@ -108,9 +108,9 @@
       tab: "contain",
       category: "containment",
       tag: "SAFE",
-      apply: function (state, level) {
-        state.containmentPerSecond += 0.4 * level;
-      }
+      effects: [
+        { stat: "containmentPerSecond", op: "addPerLevel", value: 0.4 }
+      ]
     },
     {
       id: "realityPatch",
@@ -122,10 +122,10 @@
       tab: "contain",
       category: "containment",
       tag: "SAFE",
-      apply: function () {},
-      onPurchase: function (state) {
-        state.instability = DNC.clamp(state.instability - 20, 0, 100);
-      }
+      effects: [],
+      instantEffects: [
+        { stat: "instability", op: "add", value: -20, min: 0, max: 100 }
+      ]
     },
     {
       id: "warnSuppress",
@@ -137,9 +137,9 @@
       tab: "risk",
       category: "risk",
       tag: "RISK",
-      apply: function (state, level) {
-        state.containmentPerSecond += 0.2 * level;
-      }
+      effects: [
+        { stat: "containmentPerSecond", op: "addPerLevel", value: 0.2 }
+      ]
     },
     {
       id: "unsafeOC",
@@ -151,13 +151,11 @@
       tab: "risk",
       category: "risk",
       tag: "RISK",
-      apply: function (state, level) {
-        if (level > 0) {
-          state.powerPerClick *= 3;
-          state.powerPerSecond *= 3;
-          state.instabilityPerSecond += 2;
-        }
-      }
+      effects: [
+        { stat: "powerPerClick", op: "multiplyOnce", value: 3 },
+        { stat: "powerPerSecond", op: "multiplyOnce", value: 3 },
+        { stat: "instabilityPerSecond", op: "addOnce", value: 2 }
+      ]
     },
     {
       id: "forbMult",
@@ -169,14 +167,12 @@
       tab: "risk",
       category: "risk",
       tag: "RISK",
-      apply: function (state, level) {
-        if (level > 0) {
-          state.powerPerClick *= 10;
-          state.powerPerSecond *= 10;
-          state.instabilityPerClick += 5;
-          state.instabilityPerSecond += 5;
-        }
-      }
+      effects: [
+        { stat: "powerPerClick", op: "multiplyOnce", value: 10 },
+        { stat: "powerPerSecond", op: "multiplyOnce", value: 10 },
+        { stat: "instabilityPerClick", op: "addOnce", value: 5 },
+        { stat: "instabilityPerSecond", op: "addOnce", value: 5 }
+      ]
     }
   ];
 })();

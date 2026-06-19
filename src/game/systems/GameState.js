@@ -3,33 +3,28 @@
 
   window.DNC = window.DNC || {};
 
-  var SAVE_VERSION = 1;
-
-  var BASE_STATS = {
-    powerPerClick: 1,
-    powerPerSecond: 0,
-    instabilityPerClick: 0.65,
-    instabilityPerSecond: 0,
-    containmentPerSecond: 0
-  };
+  var CONFIG = DNC.BALANCE_CONFIG;
+  var SAVE_VERSION = CONFIG.saveVersion;
+  var BASE_STATS = CONFIG.initialState;
+  var STAT_CAPS = CONFIG.statCaps;
 
   function createDefaultState() {
     return {
       version: SAVE_VERSION,
-      power: 0,
-      totalPowerEarned: 0,
-      instability: 0,
-      breachCount: 0,
-      anomalyShards: 0,
+      power: BASE_STATS.power,
+      totalPowerEarned: BASE_STATS.totalPowerEarned,
+      instability: BASE_STATS.instability,
+      breachCount: BASE_STATS.breachCount,
+      anomalyShards: BASE_STATS.anomalyShards,
       powerPerClick: BASE_STATS.powerPerClick,
       powerPerSecond: BASE_STATS.powerPerSecond,
       instabilityPerClick: BASE_STATS.instabilityPerClick,
       instabilityPerSecond: BASE_STATS.instabilityPerSecond,
       containmentPerSecond: BASE_STATS.containmentPerSecond,
       upgrades: {},
-      totalClicks: 0,
+      totalClicks: BASE_STATS.totalClicks,
       lastSavedAt: Date.now(),
-      reducedMotion: false
+      reducedMotion: BASE_STATS.reducedMotion
     };
   }
 
@@ -54,7 +49,7 @@
     state.version = SAVE_VERSION;
     state.power = Math.max(0, toSafeNumber(source.power, state.power));
     state.totalPowerEarned = Math.max(0, toSafeNumber(source.totalPowerEarned, state.totalPowerEarned));
-    state.instability = clamp(toSafeNumber(source.instability, state.instability), 0, 100);
+    state.instability = clamp(toSafeNumber(source.instability, state.instability), STAT_CAPS.minimumInstability, STAT_CAPS.maximumInstability);
     state.breachCount = toSafeInteger(source.breachCount, state.breachCount);
     state.anomalyShards = toSafeInteger(source.anomalyShards, state.anomalyShards);
     state.totalClicks = toSafeInteger(source.totalClicks, state.totalClicks);
@@ -90,14 +85,14 @@
     if (DNC.UPGRADE_DEFS) {
       DNC.UPGRADE_DEFS.forEach(function (upgrade) {
         var level = state.upgrades[upgrade.id] || 0;
-        if (level > 0 && typeof upgrade.apply === "function") {
-          upgrade.apply(state, level);
+        if (level > 0 && DNC.Upgrades && typeof DNC.Upgrades.applyEffects === "function") {
+          DNC.Upgrades.applyEffects(state, upgrade.effects, level);
         }
       });
     }
 
-    state.instabilityPerClick = clamp(state.instabilityPerClick, 0.2, 999);
-    state.instability = clamp(state.instability, 0, 100);
+    state.instabilityPerClick = clamp(state.instabilityPerClick, STAT_CAPS.minimumInstabilityPerClick, STAT_CAPS.maximumInstabilityPerClick);
+    state.instability = clamp(state.instability, STAT_CAPS.minimumInstability, STAT_CAPS.maximumInstability);
   }
 
   DNC.SAVE_VERSION = SAVE_VERSION;

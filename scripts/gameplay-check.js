@@ -7,6 +7,7 @@ global.window = global;
 
 [
   "src/game/systems/NumberFormat.js",
+  "src/game/data/balanceConfig.js",
   "src/game/systems/GameState.js",
   "src/game/data/upgrades.js",
   "src/game/systems/UpgradeSystem.js",
