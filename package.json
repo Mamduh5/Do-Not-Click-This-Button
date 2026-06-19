@@ -11,5 +11,7 @@
     "phaser": "3.90.0",
     "vite": "latest"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@playwright/test": "^1.61.0"
+  }
 }

@@ -322,7 +322,7 @@
         card.classList.toggle("purchased", maxed);
         card.classList.toggle("containment", upgrade.category === "containment");
         card.classList.toggle("dangerous", upgrade.category === "risk");
-        card.disabled = maxed;
+        card.disabled = maxed || !affordable;
         costEl.textContent = maxed ? "Level " + level + " / OWNED" : "Level " + level + "  Cost " + DNC.formatNumber(cost);
 
         if (maxed && !existingOwnedTag) {
