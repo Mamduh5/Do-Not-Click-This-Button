@@ -18,6 +18,7 @@
       current: new Array(size).fill(0),
       previous: new Array(size).fill(0),
       ripples: [],
+      foam: [],
       impulses: [],
       lastUpdateMs: -Infinity,
       lastImpulseType: null,
@@ -26,7 +27,7 @@
       averageEnergy: 0
     };
 
-    if (active) {
+    if (active && config.visualEnabled !== false) {
       system.graphics = scene.add.graphics();
       system.graphics.setDepth(CONFIG.destructibleBackground.repairDepth + 0.35);
     }
@@ -38,7 +39,7 @@
     if (!system || !system.active) {
       return;
     }
-    if (timeMs - system.lastUpdateMs < system.config.updateIntervalMs) {
+    if (timeMs - system.lastUpdateMs < (system.config.renderUpdateIntervalMs || system.config.updateIntervalMs)) {
       return;
     }
     system.lastUpdateMs = timeMs;
@@ -174,14 +175,14 @@
     var color = config.foamColor;
     var radius = impulseType === "meteor" ? 46 : impulseType === "groundBreak" ? 34 : impulseType === "arrowRain" ? 12 : 20;
     var ring = system.scene.add.circle(x, y, radius * scale, color, 0.01);
-    ring.setStrokeStyle(2, color, Math.min(0.55, config.ringAlpha * Math.max(0.55, strength)));
+    ring.setStrokeStyle(config.rippleRingWidth || 2, color, Math.min(0.55, config.ringAlpha * Math.max(0.55, strength)));
     ring.setDepth(CONFIG.destructibleBackground.repairDepth + 1.6);
     system.ripples.push(ring);
     system.scene.tweens.add({
       targets: ring,
       scale: impulseType === "meteor" ? 2.4 : 1.85,
       alpha: 0,
-      duration: config.foamDurationMs,
+      duration: config.rippleRingDurationMs || config.foamDurationMs,
       onComplete: function () {
         remove(system.ripples, ring);
         if (ring.active) {
@@ -192,6 +193,9 @@
 
     if (impulseType === "meteor" || impulseType === "groundBreak" || impulseType === "sciFiLaser") {
       createFoam(system, x, y, strength, scale, impulseType);
+    }
+    if (impulseType === "pixelShatter") {
+      createPixelDisturbance(system, x, y, scale);
     }
 
     capRipples(system);
@@ -207,7 +211,7 @@
       var distance = Phaser.Math.Between(8, impulseType === "meteor" ? 58 : 36) * scale;
       var particle = system.scene.add.circle(x, y, Math.max(1.5, 2.2 * scale), system.config.foamColor, 0.54);
       particle.setDepth(CONFIG.destructibleBackground.repairDepth + 1.7);
-      system.ripples.push(particle);
+      system.foam.push(particle);
       system.scene.tweens.add({
         targets: particle,
         x: x + Math.cos(angle) * distance,
@@ -216,20 +220,56 @@
         scale: 0.24,
         duration: system.config.foamDurationMs * 0.75,
         onComplete: function () {
-          remove(system.ripples, particle);
+          remove(system.foam, particle);
           if (particle.active) {
             particle.destroy();
           }
         }
       });
     }
+    capFoam(system);
+  }
+
+  function createPixelDisturbance(system, x, y, scale) {
+    var size = 8 * scale;
+    for (var col = -3; col <= 3; col += 1) {
+      for (var row = -2; row <= 2; row += 1) {
+        if ((col + row) % 2 === 0) {
+          var cell = system.scene.add.rectangle(x + col * size, y + row * size, size, size, system.config.highlightColor, 0.22);
+          cell.setDepth(CONFIG.destructibleBackground.repairDepth + 1.55);
+          system.ripples.push(cell);
+          system.scene.tweens.add({
+            targets: cell,
+            alpha: 0,
+            scale: 1.3,
+            duration: system.config.rippleRingDurationMs * 0.55,
+            onComplete: function () {
+              remove(system.ripples, cell);
+              if (cell.active) {
+                cell.destroy();
+              }
+            }
+          });
+        }
+      }
+    }
   }
 
   function capRipples(system) {
-    while (system.ripples.length > system.config.maxRippleObjects) {
+    var maxRipples = system.config.rippleRingMax || system.config.maxRippleObjects;
+    while (system.ripples.length > maxRipples) {
       var ripple = system.ripples.shift();
       if (ripple && ripple.active) {
         ripple.destroy();
+      }
+    }
+  }
+
+  function capFoam(system) {
+    while (system.foam.length > (system.config.foamMax || 48)) {
+      var foam = system.foam.shift();
+      if (foam && foam.active) {
+        foam.destroy();
       }
     }
   }
@@ -252,11 +292,15 @@
   function getSnapshot(system) {
     return {
       active: Boolean(system && system.active),
+      visualEnabled: Boolean(system && system.active && system.config.visualEnabled !== false),
       gridCols: system && system.config ? system.config.gridCols || 0 : 0,
       gridRows: system && system.config ? system.config.gridRows || 0 : 0,
       activeImpulseCount: system ? system.impulses.length : 0,
       activeRippleCount: system ? system.ripples.length : 0,
+      rippleCount: system ? system.ripples.length : 0,
+      foamCount: system ? system.foam.length : 0,
       averageEnergy: system ? system.averageEnergy : 0,
+      gridAverageEnergy: system ? system.averageEnergy : 0,
       lastImpulseType: system ? system.lastImpulseType : null,
       totalImpulseCount: system ? system.totalImpulseCount : 0,
       strongestImpulse: system ? system.strongestImpulse : 0
@@ -277,6 +321,12 @@
       }
     });
     system.ripples = [];
+    system.foam.forEach(function (foam) {
+      if (foam && foam.active) {
+        foam.destroy();
+      }
+    });
+    system.foam = [];
     system.impulses = [];
   }
 

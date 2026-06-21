@@ -23,6 +23,10 @@
       stuckDetectionMs: rules.stuckDetectionMs || 700,
       stuckDistance: rules.stuckDistance || 1,
       directionRerollCooldownMs: rules.directionRerollCooldownMs || 500,
+      movementMode: rules.movementMode || "freeRoam",
+      slideAlongEdges: rules.slideAlongEdges !== false,
+      pushOutMargin: rules.pushOutMargin || 1,
+      blockedMoveCount: 0,
       obstacles: obstacles,
       townMap: material && material.surface && material.surface.map ? material.surface.map : null,
       debugOverlay: null,
@@ -39,18 +43,29 @@
   }
 
   function normalizeObstacle(obstacle, padding, index) {
-    return {
+    var shape = obstacle.shape || (obstacle.radius ? "circle" : "rect");
+    var normalized = {
       id: obstacle.id || "obstacle-" + index,
-      type: "rect",
+      type: obstacle.type || shape,
+      shape: shape,
       x: obstacle.x,
-      y: obstacle.y,
-      width: obstacle.width,
-      height: obstacle.height,
-      left: obstacle.x - padding,
-      top: obstacle.y - padding,
-      right: obstacle.x + obstacle.width + padding,
-      bottom: obstacle.y + obstacle.height + padding
+      y: obstacle.y
     };
+    if (shape === "circle") {
+      normalized.radius = obstacle.radius;
+      normalized.left = obstacle.x - obstacle.radius - padding;
+      normalized.top = obstacle.y - obstacle.radius - padding;
+      normalized.right = obstacle.x + obstacle.radius + padding;
+      normalized.bottom = obstacle.y + obstacle.radius + padding;
+      return normalized;
+    }
+    normalized.width = obstacle.width;
+    normalized.height = obstacle.height;
+    normalized.left = obstacle.x - padding;
+    normalized.top = obstacle.y - padding;
+    normalized.right = obstacle.x + obstacle.width + padding;
+    normalized.bottom = obstacle.y + obstacle.height + padding;
+    return normalized;
   }
 
   function renderDebug(scene, obstacles) {
@@ -58,9 +73,14 @@
     graphics.setDepth(CONFIG.destructibleBackground.fallbackDamageDepth + 0.2);
     obstacles.forEach(function (obstacle) {
       graphics.lineStyle(1, 0x19d8ff, 0.26);
-      graphics.strokeRect(obstacle.left, obstacle.top, obstacle.right - obstacle.left, obstacle.bottom - obstacle.top);
       graphics.fillStyle(0x19d8ff, 0.035);
-      graphics.fillRect(obstacle.left, obstacle.top, obstacle.right - obstacle.left, obstacle.bottom - obstacle.top);
+      if (obstacle.shape === "circle") {
+        graphics.strokeCircle(obstacle.x, obstacle.y, obstacle.radius + (obstacle.left ? obstacle.x - obstacle.left - obstacle.radius : 0));
+        graphics.fillCircle(obstacle.x, obstacle.y, obstacle.radius);
+      } else {
+        graphics.strokeRect(obstacle.left, obstacle.top, obstacle.right - obstacle.left, obstacle.bottom - obstacle.top);
+        graphics.fillRect(obstacle.left, obstacle.top, obstacle.right - obstacle.left, obstacle.bottom - obstacle.top);
+      }
     });
     return graphics;
   }
@@ -76,16 +96,36 @@
     radius = radius || 0;
     for (var index = 0; index < system.obstacles.length; index += 1) {
       var obstacle = system.obstacles[index];
-      if (x >= obstacle.left - radius && x <= obstacle.right + radius && y >= obstacle.top - radius && y <= obstacle.bottom + radius) {
+      if (isInsideObstacle(obstacle, x, y, radius)) {
         return obstacle;
       }
     }
     return null;
   }
 
+  function isInsideObstacle(obstacle, x, y, radius) {
+    radius = radius || 0;
+    if (obstacle.shape === "circle") {
+      return Phaser.Math.Distance.Between(x, y, obstacle.x, obstacle.y) <= obstacle.radius + radius;
+    }
+    return x >= obstacle.left - radius && x <= obstacle.right + radius && y >= obstacle.top - radius && y <= obstacle.bottom + radius;
+  }
+
   function nearestSafePoint(system, obstacle, x, y, radius) {
     radius = radius || 0;
     var clearance = system && system.boundaryClearance !== undefined ? system.boundaryClearance : 1;
+    if (obstacle.shape === "circle") {
+      var angle = Phaser.Math.Angle.Between(obstacle.x, obstacle.y, x, y);
+      if (!Number.isFinite(angle)) {
+        angle = 0;
+      }
+      var distance = obstacle.radius + radius + clearance + (system ? system.pushOutMargin : 0);
+      return {
+        x: Phaser.Math.Clamp(obstacle.x + Math.cos(angle) * distance, 0, CONFIG.canvas.width),
+        y: Phaser.Math.Clamp(obstacle.y + Math.sin(angle) * distance, 0, CONFIG.canvas.height),
+        side: "circle"
+      };
+    }
     var distances = [
       { side: "left", value: Math.abs(x - (obstacle.left - radius)), x: obstacle.left - radius - clearance, y: y },
       { side: "right", value: Math.abs((obstacle.right + radius) - x), x: obstacle.right + radius + clearance, y: y },
@@ -123,6 +163,7 @@
     if (containing) {
       var safe = nearestSafePoint(system, containing, nextX, nextY, radius);
       system.pushOutCount += 1;
+      system.blockedMoveCount += 1;
       return steerResult(enemy, safe.x, safe.y, true);
     }
 
@@ -130,8 +171,9 @@
     var adjustedY = nextY;
     var adjusted = false;
     system.obstacles.forEach(function (obstacle) {
-      var closestX = Phaser.Math.Clamp(adjustedX, obstacle.left, obstacle.right);
-      var closestY = Phaser.Math.Clamp(adjustedY, obstacle.top, obstacle.bottom);
+      var closest = closestPoint(obstacle, adjustedX, adjustedY);
+      var closestX = closest.x;
+      var closestY = closest.y;
       var distance = Phaser.Math.Distance.Between(adjustedX, adjustedY, closestX, closestY);
       var influence = Math.max(radius + system.obstacleInfluence, system.obstacleInfluence);
       if (distance > 0 && distance < influence) {
@@ -149,6 +191,20 @@
     }
 
     return { x: nextX, y: nextY, adjusted: false };
+  }
+
+  function closestPoint(obstacle, x, y) {
+    if (obstacle.shape === "circle") {
+      var angle = Phaser.Math.Angle.Between(obstacle.x, obstacle.y, x, y);
+      return {
+        x: obstacle.x + Math.cos(angle) * obstacle.radius,
+        y: obstacle.y + Math.sin(angle) * obstacle.radius
+      };
+    }
+    return {
+      x: Phaser.Math.Clamp(x, obstacle.left, obstacle.right),
+      y: Phaser.Math.Clamp(y, obstacle.top, obstacle.bottom)
+    };
   }
 
   function updateEnemyState(system, enemy, previousX, previousY, deltaMs, timeMs) {
@@ -199,11 +255,13 @@
       enabled: Boolean(system && system.enabled),
       materialId: system ? system.materialId : null,
       obstacleCount: system ? system.obstacles.length : 0,
+      movementMode: system ? system.movementMode : null,
       padding: system ? system.padding : 0,
       avoidanceForce: system ? system.avoidanceForce : 0,
       obstacleInfluence: system ? system.obstacleInfluence : 0,
       spawnClearance: system ? system.spawnClearance : 0,
       avoidanceCount: system ? system.avoidanceCount : 0,
+      blockedMoveCount: system ? system.blockedMoveCount : 0,
       pushOutCount: system ? system.pushOutCount : 0,
       stuckEnemyCount: stuckCount,
       stuckRerollCount: system ? system.stuckRerollCount : 0,
@@ -212,17 +270,23 @@
         roadCount: system.townMap.roadCount,
         plazaCount: system.townMap.plazaCount,
         buildingCount: system.townMap.buildingCount,
+        treeCount: system.townMap.treeCount || countObstaclesByType(system, "tree"),
+        movementMode: system.townMap.movementMode || system.movementMode,
         enemiesInsideObstacles: insideCount,
+        blockedMoveCount: system.blockedMoveCount,
+        pushOutCount: system.pushOutCount,
         stuckEnemyCount: stuckCount
       } : null,
       obstacles: system ? system.obstacles.map(function (obstacle) {
         return {
           id: obstacle.id,
           type: obstacle.type,
+          shape: obstacle.shape,
           x: obstacle.x,
           y: obstacle.y,
           width: obstacle.width,
           height: obstacle.height,
+          radius: obstacle.radius,
           left: obstacle.left,
           top: obstacle.top,
           right: obstacle.right,
@@ -231,6 +295,12 @@
       }) : [],
       enemiesInsideObstacles: insideCount
     };
+  }
+
+  function countObstaclesByType(system, type) {
+    return system.obstacles.filter(function (obstacle) {
+      return obstacle.type === type;
+    }).length;
   }
 
   function countStuckEnemies(system, enemies) {

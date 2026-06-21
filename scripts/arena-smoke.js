@@ -73,6 +73,7 @@ async function run() {
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.waveCount > 0, "Water animation snapshot should expose wave count");
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.shimmerCount > 0, "Water animation snapshot should expose shimmer count");
     assert(afterWaterSwitch.waterSurface && afterWaterSwitch.waterSurface.active === true, "Water should expose active water surface system");
+    assert(afterWaterSwitch.waterSurface.visualEnabled === true, "Water should expose visible water renderer");
     assert(afterWaterSwitch.waterSurface.gridCols > 0 && afterWaterSwitch.waterSurface.gridRows > 0, "Water surface should expose ripple grid dimensions");
     const beforeWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
     await page.evaluate(() => {
@@ -86,6 +87,8 @@ async function run() {
     assert(afterWaterBreak.destructibleBackground.waterAnimation.rippleCount > 0, "Ground Break on Water should expose active ripple debug count");
     assert(afterWaterBreak.waterSurface.totalImpulseCount > beforeWaterBreak.waterSurface.totalImpulseCount, "Ground Break on Water should add water surface impulse");
     assert(afterWaterBreak.waterSurface.lastImpulseType === "groundBreak", "Ground Break on Water should record water impulse type");
+    assert(afterWaterBreak.waterSurface.rippleCount > 0, "Ground Break on Water should create visible ripple objects");
+    assert(afterWaterBreak.waterSurface.foamCount > 0, "Ground Break on Water should create visible foam objects");
     assert((afterWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0) === (beforeWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0), "Ground Break on Water should not create crack collapse response");
     assert(afterWaterBreak.effectCounts.backgroundWaterRipple > (beforeWaterBreak.effectCounts.backgroundWaterRipple || 0), "Ground Break on Water should create ripple/splash debug event");
     const groundImpulseStrength = afterWaterBreak.waterSurface.strongestImpulse;
@@ -111,10 +114,11 @@ async function run() {
     assert(afterTownSwitch.activeBackgroundSkin === "town", "background selector should switch to Town");
     assert(afterTownSwitch.obstacles.enabled === true && afterTownSwitch.obstacles.obstacleCount > 0, "Town should expose obstacles");
     assert(afterTownSwitch.obstacles.debugOverlay === true, "Town obstacle debug snapshot should exist");
+    assert(afterTownSwitch.obstacles.movementMode === "freeRoamObstacles", "Town should use free-roam obstacle movement");
     assert(afterTownSwitch.townMap && afterTownSwitch.townMap.roadCount > 0, "Town should expose road debug snapshot");
-    assert(afterTownSwitch.townMap.buildingCount === afterTownSwitch.obstacles.obstacleCount, "Town should expose matching building/obstacle counts");
-    assert(afterTownSwitch.townNavigation && afterTownSwitch.townNavigation.active === true, "Town should expose active navigation system");
-    assert(afterTownSwitch.townNavigation.walkableCells > 0 && afterTownSwitch.townNavigation.blockedCells > 0, "Town navigation should expose walkability grid counts");
+    assert(afterTownSwitch.townMap.treeCount > 0, "Town should expose tree obstacle count");
+    assert(afterTownSwitch.townMap.buildingCount + afterTownSwitch.townMap.treeCount === afterTownSwitch.obstacles.obstacleCount, "Town should expose matching solid obstacle counts");
+    assert(afterTownSwitch.townNavigation && afterTownSwitch.townNavigation.active === false, "Town lane navigation should be inactive in free-roam obstacle mode");
     await page.evaluate(() => {
       const obstacle = window.__containmentArena.getSnapshot().obstacles.obstacles[0];
       window.__containmentArena.clearEnemies();
@@ -125,7 +129,7 @@ async function run() {
     assert(afterTownSpawn.enemiesInsideObstacles === 0, "Enemies should not spawn or remain inside Town obstacles");
     assert(afterTownSpawn.townMap.enemiesInsideObstacles === 0, "Town map debug should report no enemy obstacle overlap");
     assert(typeof afterTownSpawn.townMap.stuckEnemyCount === "number", "Town map debug should expose stuck enemy count");
-    assert(afterTownSpawn.townNavigation.activePathCount > 0 || afterTownSpawn.townNavigation.lastPathLength > 0, "Town enemies should use navigation path/debug data");
+    assert(typeof afterTownSpawn.townMap.blockedMoveCount === "number" && typeof afterTownSpawn.townMap.pushOutCount === "number", "Town map debug should expose obstacle movement counters");
     await page.evaluate(() => {
       const obstacle = window.__containmentArena.getSnapshot().obstacles.obstacles[0];
       window.__containmentArena.setClickSkin("meteorImpact");

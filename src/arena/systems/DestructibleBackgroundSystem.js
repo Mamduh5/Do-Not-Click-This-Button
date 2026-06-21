@@ -115,6 +115,9 @@
     if (obstacle) {
       return { surfaceType: "building", obstacleHit: true };
     }
+    if (findCircle(surface.treeCircles || [], x, y)) {
+      return { surfaceType: "tree", obstacleHit: true };
+    }
     if (findRect(surface.plazas || [], x, y)) {
       return { surfaceType: "plaza", obstacleHit: false };
     }
@@ -122,6 +125,16 @@
       return { surfaceType: "road", obstacleHit: false };
     }
     return { surfaceType: "open", obstacleHit: false };
+  }
+
+  function findCircle(circles, x, y) {
+    for (var index = 0; index < circles.length; index += 1) {
+      var circle = circles[index];
+      if (Phaser.Math.Distance.Between(x, y, circle.x, circle.y) <= circle.radius) {
+        return circle;
+      }
+    }
+    return null;
   }
 
   function findRect(rects, x, y) {
@@ -228,17 +241,28 @@
   }
 
   function drawSandSurface(graphics, config) {
-    graphics.fillStyle(config.baseColor, 1);
+    var texture = config.sandTexture || {};
+    graphics.fillStyle((texture.baseColors && texture.baseColors[0]) || config.baseColor, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
-    for (var grain = 0; grain < config.grainDensity; grain += 1) {
+    (texture.baseColors || []).forEach(function (color, index) {
+      graphics.fillStyle(color, texture.patchAlpha || 0.06);
+      for (var patch = 0; patch < (texture.patchCount || 0) / Math.max(1, texture.baseColors.length); patch += 1) {
+        var px = (patch * 139 + index * 211) % CONFIG.canvas.width;
+        var py = (patch * 97 + index * 173) % CONFIG.canvas.height;
+        graphics.fillEllipse(px, py, 120 + (patch % 4) * 28, 42 + (patch % 3) * 18);
+      }
+    });
+    var grainDensity = texture.grainDensity || config.grainDensity;
+    for (var grain = 0; grain < grainDensity; grain += 1) {
       var gx = (grain * 53) % CONFIG.canvas.width;
       var gy = (grain * 97) % CONFIG.canvas.height;
       var color = config.grainColors[grain % config.grainColors.length];
       graphics.fillStyle(color, grain % 3 === 0 ? config.coarseGrainAlpha : config.grainAlpha);
-      graphics.fillRect(gx, gy, 2 + (grain % 2), 1 + (grain % 3 === 0 ? 1 : 0));
+      var size = (texture.grainSizeMin || 1) + (grain % Math.max(1, (texture.grainSizeMax || 3) - (texture.grainSizeMin || 1) + 1));
+      graphics.fillRect(gx, gy, size, size);
     }
-    graphics.lineStyle(1, config.detailColor, config.duneLineAlpha);
-    for (var line = 0; line < config.duneLineCount; line += 1) {
+    graphics.lineStyle(1, config.detailColor, texture.duneLineAlpha || config.duneLineAlpha);
+    for (var line = 0; line < (texture.duneLineCount || config.duneLineCount); line += 1) {
       var y = line * config.duneLineSpacing + 26;
       var lastX = 0;
       var lastY = y;
@@ -252,25 +276,48 @@
   }
 
   function drawWaterSurface(graphics, config) {
-    graphics.fillStyle(config.baseColor, 1);
-    graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
-    graphics.fillStyle(config.waveBandColor, config.waveBandAlpha);
-    for (var band = 0; band < config.waveLineCount; band += 1) {
-      var bandY = 18 + band * (CONFIG.canvas.height / config.waveLineCount);
+    var texture = config.waterTexture || {};
+    var colors = texture.baseColors || [config.baseColor];
+    colors.forEach(function (color, index) {
+      graphics.fillStyle(color, index === 0 ? 1 : 0.34);
+      graphics.fillRect(0, index * CONFIG.canvas.height / colors.length, CONFIG.canvas.width, CONFIG.canvas.height / colors.length + 2);
+    });
+    graphics.fillStyle(config.waveBandColor, texture.bandAlpha || config.waveBandAlpha);
+    for (var band = 0; band < (texture.bandCount || config.waveLineCount); band += 1) {
+      var bandY = 18 + band * (CONFIG.canvas.height / (texture.bandCount || config.waveLineCount));
       graphics.fillRect(0, bandY, CONFIG.canvas.width, config.waveBandHeight + (band % 3) * 2);
     }
     graphics.lineStyle(1, config.waveLineColor, config.waveAlpha);
-    for (var line = 0; line < config.causticLineCount; line += 1) {
+    for (var line = 0; line < (texture.causticCount || config.causticLineCount); line += 1) {
       var startX = (line * 71) % CONFIG.canvas.width;
       var startY = (line * 43) % CONFIG.canvas.height;
-      graphics.lineStyle(1, config.waveLineColor, config.causticAlpha);
+      graphics.lineStyle(1, config.waveLineColor, texture.causticAlpha || config.causticAlpha);
       graphics.lineBetween(startX, startY, startX + 38, startY + 10 + (line % 4) * 3);
+    }
+    for (var shimmer = 0; shimmer < (texture.shimmerCount || 0); shimmer += 1) {
+      var sx = (shimmer * 101) % CONFIG.canvas.width;
+      var sy = (shimmer * 59) % CONFIG.canvas.height;
+      graphics.lineStyle(1, config.detailColor, texture.shimmerAlpha || 0.12);
+      graphics.lineBetween(sx, sy, sx + 18 + (shimmer % 4) * 5, sy + (shimmer % 3) * 3);
     }
   }
 
   function drawTownSurface(graphics, config) {
+    var texture = config.townTexture || {};
     graphics.fillStyle(config.baseColor, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    for (var noise = 0; noise < (texture.textureNoiseDensity || 0); noise += 1) {
+      graphics.fillStyle(noise % 2 ? 0x7e8779 : 0xa1a88f, 0.06);
+      graphics.fillRect((noise * 67) % CONFIG.canvas.width, (noise * 41) % CONFIG.canvas.height, 3, 2);
+    }
+    for (var grass = 0; grass < (texture.grassPatchCount || 0); grass += 1) {
+      graphics.fillStyle(0x6f8b5b, 0.08);
+      graphics.fillEllipse((grass * 149) % CONFIG.canvas.width, (grass * 83) % CONFIG.canvas.height, 110, 48);
+    }
+    for (var dirt = 0; dirt < (texture.dirtPatchCount || 0); dirt += 1) {
+      graphics.fillStyle(0x8b7552, 0.08);
+      graphics.fillEllipse((dirt * 191) % CONFIG.canvas.width, (dirt * 73) % CONFIG.canvas.height, 92, 36);
+    }
     graphics.fillStyle(config.sidewalkColor, 1);
     config.sidewalks.forEach(function (rect) {
       graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
@@ -278,6 +325,8 @@
     graphics.fillStyle(config.roadColor, 1);
     config.roads.forEach(function (rect) {
       graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+      graphics.lineStyle(2, texture.roadEdgeColor || config.seamColor, 0.38);
+      graphics.strokeRect(rect.x, rect.y, rect.width, rect.height);
     });
     graphics.lineStyle(2, config.roadLineColor, 0.66);
     var horizontalRoad = config.roads.find(function (road) {
@@ -302,12 +351,25 @@
     });
     config.buildingRects.forEach(function (rect, index) {
       var roof = config.roofColors[index % config.roofColors.length];
+      graphics.fillStyle(0x111111, texture.shadowAlpha || 0.18);
+      graphics.fillRect(rect.x + 5, rect.y + 7, rect.width, rect.height);
       graphics.fillStyle(config.buildingColor, 1);
       graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
       graphics.fillStyle(roof, 0.92);
       graphics.fillRect(rect.x + 6, rect.y + 6, rect.width - 12, rect.height - 12);
       graphics.lineStyle(1, config.buildingAccentColor, 0.65);
       graphics.strokeRect(rect.x + 9, rect.y + 9, rect.width - 18, rect.height - 18);
+    });
+    (config.treeCircles || []).forEach(function (tree, index) {
+      var treeColors = texture.treeColors || [0x2f6d3b, 0x3f8b4d];
+      graphics.fillStyle(0x111111, texture.shadowAlpha || 0.18);
+      graphics.fillEllipse(tree.x + 4, tree.y + 6, tree.radius * 2.1, tree.radius * 1.55);
+      graphics.fillStyle(treeColors[index % treeColors.length], 1);
+      graphics.fillCircle(tree.x, tree.y, tree.radius);
+      graphics.fillStyle(treeColors[(index + 1) % treeColors.length], 0.9);
+      graphics.fillCircle(tree.x - tree.radius * 0.28, tree.y - tree.radius * 0.18, tree.radius * 0.58);
+      graphics.lineStyle(1, 0x194020, 0.5);
+      graphics.strokeCircle(tree.x, tree.y, tree.radius);
     });
   }
 

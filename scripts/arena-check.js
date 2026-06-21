@@ -106,6 +106,7 @@ assert(sandSkin.damageResponses.groundBreak.type === "sandCrater", "Sand Ground 
 assert(sandSkin.damageResponses.pixelShatter.type === "sandGridDisruption", "Sand Pixel Shatter should use granular grid disruption");
 assert(sandSkin.surface.grainDensity > 0 && sandSkin.surface.grainAlpha > 0, "Sand should define grain values");
 assert(sandSkin.surface.duneLineCount > 0 && sandSkin.surface.duneLineAlpha > 0, "Sand should define dune values");
+assert(sandSkin.surface.sandTexture && sandSkin.surface.sandTexture.patchCount > 0, "Sand texture config should exist");
 assert(sandSkin.damageResponses.groundBreak.craterSoftness > 0, "Sand Ground Break should define crater softness");
 const waterSkin = ARENA.BackgroundSkins.get("water");
 assert(waterSkin.damageResponses.groundBreak.type === "waterRipple", "Water Ground Break should use splash/ripple response");
@@ -118,6 +119,8 @@ assert(waterSkin.animation.shimmerCount > 0 && waterSkin.animation.shimmerSpeed 
 assert(waterSkin.animation.rippleMaxCount > 0 && waterSkin.animation.rippleDurationMs > 0, "Water should define capped ripple values");
 assert(waterSkin.damageResponses.groundBreak.splashRadius > 0 && waterSkin.damageResponses.groundBreak.foamCount > 0, "Water Ground Break should define splash and foam values");
 assert(waterSkin.waterSurface && waterSkin.waterSurface.enabled === true, "Water should define reactive water surface config");
+assert(waterSkin.waterSurface.visualEnabled === true && waterSkin.waterSurface.rippleRingMax > 0, "Water surface should define visible renderer config");
+assert(waterSkin.surface.waterTexture && waterSkin.surface.waterTexture.causticCount > 0, "Water texture config should exist");
 assert(waterSkin.waterSurface.gridCols > 0 && waterSkin.waterSurface.gridRows > 0, "Water surface should define a low-resolution ripple grid");
 assert(waterSkin.waterSurface.propagation > 0 && waterSkin.waterSurface.damping > 0, "Water surface should define propagation and damping");
 assert(waterSkin.waterSurface.effectImpulseScale.meteor > waterSkin.waterSurface.effectImpulseScale.groundBreak, "Meteor should create stronger water impulse than Ground Break");
@@ -129,8 +132,12 @@ assert(townSkin.obstacleRules.obstacles.length > 0, "Town should define obstacle
 assert(townSkin.obstacleRules.debugOverlay === true, "Town obstacle debug overlay should be configurable");
 assert(townSkin.surface.roads.length > 0 && townSkin.surface.buildingRects.length > 0, "Town should define roads and buildings from config");
 assert(townSkin.surface.map && townSkin.surface.map.roadCount > 0 && townSkin.surface.map.buildingCount === townSkin.surface.buildingRects.length, "Town should define map debug counts");
+assert(townSkin.surface.treeCircles.length > 0 && townSkin.surface.map.treeCount === townSkin.surface.treeCircles.length, "Town should define tree obstacles from config");
+assert(townSkin.surface.townTexture && townSkin.surface.townTexture.textureNoiseDensity > 0, "Town texture config should exist");
 assert(townSkin.obstacleRules.spawnClearance > 0 && townSkin.obstacleRules.stuckDetectionMs > 0, "Town should define spawn clearance and stuck detection config");
-assert(townSkin.navigation && townSkin.navigation.enabled === true, "Town should define navigation config");
+assert(townSkin.obstacleRules.movementMode === "freeRoamObstacles", "Town movement should be free-roam obstacle mode");
+assert(townSkin.obstacleRules.obstacles.some((obstacle) => obstacle.type === "tree" && obstacle.shape === "circle"), "Town should define circular tree blockers");
+assert(townSkin.navigation && townSkin.navigation.enabled === false, "Town lane navigation should not be the primary movement mode");
 assert(townSkin.navigation.cellSize > 0 && townSkin.navigation.maxPathLength > 0, "Town navigation should define grid and path caps");
 assert(townSkin.navigation.roads.length > 0 && townSkin.navigation.buildings.length === townSkin.surface.buildingRects.length, "Town navigation should define roads and blocked buildings");
 assert(ARENA.CLICK_EFFECT_SKINS.length >= 6, "arena should define required click effect skins");
@@ -289,8 +296,10 @@ const obstacleSystem = ARENA.Obstacles.create({
         setDepth() {},
         lineStyle() {},
         strokeRect() {},
+        strokeCircle() {},
         fillStyle() {},
         fillRect() {},
+        fillCircle() {},
         destroy() {}
       };
     }
@@ -309,7 +318,12 @@ const obstacleSnapshot = ARENA.Obstacles.getSnapshot(obstacleSystem, [{ active: 
 assert(obstacleSnapshot.debugOverlay === true, "Town obstacle debug snapshot should exist");
 assert(obstacleSnapshot.enemiesInsideObstacles === 0, "safe enemy snapshot should not report obstacle overlap");
 assert(obstacleSnapshot.townMap && obstacleSnapshot.townMap.roadCount > 0 && obstacleSnapshot.townMap.buildingCount === townSkin.surface.buildingRects.length, "Town map debug snapshot should expose roads and buildings");
+assert(obstacleSnapshot.townMap.movementMode === "freeRoamObstacles", "Town map debug should expose free-roam obstacle movement");
+assert(obstacleSnapshot.townMap.treeCount === townSkin.surface.treeCircles.length, "Town map debug should expose trees");
+assert(typeof obstacleSnapshot.blockedMoveCount === "number" && typeof obstacleSnapshot.pushOutCount === "number", "Obstacle debug should expose push-out and blocked move counts");
 assert(obstacleSnapshot.stuckEnemyCount === 0, "Obstacle snapshot should expose stuck enemy count");
+const treeObstacle = obstacleSystem.obstacles.find((item) => item.type === "tree");
+assert(treeObstacle && ARENA.Obstacles.isPointInside(obstacleSystem, treeObstacle.x, treeObstacle.y, ARENA.BALANCE_CONFIG.enemy.radius), "Tree obstacle should block enemy centers");
 const stuckEnemy = { active: true, x: 240, y: 240, radius: ARENA.BALANCE_CONFIG.enemy.radius, driftAngle: 0 };
 ARENA.Obstacles.updateEnemyState(obstacleSystem, stuckEnemy, stuckEnemy.x, stuckEnemy.y, townSkin.obstacleRules.stuckDetectionMs + 1, 1000);
 assert(stuckEnemy.obstacleStuck === true, "ObstacleSystem should mark stuck enemies after configured delay");
@@ -349,12 +363,15 @@ const fakeScene = {
 assert(ARENA.WaterSurface && typeof ARENA.WaterSurface.create === "function", "WaterSurfaceSystem should exist");
 const waterSurfaceSystem = ARENA.WaterSurface.create(fakeScene, waterSkin);
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).active === true, "Selecting Water should activate water surface system");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).visualEnabled === true, "Water surface should expose visible renderer debug");
 const groundImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "groundBreak", 240, 220, 1);
 const meteorImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "meteor", 260, 220, 1);
 const arrowImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "arrowRain", 280, 220, 1);
 assert(groundImpulse.count === 1, "Ground Break on Water should create one central impulse");
 assert(meteorImpulse.strength > groundImpulse.strength, "Meteor on Water should create stronger impulse than Ground Break");
 assert(arrowImpulse.count > 1, "Arrow Rain on Water should create multiple small impulses");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).rippleCount > 0, "Water clicks should create visible ripple objects");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).foamCount > 0, "Strong Water clicks should create visible foam objects");
 fakeScene.time.now = 100;
 ARENA.WaterSurface.update(waterSurfaceSystem, 100);
 const activeEnergy = ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).averageEnergy;
@@ -367,20 +384,10 @@ assert(activeEnergy > 0, "Water ripple field should accumulate energy after impu
 assert(settledEnergy < activeEnergy, "Water ripple field should settle after damping updates");
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).lastImpulseType === "arrowRain", "Water debug should expose last impulse type");
 
-assert(ARENA.TownNavigation && typeof ARENA.TownNavigation.create === "function", "TownNavigationSystem should exist");
+assert(ARENA.TownNavigation && typeof ARENA.TownNavigation.create === "function", "TownNavigationSystem should still exist as optional fallback");
 const townNavigationSystem = ARENA.TownNavigation.create(fakeScene, townSkin);
 const townNavigationSnapshot = ARENA.TownNavigation.getSnapshot(townNavigationSystem, []);
-assert(townNavigationSnapshot.active === true, "Selecting Town should activate town navigation");
-assert(townNavigationSnapshot.walkableCells > 0 && townNavigationSnapshot.blockedCells > 0, "Town navigation should generate walkable and blocked cells");
-const firstBuilding = townSkin.navigation.buildings[0];
-assert(!ARENA.TownNavigation.isWalkableWorld(townNavigationSystem, firstBuilding.x + firstBuilding.width / 2, firstBuilding.y + firstBuilding.height / 2), "Town building center should be blocked");
-const firstRoad = townSkin.navigation.roads[0];
-assert(ARENA.TownNavigation.isWalkableWorld(townNavigationSystem, firstRoad.x + firstRoad.width / 2, firstRoad.y + firstRoad.height / 2), "Town road center should be walkable");
-const navigationSafeSpawn = ARENA.TownNavigation.getSafeSpawnPoint(townNavigationSystem, firstBuilding.x + firstBuilding.width / 2, firstBuilding.y + firstBuilding.height / 2);
-assert(ARENA.TownNavigation.isWalkableWorld(townNavigationSystem, navigationSafeSpawn.x, navigationSafeSpawn.y), "Town navigation should push forced spawns to walkable cells");
-const path = ARENA.TownNavigation.findPath(townNavigationSystem, 32, 310, 890, 310);
-assert(path.length > 0, "Town navigation should find a road path");
-assert(path.every((point) => ARENA.TownNavigation.isWalkableWorld(townNavigationSystem, point.x, point.y)), "Town navigation path should not cross blocked building cells");
+assert(townNavigationSnapshot.active === false, "Town navigation should be inactive for free-roam obstacle mode");
 
 const migratedTreeSave = ARENA.Save.validateState({
   activeEnemySkin: "tree",

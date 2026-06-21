@@ -12,11 +12,6 @@
     var height = CONFIG.canvas.height;
     var x = edge === 0 ? -margin : edge === 1 ? width + margin : Phaser.Math.Between(0, width);
     var y = edge === 2 ? -margin : edge === 3 ? height + margin : Phaser.Math.Between(0, height);
-    if (ARENA.TownNavigation && scene.townNavigationSystem && scene.townNavigationSystem.active) {
-      var townSafe = ARENA.TownNavigation.randomSpawnPoint(scene.townNavigationSystem);
-      x = townSafe.x;
-      y = townSafe.y;
-    }
     if (ARENA.Obstacles && scene.obstacleSystem) {
       var safe = ARENA.Obstacles.getSafeSpawnPoint(scene.obstacleSystem, x, y, CONFIG.enemy.radius);
       x = safe.x;
@@ -26,11 +21,6 @@
   }
 
   function create(scene, x, y, wave, forcedHealth) {
-    if (ARENA.TownNavigation && scene.townNavigationSystem && scene.townNavigationSystem.active) {
-      var townSafe = ARENA.TownNavigation.getSafeSpawnPoint(scene.townNavigationSystem, x, y);
-      x = townSafe.x;
-      y = townSafe.y;
-    }
     if (ARENA.Obstacles && scene.obstacleSystem) {
       var safe = ARENA.Obstacles.getSafeSpawnPoint(scene.obstacleSystem, x, y, CONFIG.enemy.radius);
       x = safe.x;
@@ -103,23 +93,17 @@
 
       var previousX = enemy.x;
       var previousY = enemy.y;
-      var usedTownNavigation = ARENA.TownNavigation && scene.townNavigationSystem && scene.townNavigationSystem.active && ARENA.TownNavigation.moveEnemy(scene, scene.townNavigationSystem, enemy, deltaMs);
-      if (!usedTownNavigation) {
-        var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
-        var angle = enemy.driftAngle + wiggle * 0.01;
-        var nextX = enemy.x + Math.cos(angle) * enemy.speed * deltaSeconds + enemy.knockbackX * deltaSeconds;
-        var nextY = enemy.y + Math.sin(angle) * enemy.speed * deltaSeconds + enemy.knockbackY * deltaSeconds;
-        if (ARENA.Obstacles && scene.obstacleSystem) {
-          var adjusted = ARENA.Obstacles.avoidMovement(scene.obstacleSystem, enemy, previousX, previousY, nextX, nextY);
-          nextX = adjusted.x;
-          nextY = adjusted.y;
-        }
-        enemy.x = nextX;
-        enemy.y = nextY;
+      var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
+      var angle = enemy.driftAngle + wiggle * 0.01;
+      var nextX = enemy.x + Math.cos(angle) * enemy.speed * deltaSeconds + enemy.knockbackX * deltaSeconds;
+      var nextY = enemy.y + Math.sin(angle) * enemy.speed * deltaSeconds + enemy.knockbackY * deltaSeconds;
+      if (ARENA.Obstacles && scene.obstacleSystem) {
+        var adjusted = ARENA.Obstacles.avoidMovement(scene.obstacleSystem, enemy, previousX, previousY, nextX, nextY);
+        nextX = adjusted.x;
+        nextY = adjusted.y;
       }
-      if (ARENA.TownNavigation && scene.townNavigationSystem) {
-        ARENA.TownNavigation.updateEnemyState(scene.townNavigationSystem, enemy, previousX, previousY, deltaMs, scene.time.now);
-      }
+      enemy.x = nextX;
+      enemy.y = nextY;
       if (ARENA.Obstacles && scene.obstacleSystem) {
         ARENA.Obstacles.updateEnemyState(scene.obstacleSystem, enemy, previousX, previousY, deltaMs, scene.time.now);
       }
