@@ -109,6 +109,12 @@ assert(sandSkin.surface.duneLineCount > 0 && sandSkin.surface.duneLineAlpha > 0,
 assert(sandSkin.surface.sandTexture && sandSkin.surface.sandTexture.patchCount > 0, "Sand texture config should exist");
 assert(sandSkin.surface.sandTexture.fineGrainCount >= 500, "Sand texture should define dense fine grain");
 assert(sandSkin.surface.sandTexture.windStreakCount > 0 && sandSkin.surface.sandTexture.depressionCount > 0, "Sand texture should define wind streaks and depressions");
+assert(sandSkin.surface.assetComposition && sandSkin.surface.assetComposition.enabled === true, "Sand should enable asset composition");
+assert(sandSkin.surface.assetComposition.baseKey === "arenaSandBaseMap", "Sand should use approved base map asset key");
+assert(sandSkin.surface.assetComposition.overlays.length >= 3, "Sand overlays should be config-driven");
+assert(sandSkin.surface.assetComposition.overlays.some((overlay) => overlay.key === "arenaSandDuneOverlay" && overlay.count >= 2), "Sand should configure dune overlay stamps");
+assert(sandSkin.surface.assetComposition.overlays.some((overlay) => overlay.key === "arenaSandDepression" && overlay.count >= 2), "Sand should configure depression stamps");
+assert(sandSkin.surface.assetComposition.overlays.some((overlay) => overlay.key === "arenaSandWindStreaks" && overlay.count >= 2), "Sand should configure wind streak overlays");
 assert(sandSkin.damageResponses.groundBreak.craterSoftness > 0, "Sand Ground Break should define crater softness");
 const waterSkin = ARENA.BackgroundSkins.get("water");
 assert(waterSkin.damageResponses.groundBreak.type === "waterRipple", "Water Ground Break should use splash/ripple response");
@@ -125,6 +131,14 @@ assert(waterSkin.waterSurface.visualEnabled === true && waterSkin.waterSurface.r
 assert(waterSkin.waterSurface.debugGridVisible === false && waterSkin.waterSurface.showEnergyCells === false, "Water debug grid/energy cells should be hidden in normal play");
 assert(waterSkin.waterSurface.splash && waterSkin.waterSurface.splash.arcCountMin > 0 && waterSkin.waterSurface.splash.dropletCount > 0, "Water splash config should define broken arcs and droplets");
 assert(waterSkin.surface.waterTexture && waterSkin.surface.waterTexture.causticCount > 0, "Water texture config should exist");
+assert(waterSkin.surface.assetComposition && waterSkin.surface.assetComposition.enabled === true, "Water should enable asset composition");
+assert(waterSkin.surface.assetComposition.baseKey === "arenaWaterBaseMap", "Water should use approved base map asset key");
+assert(waterSkin.surface.assetComposition.overlays.some((overlay) => overlay.key === "arenaWaterCausticOverlay" && overlay.alphaMax <= 0.18), "Water caustic asset overlay should be low alpha");
+assert(waterSkin.waterSurface.causticAssetOverlay && waterSkin.waterSurface.causticAssetOverlay.alphaMax <= 0.18, "Water animated caustic overlay should stay subtle");
+assert(waterSkin.waterSurface.splashAssets && waterSkin.waterSurface.splashAssets.enabled === true, "Water should enable splash asset sprites");
+assert(waterSkin.waterSurface.splashAssets.crownKey === "arenaWaterSplashCrown", "Water splash should use approved crown asset key");
+assert(waterSkin.waterSurface.splashAssets.foamKey === "arenaWaterFoamBurst", "Water splash should use approved foam asset key");
+assert(waterSkin.waterSurface.splashAssets.geometryArcPrimary === false, "Water splash geometry arcs should not be the primary renderer");
 assert(waterSkin.waterSurface.gridCols > 0 && waterSkin.waterSurface.gridRows > 0, "Water surface should define a low-resolution ripple grid");
 assert(waterSkin.waterSurface.propagation > 0 && waterSkin.waterSurface.damping > 0, "Water surface should define propagation and damping");
 assert(waterSkin.waterSurface.effectImpulseScale.meteor > waterSkin.waterSurface.effectImpulseScale.groundBreak, "Meteor should create stronger water impulse than Ground Break");
@@ -377,6 +391,51 @@ const fakeScene = {
           this.active = false;
         }
       };
+    },
+    image(x, y, key) {
+      return {
+        active: true,
+        x,
+        y,
+        key,
+        scaleX: 1,
+        scaleY: 1,
+        alpha: 1,
+        setOrigin() {
+          return this;
+        },
+        setDepth() {
+          return this;
+        },
+        setAlpha(value) {
+          this.alpha = value;
+          return this;
+        },
+        setScale(value) {
+          this.scaleX = value;
+          this.scaleY = value;
+          return this;
+        },
+        setRotation(value) {
+          this.rotation = value;
+          return this;
+        },
+        destroy() {
+          this.active = false;
+        }
+      };
+    }
+  },
+  textures: {
+    exists() {
+      return true;
+    },
+    get() {
+      return {
+        getSourceImage() {
+          return { width: 960, height: 620 };
+        }
+      };
     }
   },
   tweens: {
@@ -388,14 +447,17 @@ assert(ARENA.WaterSurface && typeof ARENA.WaterSurface.create === "function", "W
 const waterSurfaceSystem = ARENA.WaterSurface.create(fakeScene, waterSkin);
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).active === true, "Selecting Water should activate water surface system");
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).visualEnabled === true, "Water surface should expose visible renderer debug");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).usesAssetSplash === true, "Water surface should use asset splash sprites when textures are loaded");
 const groundImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "groundBreak", 240, 220, 1);
 const meteorImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "meteor", 260, 220, 1);
 const arrowImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "arrowRain", 280, 220, 1);
 assert(groundImpulse.count === 1, "Ground Break on Water should create one central impulse");
 assert(meteorImpulse.strength > groundImpulse.strength, "Meteor on Water should create stronger impulse than Ground Break");
 assert(arrowImpulse.count > 1, "Arrow Rain on Water should create multiple small impulses");
-assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).activeArcCount > 0, "Water clicks should create visible broken arc objects");
-assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).foamCount > 0, "Strong Water clicks should create visible foam objects");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).activeSplashSpriteCount > 0, "Water clicks should create visible asset splash sprites");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).activeFoamSpriteCount > 0, "Strong Water clicks should create visible foam asset sprites");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).activeArcCount === 0, "Water asset splashes should not use broken arcs as the primary feedback");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).geometryArcPrimary === false, "Water debug should report geometry arcs are not primary");
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).fullCircleRippleCount === 0, "Water should not create full-circle ripple visuals");
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).debugGridVisible === false && ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).showEnergyCells === false, "Water debug grid visuals should remain disabled");
 fakeScene.time.now = 100;

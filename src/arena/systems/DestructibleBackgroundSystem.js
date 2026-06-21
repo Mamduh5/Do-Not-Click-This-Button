@@ -19,7 +19,11 @@
       activeTemporaryChunks: [],
       activeWaterRipples: [],
       lastBrushByResponse: {},
-      waterAnimation: null
+      waterAnimation: null,
+      assetCompositionUsed: false,
+      assetCompositionMissing: [],
+      assetCompositionBaseKey: null,
+      assetCompositionOverlayKeys: []
     };
 
     if (!system.enabled) {
@@ -27,7 +31,7 @@
     }
 
     system.underlayer = createUnderlayer(scene, system.material);
-    system.surface = createSurface(scene, system.material);
+    system.surface = createSurface(scene, system.material, system);
     system.waterAnimation = createWaterAnimation(scene, system.material);
     system.renderTextureUsed = Boolean(system.surface && system.surface.erase && CONFIG.destructibleBackground.useRenderTexture);
     return system;
@@ -184,17 +188,122 @@
     return graphics;
   }
 
-  function createSurface(scene, material) {
+  function createSurface(scene, material, system) {
     var config = CONFIG.destructibleBackground;
     var surface = scene.add.renderTexture(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
-    var clean = scene.make.graphics({ add: false });
     surface.setOrigin(0, 0);
     surface.setDepth(config.surfaceDepth);
     surface.setAlpha(config.surfaceAlpha);
-    drawCleanFloor(clean, material.surface);
-    surface.draw(clean, 0, 0);
-    clean.destroy();
+    if (!drawAssetComposition(surface, scene, material.surface, system)) {
+      var clean = scene.make.graphics({ add: false });
+      drawCleanFloor(clean, material.surface);
+      surface.draw(clean, 0, 0);
+      clean.destroy();
+    }
     return surface;
+  }
+
+  function drawAssetComposition(renderTexture, scene, surfaceConfig, system) {
+    var composition = surfaceConfig && surfaceConfig.assetComposition;
+    if (!composition || composition.enabled !== true || !composition.baseKey) {
+      return false;
+    }
+    system.assetCompositionBaseKey = composition.baseKey;
+    system.assetCompositionOverlayKeys = (composition.overlays || []).map(function (overlay) {
+      return overlay.key;
+    });
+    system.assetCompositionMissing = [];
+
+    if (!hasTexture(scene, composition.baseKey)) {
+      system.assetCompositionMissing.push(composition.baseKey);
+      return false;
+    }
+
+    drawAssetImage(renderTexture, scene, composition.baseKey, CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, {
+      alpha: 1,
+      scale: coverScale(scene, composition.baseKey, 0)
+    });
+
+    (composition.overlays || []).forEach(function (overlay, overlayIndex) {
+      if (!hasTexture(scene, overlay.key)) {
+        system.assetCompositionMissing.push(overlay.key);
+        return;
+      }
+      var count = overlay.count || (overlay.placements ? overlay.placements.length : 0);
+      for (var index = 0; index < count; index += 1) {
+        var placement = resolveOverlayPlacement(overlay, overlayIndex, index);
+        drawAssetImage(renderTexture, scene, overlay.key, placement.x, placement.y, {
+          alpha: lerp(overlay.alphaMin, overlay.alphaMax, deterministicUnit(overlayIndex, index, 1)),
+          scale: lerp(overlay.scaleMin, overlay.scaleMax, deterministicUnit(overlayIndex, index, 2)),
+          rotation: lerp(overlay.rotationMin, overlay.rotationMax, deterministicUnit(overlayIndex, index, 3))
+        });
+      }
+    });
+
+    system.assetCompositionUsed = system.assetCompositionMissing.length === 0;
+    return system.assetCompositionUsed;
+  }
+
+  function drawAssetImage(renderTexture, scene, key, x, y, options) {
+    var image = scene.make.image({
+      x: x,
+      y: y,
+      key: key,
+      add: false
+    });
+    image.setOrigin(0.5, 0.5);
+    image.setAlpha(options.alpha === undefined ? 1 : options.alpha);
+    image.setScale(options.scale || 1);
+    image.setRotation(options.rotation || 0);
+    renderTexture.draw(image);
+    image.destroy();
+  }
+
+  function resolveOverlayPlacement(overlay, overlayIndex, index) {
+    if (overlay.placements && overlay.placements[index]) {
+      return overlay.placements[index];
+    }
+    return {
+      x: 90 + ((index * 197 + overlayIndex * 131) % Math.max(1, CONFIG.canvas.width - 180)),
+      y: 80 + ((index * 149 + overlayIndex * 97) % Math.max(1, CONFIG.canvas.height - 160))
+    };
+  }
+
+  function coverScale(scene, key, extraScale) {
+    var source = getTextureSize(scene, key);
+    var scale = Math.max(CONFIG.canvas.width / source.width, CONFIG.canvas.height / source.height);
+    return scale * (1 + (extraScale || 0));
+  }
+
+  function getTextureSize(scene, key) {
+    var texture = scene.textures && scene.textures.get ? scene.textures.get(key) : null;
+    var source = texture && texture.getSourceImage ? texture.getSourceImage() : null;
+    return {
+      width: source && source.width ? source.width : CONFIG.canvas.width,
+      height: source && source.height ? source.height : CONFIG.canvas.height
+    };
+  }
+
+  function hasTexture(scene, key) {
+    return Boolean(scene.textures && scene.textures.exists && scene.textures.exists(key));
+  }
+
+  function deterministicUnit(overlayIndex, index, salt) {
+    var value = Math.sin((overlayIndex + 1) * 917 + (index + 1) * 353 + salt * 101) * 10000;
+    return value - Math.floor(value);
+  }
+
+  function lerp(min, max, value) {
+    if (min === undefined && max === undefined) {
+      return 1;
+    }
+    if (max === undefined) {
+      return min;
+    }
+    if (min === undefined) {
+      return max;
+    }
+    return min + (max - min) * value;
   }
 
   function drawCleanFloor(graphics, config) {
@@ -1076,6 +1185,11 @@
   }
 
   function createWaterResponseFx(system, damage, geometry, x, y, scale) {
+    if (system.material && system.material.waterSurface && system.material.waterSurface.splashAssets && system.material.waterSurface.splashAssets.enabled) {
+      markEffect(system.scene, "backgroundWaterRipple");
+      markEffect(system.scene, "backgroundWaterAssetSplash");
+      return;
+    }
     var color = damage.detailColor || 0xe9ffff;
     var rippleCount = damage.rippleCount || (geometry.circles ? geometry.circles.length : 3);
     for (var index = 0; index < rippleCount; index += 1) {
@@ -1260,8 +1374,18 @@
         name: system.material.name,
         repairMode: system.material.repair.mode
       } : null,
+      assetComposition: system && system.material && system.material.surface && system.material.surface.assetComposition ? {
+        enabled: system.material.surface.assetComposition.enabled === true,
+        usesAssetComposition: Boolean(system.assetCompositionUsed),
+        fallback: system.material.surface.assetComposition.fallback || "procedural",
+        baseKey: system.assetCompositionBaseKey,
+        overlayKeys: system.assetCompositionOverlayKeys.slice(),
+        missing: system.assetCompositionMissing.slice()
+      } : null,
       sandTexture: system && system.material && system.material.surface && system.material.surface.sandTexture ? {
         layerCount: 6,
+        usesAssetComposition: Boolean(system.assetCompositionUsed),
+        assetBaseKey: system.material.surface.assetComposition ? system.material.surface.assetComposition.baseKey : null,
         fineGrainCount: system.material.surface.sandTexture.fineGrainCount || 0,
         windStreakCount: system.material.surface.sandTexture.windStreakCount || 0,
         patchCount: system.material.surface.sandTexture.patchCount || 0

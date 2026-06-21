@@ -43,6 +43,9 @@ async function run() {
     assert(typeof initial.destructibleBackground.renderTextureUsed === "boolean", "destructible background should expose render texture mode");
     assert(initial.destructibleBackground.backgroundMaterial.id === "containmentFloor", "destructible background should expose active material");
     assert(initial.activeBackgroundSkin === "containmentFloor", "arena should expose default active background material");
+    assert(initial.backgroundAssets && initial.backgroundAssets.sandLoaded === true, "arena should preload Sand background assets");
+    assert(initial.backgroundAssets && initial.backgroundAssets.waterLoaded === true, "arena should preload Water background assets");
+    assert(initial.backgroundAssets.missing.length === 0, "arena background assets should all be loaded");
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
     assert(await page.locator("#arenaSkinSelect option").count() >= 6, "skin selector should render required click skins");
     assert(await page.locator("#arenaEnemySkinSelect option").count() >= 5, "enemy skin selector should render required enemy skins");
@@ -64,10 +67,20 @@ async function run() {
     await page.selectOption("#arenaEnemySkinSelect", "eyes");
     const afterEnemyUiSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterEnemyUiSwitch.activeEnemySkin === "eyes", "enemy skin selector should update active enemy skin");
+    await page.selectOption("#arenaBackgroundSkinSelect", "sand");
+    const afterSandSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterSandSwitch.activeBackgroundSkin === "sand", "background selector should update active background skin to Sand");
+    assert(afterSandSwitch.destructibleBackground.backgroundMaterial.id === "sand", "Sand switch should rebuild material");
+    assert(afterSandSwitch.destructibleBackground.assetComposition && afterSandSwitch.destructibleBackground.assetComposition.usesAssetComposition === true, "Sand should use asset composition as primary renderer");
+    assert(afterSandSwitch.destructibleBackground.assetComposition.baseKey === "arenaSandBaseMap", "Sand should use approved base map texture");
+    assert(afterSandSwitch.destructibleBackground.assetComposition.overlayKeys.includes("arenaSandDuneOverlay"), "Sand should include dune overlay texture");
+    assert(afterSandSwitch.destructibleBackground.sandTexture && afterSandSwitch.destructibleBackground.sandTexture.usesAssetComposition === true, "Sand debug should expose asset-backed texture");
     await page.selectOption("#arenaBackgroundSkinSelect", "water");
     const afterWaterSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterWaterSwitch.activeBackgroundSkin === "water", "background selector should update active background skin");
     assert(afterWaterSwitch.destructibleBackground.backgroundMaterial.id === "water", "background switch should rebuild material");
+    assert(afterWaterSwitch.destructibleBackground.assetComposition && afterWaterSwitch.destructibleBackground.assetComposition.usesAssetComposition === true, "Water should use asset composition as primary renderer");
+    assert(afterWaterSwitch.destructibleBackground.assetComposition.baseKey === "arenaWaterBaseMap", "Water should use approved base map texture");
     assert(afterWaterSwitch.destructibleBackground.waterAnimation && afterWaterSwitch.destructibleBackground.waterAnimation.enabled === true, "Water should expose animation debug snapshot");
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.active === true, "Water animation snapshot should be active");
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.waveCount > 0, "Water animation snapshot should expose wave count");
@@ -76,6 +89,8 @@ async function run() {
     assert(afterWaterSwitch.waterSurface.visualEnabled === true, "Water should expose visible water renderer");
     assert(afterWaterSwitch.waterSurface.debugGridVisible === false, "Water debug grid should be hidden in normal play");
     assert(afterWaterSwitch.waterSurface.showEnergyCells === false, "Water energy cells should be hidden in normal play");
+    assert(afterWaterSwitch.waterSurface.usesAssetSplash === true, "Water should use approved splash asset sprites");
+    assert(afterWaterSwitch.waterSurface.geometryArcPrimary === false, "Water splash debug should report geometry arcs are not primary");
     assert(afterWaterSwitch.waterSurface.gridCols > 0 && afterWaterSwitch.waterSurface.gridRows > 0, "Water surface should expose ripple grid dimensions");
     const beforeWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
     await page.evaluate(() => {
@@ -83,18 +98,20 @@ async function run() {
       window.__containmentArena.clearEnemies();
       window.__containmentArena.clickAt(150, 150);
     });
+    await page.waitForFunction((before) => window.__containmentArena.getSnapshot().waterSurface.activeSplashSpriteCount > before, beforeWaterBreak.waterSurface.activeSplashSpriteCount, { timeout: 1200 });
     const afterWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterWaterBreak.destructibleBackground.lastGroundBreakBrush.damageType === "waterRipple", "Ground Break on Water should use ripple response");
     assert(afterWaterBreak.destructibleBackground.lastGroundBreakBrush.type === "waterRipple", "Ground Break on Water should expose ripple brush");
-    assert(afterWaterBreak.destructibleBackground.waterAnimation.rippleCount > 0, "Ground Break on Water should expose active ripple debug count");
     assert(afterWaterBreak.waterSurface.totalImpulseCount > beforeWaterBreak.waterSurface.totalImpulseCount, "Ground Break on Water should add water surface impulse");
     assert(afterWaterBreak.waterSurface.lastImpulseType === "groundBreak", "Ground Break on Water should record water impulse type");
-    assert(afterWaterBreak.waterSurface.rippleCount > 0, "Ground Break on Water should create visible ripple objects");
-    assert(afterWaterBreak.waterSurface.foamCount > 0, "Ground Break on Water should create visible foam objects");
-    assert(afterWaterBreak.waterSurface.activeArcCount > 0, "Ground Break on Water should create broken ripple arc visuals");
+    assert(afterWaterBreak.waterSurface.activeSplashSpriteCount > 0, "Ground Break on Water should create splash asset sprites");
+    assert(afterWaterBreak.waterSurface.activeFoamSpriteCount > 0, "Ground Break on Water should create foam asset sprites");
+    assert(afterWaterBreak.waterSurface.activeArcCount === 0, "Ground Break on Water should not create broken ripple arcs as primary visuals");
+    assert(afterWaterBreak.waterSurface.lastSplashAssetType === "groundBreak", "Ground Break on Water should record asset splash type");
     assert(afterWaterBreak.waterSurface.fullCircleRippleCount === 0, "Ground Break on Water should not create full-circle ripple visuals");
     assert((afterWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0) === (beforeWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0), "Ground Break on Water should not create crack collapse response");
     assert(afterWaterBreak.effectCounts.backgroundWaterRipple > (beforeWaterBreak.effectCounts.backgroundWaterRipple || 0), "Ground Break on Water should create ripple/splash debug event");
+    assert(afterWaterBreak.effectCounts.waterAssetSplash > (beforeWaterBreak.effectCounts.waterAssetSplash || 0), "Ground Break on Water should create asset splash debug event");
     const groundImpulseStrength = afterWaterBreak.waterSurface.strongestImpulse;
     await page.evaluate(() => {
       window.__containmentArena.setClickSkin("meteorImpact");
@@ -110,9 +127,21 @@ async function run() {
       window.__containmentArena.clearEnemies();
       window.__containmentArena.clickAt(220, 150);
     });
+    await page.waitForFunction((before) => window.__containmentArena.getSnapshot().waterSurface.totalImpulseCount >= before + 3, beforeWaterArrow.waterSurface.totalImpulseCount, { timeout: 1200 });
     const afterWaterArrow = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterWaterArrow.waterSurface.lastImpulseType === "arrowRain", "Arrow Rain on Water should record arrow impulse type");
     assert(afterWaterArrow.waterSurface.totalImpulseCount >= beforeWaterArrow.waterSurface.totalImpulseCount + 3, "Arrow Rain on Water should create multiple water impulses");
+    assert(afterWaterArrow.waterSurface.activeSplashSpriteCount > afterWaterBreak.waterSurface.activeSplashSpriteCount, "Arrow Rain on Water should add multiple small splash sprites");
+    await page.evaluate(() => {
+      window.__containmentArena.setClickSkin("pixelShatter");
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.clickAt(250, 170);
+    });
+    await page.waitForFunction((before) => window.__containmentArena.getSnapshot().waterSurface.lastImpulseType === "pixelShatter" && window.__containmentArena.getSnapshot().waterSurface.activeSplashSpriteCount > before, afterWaterArrow.waterSurface.activeSplashSpriteCount, { timeout: 1200 });
+    const afterWaterPixel = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterWaterPixel.waterSurface.lastImpulseType === "pixelShatter", "Pixel Shatter on Water should record pixel impulse type");
+    assert(afterWaterPixel.waterSurface.activeSplashSpriteCount > afterWaterArrow.waterSurface.activeSplashSpriteCount, "Pixel Shatter on Water should add asset splash feedback");
+    assert(afterWaterPixel.waterSurface.fullCircleRippleCount === 0, "Pixel Shatter on Water should not create full-circle ripple visuals");
     await page.selectOption("#arenaBackgroundSkinSelect", "town");
     const afterTownSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterTownSwitch.activeBackgroundSkin === "town", "background selector should switch to Town");

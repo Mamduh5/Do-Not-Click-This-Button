@@ -155,6 +155,62 @@
           depressionAlpha: 0.08,
           decorativeRockCount: 18
         },
+        assetComposition: {
+          enabled: true,
+          usesAssetComposition: true,
+          fallback: "procedural",
+          baseKey: "arenaSandBaseMap",
+          baseMode: "cover",
+          overlays: [
+            {
+              key: "arenaSandDuneOverlay",
+              count: 4,
+              alphaMin: 0.46,
+              alphaMax: 0.68,
+              scaleMin: 0.82,
+              scaleMax: 1.34,
+              rotationMin: -0.42,
+              rotationMax: 0.34,
+              placements: [
+                { x: 170, y: 132 },
+                { x: 690, y: 150 },
+                { x: 390, y: 440 },
+                { x: 790, y: 492 }
+              ]
+            },
+            {
+              key: "arenaSandDepression",
+              count: 3,
+              alphaMin: 0.22,
+              alphaMax: 0.36,
+              scaleMin: 0.58,
+              scaleMax: 0.92,
+              rotationMin: -0.65,
+              rotationMax: 0.58,
+              placements: [
+                { x: 286, y: 278 },
+                { x: 572, y: 360 },
+                { x: 815, y: 246 }
+              ]
+            },
+            {
+              key: "arenaSandWindStreaks",
+              count: 4,
+              alphaMin: 0.28,
+              alphaMax: 0.44,
+              scaleMin: 0.9,
+              scaleMax: 1.42,
+              rotationMin: -0.22,
+              rotationMax: 0.16,
+              placements: [
+                { x: 200, y: 452 },
+                { x: 458, y: 180 },
+                { x: 650, y: 290 },
+                { x: 868, y: 92 }
+              ]
+            }
+          ]
+        },
         duneLineAlpha: 0.22,
         duneLineCount: 15,
         duneLineSpacing: 40,
@@ -282,21 +338,21 @@
         noiseAlpha: 0.12,
         noiseCellSize: 22,
         waveBandColor: 0x6ed9e8,
-        waveBandAlpha: 0.12,
+        waveBandAlpha: 0.04,
         waveBandHeight: 10,
         waveBandOffsetSpeed: 0.032,
         waveLineColor: 0xcdfcff,
-        waveAlpha: 0.22,
+        waveAlpha: 0.05,
         waveLineCount: 12,
         waveSpeed: 0.0015,
         waveAmplitude: 10,
-        shimmerIntensity: 0.18,
+        shimmerIntensity: 0.08,
         shimmerCount: 22,
-        shimmerAlpha: 0.26,
+        shimmerAlpha: 0.1,
         shimmerSpeed: 0.0022,
         shimmerLength: 18,
         causticLineCount: 18,
-        causticAlpha: 0.2,
+        causticAlpha: 0.08,
         waterTexture: {
           baseColors: [0x176f8d, 0x1f8aa6, 0x35b4c9],
           causticCount: 28,
@@ -305,6 +361,28 @@
           shimmerAlpha: 0.18,
           bandCount: 10,
           bandAlpha: 0.12
+        },
+        assetComposition: {
+          enabled: true,
+          usesAssetComposition: true,
+          fallback: "procedural",
+          baseKey: "arenaWaterBaseMap",
+          baseMode: "cover",
+          overlays: [
+            {
+              key: "arenaWaterCausticOverlay",
+              count: 1,
+              alphaMin: 0.08,
+              alphaMax: 0.12,
+              scaleMin: 1,
+              scaleMax: 1.08,
+              rotationMin: -0.04,
+              rotationMax: 0.04,
+              placements: [
+                { x: 480, y: 310 }
+              ]
+            }
+          ]
         },
         gridSize: 96,
         borderInset: 0,
@@ -321,7 +399,7 @@
         type: "waveOverlay",
         enabled: true,
         waveSpeed: 0.0015,
-        waveAlpha: 0.22,
+        waveAlpha: 0.05,
         waveLineCount: 12,
         waveAmplitude: 10,
         waveBandOffsetSpeed: 0.032,
@@ -333,7 +411,7 @@
         splashDurationMs: 560,
         foamColor: 0xe9ffff,
         foamParticleCount: 14,
-        shimmerIntensity: 0.18,
+        shimmerIntensity: 0.08,
         shimmerCount: 22,
         shimmerSpeed: 0.0022,
         maxRipples: 34,
@@ -372,6 +450,90 @@
           shimmerFleckCount: 34,
           shimmerAlpha: 0.16,
           bandAlpha: 0.07
+        },
+        causticAssetOverlay: {
+          enabled: true,
+          key: "arenaWaterCausticOverlay",
+          alphaMin: 0.07,
+          alphaMax: 0.14,
+          scale: 1.08,
+          driftX: 18,
+          driftY: 10,
+          durationMs: 5200,
+          depthOffset: 0.42
+        },
+        splashAssets: {
+          enabled: true,
+          usesAssetSplash: true,
+          crownKey: "arenaWaterSplashCrown",
+          foamKey: "arenaWaterFoamBurst",
+          maxActiveSprites: 48,
+          geometryArcPrimary: false,
+          geometrySupportAlpha: 0,
+          crownDepthOffset: 21.4,
+          foamDepthOffset: 21.18,
+          effects: {
+            groundBreak: {
+              crownScale: 1.7,
+              minVisualScale: 0.92,
+              crownPopScale: 1.18,
+              crownAlpha: 1,
+              foamScale: 1.55,
+              foamAlpha: 0.58,
+              foamDelayMs: 70,
+              durationMs: 560
+            },
+            meteor: {
+              crownScale: 2.15,
+              minVisualScale: 0.94,
+              crownPopScale: 1.32,
+              crownAlpha: 0.98,
+              foamScale: 2.05,
+              foamAlpha: 0.66,
+              foamDelayMs: 60,
+              durationMs: 720
+            },
+            arrowRain: {
+              crownScale: 0.58,
+              minVisualScale: 0.82,
+              crownPopScale: 1.24,
+              crownAlpha: 0.78,
+              foamScale: 0.62,
+              foamAlpha: 0.5,
+              foamDelayMs: 35,
+              durationMs: 360
+            },
+            pixelShatter: {
+              crownScale: 1.05,
+              minVisualScale: 0.82,
+              crownPopScale: 1.12,
+              crownAlpha: 0.76,
+              foamScale: 0.96,
+              foamAlpha: 0.52,
+              foamDelayMs: 20,
+              durationMs: 420
+            },
+            sciFiLaser: {
+              crownScale: 0.52,
+              minVisualScale: 0.82,
+              crownPopScale: 1.12,
+              crownAlpha: 0.62,
+              foamScale: 0.58,
+              foamAlpha: 0.38,
+              foamDelayMs: 20,
+              durationMs: 320
+            },
+            paper: {
+              crownScale: 0.18,
+              minVisualScale: 0.72,
+              crownPopScale: 1.08,
+              crownAlpha: 0.38,
+              foamScale: 0.24,
+              foamAlpha: 0.24,
+              foamDelayMs: 30,
+              durationMs: 260
+            }
+          }
         },
         splash: {
           arcCountMin: 4,

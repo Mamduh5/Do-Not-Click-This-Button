@@ -21,17 +21,26 @@
       foam: [],
       impulses: [],
       arcs: [],
+      splashSprites: [],
+      foamSprites: [],
+      causticOverlay: null,
       fullCircleRippleCount: 0,
       lastUpdateMs: -Infinity,
       lastImpulseType: null,
+      lastSplashAssetType: null,
       totalImpulseCount: 0,
       strongestImpulse: 0,
-      averageEnergy: 0
+      averageEnergy: 0,
+      usesAssetSplash: false,
+      missingAssetSplash: []
     };
+
+    system.usesAssetSplash = active && splashAssetsAvailable(scene, config);
 
     if (active && config.visualEnabled !== false) {
       system.graphics = scene.add.graphics();
       system.graphics.setDepth(CONFIG.destructibleBackground.repairDepth + 0.35);
+      createCausticOverlay(system);
     }
 
     return system;
@@ -178,20 +187,129 @@
 
   function createRippleObject(system, impulseType, x, y, strength, scale) {
     var splashScale = (system.config.effectSplashScale && system.config.effectSplashScale[impulseType]) || 1;
-    createBrokenArcs(system, impulseType, x, y, strength, scale * splashScale);
+    var assetSplashCreated = createAssetSplash(system, impulseType, x, y, strength, scale * splashScale);
 
-    if (impulseType === "meteor" || impulseType === "groundBreak" || impulseType === "sciFiLaser") {
-      createFoam(system, x, y, strength, scale * splashScale, impulseType);
-      createDroplets(system, x, y, scale * splashScale, impulseType);
-    }
-    if (impulseType === "arrowRain") {
-      createFoam(system, x, y, strength, scale * splashScale, impulseType);
+    if (!assetSplashCreated) {
+      createBrokenArcs(system, impulseType, x, y, strength, scale * splashScale);
+
+      if (impulseType === "meteor" || impulseType === "groundBreak" || impulseType === "sciFiLaser") {
+        createFoam(system, x, y, strength, scale * splashScale, impulseType);
+        createDroplets(system, x, y, scale * splashScale, impulseType);
+      }
+      if (impulseType === "arrowRain") {
+        createFoam(system, x, y, strength, scale * splashScale, impulseType);
+      }
     }
     if (impulseType === "pixelShatter") {
       createPixelDisturbance(system, x, y, scale);
     }
 
     capRipples(system);
+  }
+
+  function createCausticOverlay(system) {
+    var config = system.config.causticAssetOverlay || {};
+    if (!config.enabled || !hasTexture(system.scene, config.key)) {
+      return;
+    }
+    var overlay = system.scene.add.image(CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, config.key);
+    overlay.setOrigin(0.5, 0.5);
+    overlay.setDepth(CONFIG.destructibleBackground.surfaceDepth + (config.depthOffset || 0.4));
+    overlay.setAlpha(config.alphaMin || 0.08);
+    overlay.setScale(coverScale(system.scene, config.key) * (config.scale || 1));
+    system.causticOverlay = overlay;
+    if (system.scene.tweens && system.scene.tweens.add) {
+      system.scene.tweens.add({
+        targets: overlay,
+        x: CONFIG.canvas.width / 2 + (config.driftX || 12),
+        y: CONFIG.canvas.height / 2 + (config.driftY || 8),
+        alpha: config.alphaMax || 0.14,
+        duration: config.durationMs || 5200,
+        yoyo: true,
+        repeat: -1
+      });
+    }
+  }
+
+  function createAssetSplash(system, impulseType, x, y, strength, scale) {
+    var assets = system.config.splashAssets || {};
+    if (!system.usesAssetSplash || !assets.enabled) {
+      return false;
+    }
+    var effect = (assets.effects && (assets.effects[impulseType] || assets.effects.groundBreak)) || {};
+    if (system.scene.time && system.scene.time.delayedCall) {
+      system.scene.time.delayedCall(0, function () {
+        spawnAssetSplashSprites(system, impulseType, x, y, strength, scale, assets, effect);
+      });
+    } else {
+      spawnAssetSplashSprites(system, impulseType, x, y, strength, scale, assets, effect);
+    }
+    return true;
+  }
+
+  function spawnAssetSplashSprites(system, impulseType, x, y, strength, scale, assets, effect) {
+    var visualScale = Phaser.Math.Clamp(scale || 1, effect.minVisualScale || 0.82, effect.maxVisualScale || 1.35);
+    var crownScale = (effect.crownScale || 0.7) * visualScale;
+    var foamScale = (effect.foamScale || crownScale) * visualScale;
+    var duration = effect.durationMs || 520;
+    var crown = system.scene.add.image(x, y, assets.crownKey);
+    crown.setOrigin(0.5, 0.5);
+    crown.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.crownDepthOffset || 4.4));
+    crown.setAlpha(effect.crownAlpha === undefined ? 0.9 : effect.crownAlpha);
+    crown.setScale(crownScale * (effect.crownPopScale || 1.12));
+    crown.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
+    system.splashSprites.push(crown);
+    scheduleSpriteFade(system, system.splashSprites, crown, effect.holdMs || 120, {
+      scaleX: crownScale * 1.04,
+      scaleY: crownScale * 1.04,
+      alpha: 0,
+      duration: Math.max(180, duration - (effect.holdMs || 120))
+    });
+
+    var foam = system.scene.add.image(x, y, assets.foamKey);
+    foam.setOrigin(0.5, 0.5);
+    foam.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.foamDepthOffset || 4.2));
+    foam.setAlpha(effect.foamAlpha === undefined ? 0.4 : effect.foamAlpha);
+    foam.setScale(foamScale);
+    foam.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
+    system.foamSprites.push(foam);
+    scheduleSpriteFade(system, system.foamSprites, foam, (effect.holdMs || 120) + (effect.foamDelayMs || 40), {
+      scaleX: foamScale * 1.14,
+      scaleY: foamScale * 1.14,
+      alpha: 0,
+      duration: Math.max(160, duration * 0.72)
+    });
+
+    system.lastSplashAssetType = impulseType;
+    system.scene.effectCounts.waterAssetSplash = (system.scene.effectCounts.waterAssetSplash || 0) + 1;
+    system.scene.effectCounts["waterAssetSplash_" + impulseType] = (system.scene.effectCounts["waterAssetSplash_" + impulseType] || 0) + 1;
+    capAssetSprites(system);
+  }
+
+  function scheduleSpriteFade(system, list, sprite, holdMs, config) {
+    if (system.scene.time && system.scene.time.delayedCall) {
+      system.scene.time.delayedCall(holdMs || 0, function () {
+        tweenAndRemoveSprite(system, list, sprite, config);
+      });
+      return;
+    }
+    tweenAndRemoveSprite(system, list, sprite, config);
+  }
+
+  function tweenAndRemoveSprite(system, list, sprite, config) {
+    var tweenConfig = {
+      targets: sprite,
+      onComplete: function () {
+        remove(list, sprite);
+        if (sprite.active) {
+          sprite.destroy();
+        }
+      }
+    };
+    Object.keys(config).forEach(function (key) {
+      tweenConfig[key] = config[key];
+    });
+    system.scene.tweens.add(tweenConfig);
   }
 
   function createBrokenArcs(system, impulseType, x, y, strength, scale) {
@@ -350,6 +468,43 @@
     }
   }
 
+  function capAssetSprites(system) {
+    var max = (system.config.splashAssets && system.config.splashAssets.maxActiveSprites) || 48;
+    while (system.splashSprites.length + system.foamSprites.length > max) {
+      var list = system.foamSprites.length >= system.splashSprites.length ? system.foamSprites : system.splashSprites;
+      var sprite = list.shift();
+      if (sprite && sprite.active) {
+        sprite.destroy();
+      }
+    }
+  }
+
+  function splashAssetsAvailable(scene, config) {
+    var assets = config && config.splashAssets;
+    if (!assets || assets.enabled !== true) {
+      return false;
+    }
+    return hasTexture(scene, assets.crownKey) && hasTexture(scene, assets.foamKey);
+  }
+
+  function hasTexture(scene, key) {
+    return Boolean(scene && scene.textures && scene.textures.exists && scene.textures.exists(key));
+  }
+
+  function coverScale(scene, key) {
+    var size = getTextureSize(scene, key);
+    return Math.max(CONFIG.canvas.width / size.width, CONFIG.canvas.height / size.height);
+  }
+
+  function getTextureSize(scene, key) {
+    var texture = scene.textures && scene.textures.get ? scene.textures.get(key) : null;
+    var source = texture && texture.getSourceImage ? texture.getSourceImage() : null;
+    return {
+      width: source && source.width ? source.width : CONFIG.canvas.width,
+      height: source && source.height ? source.height : CONFIG.canvas.height
+    };
+  }
+
   function worldToCell(system, x, y) {
     return {
       col: Phaser.Math.Clamp(Math.floor(x / CONFIG.canvas.width * system.config.gridCols), 0, system.config.gridCols - 1),
@@ -375,9 +530,14 @@
       activeRippleCount: system ? system.arcs.length : 0,
       rippleCount: system ? system.arcs.length : 0,
       foamCount: system ? system.foam.length : 0,
-      activeSplashCount: system ? system.arcs.length + system.foam.length : 0,
-      activeFoamCount: system ? system.foam.length : 0,
+      activeSplashCount: system ? system.arcs.length + system.foam.length + system.splashSprites.length + system.foamSprites.length : 0,
+      activeFoamCount: system ? system.foam.length + system.foamSprites.length : 0,
       activeArcCount: system ? system.arcs.length : 0,
+      usesAssetSplash: Boolean(system && system.usesAssetSplash),
+      activeSplashSpriteCount: system ? system.splashSprites.length : 0,
+      activeFoamSpriteCount: system ? system.foamSprites.length : 0,
+      geometryArcPrimary: Boolean(system && system.config && system.config.splashAssets && system.config.splashAssets.geometryArcPrimary),
+      lastSplashAssetType: system ? system.lastSplashAssetType : null,
       fullCircleRippleCount: system ? system.fullCircleRippleCount : 0,
       debugGridVisible: Boolean(system && system.config.debugGridVisible),
       showEnergyCells: Boolean(system && system.config.showEnergyCells),
@@ -416,6 +576,22 @@
       }
     });
     system.foam = [];
+    system.splashSprites.forEach(function (sprite) {
+      if (sprite && sprite.active) {
+        sprite.destroy();
+      }
+    });
+    system.splashSprites = [];
+    system.foamSprites.forEach(function (sprite) {
+      if (sprite && sprite.active) {
+        sprite.destroy();
+      }
+    });
+    system.foamSprites = [];
+    if (system.causticOverlay && system.causticOverlay.active) {
+      system.causticOverlay.destroy();
+    }
+    system.causticOverlay = null;
     system.impulses = [];
   }
 

@@ -12,6 +12,23 @@
   ArenaScene.prototype = Object.create(Phaser.Scene.prototype);
   ArenaScene.prototype.constructor = ArenaScene;
 
+  var BACKGROUND_ASSETS = [
+    { key: "arenaSandBaseMap", path: "assets/arena/backgrounds/sand_base_map.png", group: "sand" },
+    { key: "arenaSandDuneOverlay", path: "assets/arena/backgrounds/sand_dune_overlay_stamp.png", group: "sand" },
+    { key: "arenaSandDepression", path: "assets/arena/backgrounds/sand_depression_stamp.png", group: "sand" },
+    { key: "arenaSandWindStreaks", path: "assets/arena/backgrounds/sand_wind_streaks_overlay.png", group: "sand" },
+    { key: "arenaWaterBaseMap", path: "assets/arena/backgrounds/water_base_map.png", group: "water" },
+    { key: "arenaWaterSplashCrown", path: "assets/arena/backgrounds/water_splash_crown.png", group: "water" },
+    { key: "arenaWaterFoamBurst", path: "assets/arena/backgrounds/water_foam_burst.png", group: "water" },
+    { key: "arenaWaterCausticOverlay", path: "assets/arena/backgrounds/water_caustic_overlay.png", group: "water" }
+  ];
+
+  ArenaScene.prototype.preload = function () {
+    BACKGROUND_ASSETS.forEach(function (asset) {
+      this.load.image(asset.key, asset.path);
+    }, this);
+  };
+
   ArenaScene.prototype.create = function () {
     this.state = ARENA.Save.load();
     this.stats = ARENA.Upgrades.computeStats(this.state);
@@ -26,6 +43,7 @@
     this.enemySerial = 0;
     this.spawningEnabled = true;
     this.core = { x: CONFIG.canvas.width / 2, y: CONFIG.canvas.height / 2 };
+    this.backgroundAssets = getBackgroundAssetSnapshot(this);
 
     drawRoom(this);
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
@@ -285,6 +303,36 @@
     graphics.strokeCircle(CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, 64);
   }
 
+  function getBackgroundAssetSnapshot(scene) {
+    var missing = [];
+    var loaded = {};
+    BACKGROUND_ASSETS.forEach(function (asset) {
+      var exists = Boolean(scene.textures && scene.textures.exists && scene.textures.exists(asset.key));
+      loaded[asset.key] = exists;
+      if (!exists) {
+        missing.push(asset.key);
+      }
+    });
+    return {
+      sandLoaded: BACKGROUND_ASSETS.filter(function (asset) {
+        return asset.group === "sand";
+      }).every(function (asset) {
+        return loaded[asset.key];
+      }),
+      waterLoaded: BACKGROUND_ASSETS.filter(function (asset) {
+        return asset.group === "water";
+      }).every(function (asset) {
+        return loaded[asset.key];
+      }),
+      missing: missing,
+      keys: loaded,
+      paths: BACKGROUND_ASSETS.reduce(function (paths, asset) {
+        paths[asset.key] = asset.path;
+        return paths;
+      }, {})
+    };
+  }
+
   function exposeDebugApi(scene) {
     window.__containmentArena = {
       scene: scene,
@@ -327,12 +375,14 @@
         scene.setBackgroundSkin(id);
       },
       getSnapshot: function () {
+        scene.backgroundAssets = getBackgroundAssetSnapshot(scene);
         var destructibleSnapshot = ARENA.DestructibleBackground.getSnapshot(scene.destructibleBackgroundSystem);
         var waterSurfaceSnapshot = ARENA.WaterSurface.getSnapshot(scene.waterSurfaceSystem);
         var obstacleSnapshot = ARENA.Obstacles.getSnapshot(scene.obstacleSystem, scene.enemies);
         var townNavigationSnapshot = ARENA.TownNavigation.getSnapshot(scene.townNavigationSystem, scene.enemies);
         window.__arenaDebug = {
           activeBackgroundSkin: scene.state.activeBackgroundSkin,
+          backgroundAssets: scene.backgroundAssets,
           backgroundMaterial: destructibleSnapshot.backgroundMaterial,
           sandTexture: destructibleSnapshot.sandTexture,
           waterAnimation: destructibleSnapshot.waterAnimation,
@@ -406,7 +456,8 @@
           unlockedBackgroundSkins: Object.assign({}, scene.state.unlockedBackgroundSkins),
           upgrades: Object.assign({}, scene.state.upgrades),
           stats: ARENA.Upgrades.computeStats(scene.state),
-          muted: scene.state.muted
+          muted: scene.state.muted,
+          backgroundAssets: scene.backgroundAssets
         };
       }
     };
