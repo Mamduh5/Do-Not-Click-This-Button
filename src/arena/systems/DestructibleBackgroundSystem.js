@@ -23,7 +23,8 @@
       assetCompositionUsed: false,
       assetCompositionMissing: [],
       assetCompositionBaseKey: null,
-      assetCompositionOverlayKeys: []
+      assetCompositionOverlayKeys: [],
+      coloredDamageCircleCount: 0
     };
 
     if (!system.enabled) {
@@ -61,6 +62,13 @@
       ARENA.WaterSurface.addImpulse(system.scene.waterSurfaceSystem, request.response || damage.type, x, y, scale, {
         radius: system.material.waterSurface ? system.material.waterSurface.impulseRadius : undefined
       });
+      if (isWaterDamageResponse(damage)) {
+        var waterOnly = summarizeWaterOnlyResponse(request.response || damage.type, damage);
+        system.lastBrushByResponse[request.response || damage.type] = waterOnly;
+        markEffect(system.scene, "waterSurfaceResponse");
+        markEffect(system.scene, "backgroundDamageResponse_" + (request.response || damage.type));
+        return waterOnly;
+      }
     }
     if (system.material && system.material.id === "town") {
       var townHit = determineTownSurfaceHit(system.material, x, y);
@@ -96,6 +104,29 @@
     }
     capDamageMarks(system);
     return mark;
+  }
+
+  function isWaterDamageResponse(damage) {
+    return damage && (damage.type === "waterRipple" || damage.type === "waterPixelRipple" || damage.type === "waterPunctures");
+  }
+
+  function summarizeWaterOnlyResponse(response, damage) {
+    return {
+      material: "water",
+      response: response,
+      type: damage.type,
+      damageType: damage.type,
+      waterOnly: true,
+      createdDamageMark: false,
+      drewUnderlayerDetail: false,
+      drewColoredCircle: false,
+      coloredDamageCircleCount: 0,
+      repairMode: "none",
+      circleCount: 0,
+      lineCount: 0,
+      cellCount: 0,
+      chunkCount: 0
+    };
   }
 
   function resolveDamageResponse(system, request) {
@@ -1392,6 +1423,7 @@
       } : null,
       damageCount: system ? system.damageCount : 0,
       repairCount: system ? system.repairCount : 0,
+      coloredDamageCircleCount: system ? system.coloredDamageCircleCount : 0,
       activeTemporaryChunks: system ? system.activeTemporaryChunks.length : 0,
       waterAnimation: system && system.waterAnimation ? {
         active: system.waterAnimation.enabled,

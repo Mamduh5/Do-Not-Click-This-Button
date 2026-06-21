@@ -85,7 +85,7 @@
       ARENA.DestructibleBackground.apply(scene.destructibleBackgroundSystem, skin, x, y, scale);
     }
 
-    if (ARENA.BackgroundEffects && !(options && options.noDecal)) {
+    if (ARENA.BackgroundEffects && !(options && options.noDecal) && scene.state.activeBackgroundSkin !== "water") {
       ARENA.BackgroundEffects.add(scene.backgroundEffectSystem, skin, x, y, scale);
     }
 

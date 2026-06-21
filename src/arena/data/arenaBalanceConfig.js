@@ -31,7 +31,7 @@
 
     enemy: {
       baseHealth: 3,
-      baseSpeed: 22,
+      baseSpeed: 14,
       speedVariance: 0.28,
       baseReward: 2,
       radius: 9,

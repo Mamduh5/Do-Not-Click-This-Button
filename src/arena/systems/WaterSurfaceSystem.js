@@ -22,13 +22,20 @@
       impulses: [],
       arcs: [],
       splashSprites: [],
+      fragmentSprites: [],
       foamSprites: [],
+      dropletSprites: [],
+      fullCrownSprites: [],
       causticOverlay: null,
       fullCircleRippleCount: 0,
       lastUpdateMs: -Infinity,
       lastImpulseType: null,
       lastSplashAssetType: null,
       totalImpulseCount: 0,
+      totalFragmentSpriteCount: 0,
+      totalFoamSpriteCount: 0,
+      totalDropletSpriteCount: 0,
+      totalFullCrownSpriteCount: 0,
       strongestImpulse: 0,
       averageEnergy: 0,
       usesAssetSplash: false,
@@ -248,42 +255,145 @@
   }
 
   function spawnAssetSplashSprites(system, impulseType, x, y, strength, scale, assets, effect) {
-    var visualScale = Phaser.Math.Clamp(scale || 1, effect.minVisualScale || 0.82, effect.maxVisualScale || 1.35);
-    var crownScale = (effect.crownScale || 0.7) * visualScale;
-    var foamScale = (effect.foamScale || crownScale) * visualScale;
     var duration = effect.durationMs || 520;
-    var crown = system.scene.add.image(x, y, assets.crownKey);
-    crown.setOrigin(0.5, 0.5);
-    crown.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.crownDepthOffset || 4.4));
-    crown.setAlpha(effect.crownAlpha === undefined ? 0.9 : effect.crownAlpha);
-    crown.setScale(crownScale * (effect.crownPopScale || 1.12));
-    crown.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
-    system.splashSprites.push(crown);
-    scheduleSpriteFade(system, system.splashSprites, crown, effect.holdMs || 120, {
-      scaleX: crownScale * 1.04,
-      scaleY: crownScale * 1.04,
-      alpha: 0,
-      duration: Math.max(180, duration - (effect.holdMs || 120))
-    });
-
-    var foam = system.scene.add.image(x, y, assets.foamKey);
-    foam.setOrigin(0.5, 0.5);
-    foam.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.foamDepthOffset || 4.2));
-    foam.setAlpha(effect.foamAlpha === undefined ? 0.4 : effect.foamAlpha);
-    foam.setScale(foamScale);
-    foam.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
-    system.foamSprites.push(foam);
-    scheduleSpriteFade(system, system.foamSprites, foam, (effect.holdMs || 120) + (effect.foamDelayMs || 40), {
-      scaleX: foamScale * 1.14,
-      scaleY: foamScale * 1.14,
-      alpha: 0,
-      duration: Math.max(160, duration * 0.72)
-    });
+    createCrownFlash(system, assets, effect, x, y);
+    createSplashFragments(system, assets, effect, x, y, duration);
+    createFoamPieces(system, assets, effect, x, y, duration);
+    createDropletPieces(system, assets, effect, x, y, duration);
 
     system.lastSplashAssetType = impulseType;
     system.scene.effectCounts.waterAssetSplash = (system.scene.effectCounts.waterAssetSplash || 0) + 1;
     system.scene.effectCounts["waterAssetSplash_" + impulseType] = (system.scene.effectCounts["waterAssetSplash_" + impulseType] || 0) + 1;
     capAssetSprites(system);
+  }
+
+  function createCrownFlash(system, assets, effect, x, y) {
+    if (!effect.crownFlashWidth || effect.crownFlashAlpha <= 0) {
+      return;
+    }
+    var flash = system.scene.add.image(x, y, assets.crownKey);
+    flash.setOrigin(0.5, 0.5);
+    flash.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.flashDepthOffset || 21));
+    flash.setAlpha(effect.crownFlashAlpha);
+    flash.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
+    setSpriteDisplayWidth(system.scene, flash, effect.crownFlashWidth);
+    system.fullCrownSprites.push(flash);
+    system.splashSprites.push(flash);
+    system.totalFullCrownSpriteCount += 1;
+    scheduleSpriteFade(system, system.fullCrownSprites, flash, effect.crownFlashMs || 70, {
+      alpha: 0,
+      duration: Math.max(80, effect.crownFlashMs || 70),
+      onCompleteExtra: removeFromList(system.splashSprites, flash)
+    });
+  }
+
+  function createSplashFragments(system, assets, effect, x, y, duration) {
+    for (var index = 0; index < (effect.fragmentCount || 0); index += 1) {
+      var angle = Math.PI * 2 * index / Math.max(1, effect.fragmentCount) + Phaser.Math.FloatBetween(-0.42, 0.42);
+      var startDistance = Phaser.Math.FloatBetween(2, 12);
+      var drift = Phaser.Math.FloatBetween(effect.driftMin || 8, effect.driftMax || 38);
+      var fragment = system.scene.add.image(x + Math.cos(angle) * startDistance, y + Math.sin(angle) * startDistance, assets.crownKey);
+      fragment.setOrigin(0.5, 0.5);
+      fragment.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.fragmentDepthOffset || 21.15));
+      fragment.setAlpha(Phaser.Math.FloatBetween(0.72, 0.92));
+      fragment.setRotation(angle + Phaser.Math.FloatBetween(-0.9, 0.9));
+      setRandomCrop(system.scene, fragment, assets.crownKey, index);
+      setSpriteDisplayWidth(system.scene, fragment, Phaser.Math.Between(effect.fragmentWidthMin || 18, effect.fragmentWidthMax || 38));
+      system.fragmentSprites.push(fragment);
+      system.splashSprites.push(fragment);
+      system.totalFragmentSpriteCount += 1;
+      tweenAndRemoveSprite(system, system.fragmentSprites, fragment, {
+        x: fragment.x + Math.cos(angle) * drift,
+        y: fragment.y + Math.sin(angle) * drift,
+        alpha: 0,
+        angle: fragment.angle + Phaser.Math.Between(-28, 28),
+        duration: duration,
+        onCompleteExtra: removeFromList(system.splashSprites, fragment)
+      });
+    }
+  }
+
+  function removeFromList(list, item) {
+    return function () {
+      remove(list, item);
+    };
+  }
+
+  function createFoamPieces(system, assets, effect, x, y, duration) {
+    for (var index = 0; index < (effect.foamCount || 0); index += 1) {
+      var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var startDistance = Phaser.Math.FloatBetween(0, 14);
+      var drift = Phaser.Math.FloatBetween((effect.driftMin || 8) * 0.45, (effect.driftMax || 36) * 0.85);
+      var foam = system.scene.add.image(x + Math.cos(angle) * startDistance, y + Math.sin(angle) * startDistance, assets.foamKey);
+      foam.setOrigin(0.5, 0.5);
+      foam.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.foamDepthOffset || 21.05));
+      foam.setAlpha(Phaser.Math.FloatBetween(0.4, 0.62));
+      foam.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
+      setSpriteDisplayWidth(system.scene, foam, Phaser.Math.Between(effect.foamWidthMin || 12, effect.foamWidthMax || 32));
+      system.foamSprites.push(foam);
+      system.totalFoamSpriteCount += 1;
+      tweenAndRemoveSprite(system, system.foamSprites, foam, {
+        x: foam.x + Math.cos(angle) * drift,
+        y: foam.y + Math.sin(angle) * drift,
+        alpha: 0,
+        scaleX: foam.scaleX * 1.18,
+        scaleY: foam.scaleY * 1.18,
+        duration: Math.max(120, duration * 0.92)
+      });
+    }
+  }
+
+  function createDropletPieces(system, assets, effect, x, y, duration) {
+    for (var index = 0; index < (effect.dropletCount || 0); index += 1) {
+      var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var drift = Phaser.Math.FloatBetween(effect.driftMin || 8, effect.driftMax || 36);
+      var droplet = system.scene.add.image(x, y, assets.foamKey);
+      droplet.setOrigin(0.5, 0.5);
+      droplet.setDepth(CONFIG.destructibleBackground.surfaceDepth + (assets.dropletDepthOffset || 21.3));
+      droplet.setAlpha(Phaser.Math.FloatBetween(0.48, 0.72));
+      droplet.setRotation(angle);
+      setSpriteDisplayWidth(system.scene, droplet, Phaser.Math.Between(effect.dropletWidthMin || 3, effect.dropletWidthMax || 8));
+      system.dropletSprites.push(droplet);
+      system.totalDropletSpriteCount += 1;
+      tweenAndRemoveSprite(system, system.dropletSprites, droplet, {
+        x: x + Math.cos(angle) * drift,
+        y: y + Math.sin(angle) * drift,
+        alpha: 0,
+        scaleX: droplet.scaleX * 0.55,
+        scaleY: droplet.scaleY * 0.55,
+        duration: Math.max(100, duration * 0.72)
+      });
+    }
+  }
+
+  function setSpriteDisplayWidth(scene, sprite, targetWidth) {
+    var size = getTextureSize(scene, sprite.texture && sprite.texture.key);
+    var height = targetWidth * (size.height / Math.max(1, size.width));
+    if (sprite.isCropped && sprite.cropWidth && sprite.cropHeight) {
+      height = targetWidth * (sprite.cropHeight / Math.max(1, sprite.cropWidth));
+    }
+    if (sprite.setDisplaySize) {
+      sprite.setDisplaySize(targetWidth, height);
+      return;
+    }
+    sprite.setScale(targetWidth / Math.max(1, size.width));
+  }
+
+  function setRandomCrop(scene, sprite, key, index) {
+    if (!sprite.setCrop) {
+      return;
+    }
+    var size = getTextureSize(scene, key);
+    var cropWidth = Math.max(32, Math.floor(size.width * Phaser.Math.FloatBetween(0.34, 0.52)));
+    var cropHeight = Math.max(32, Math.floor(size.height * Phaser.Math.FloatBetween(0.3, 0.5)));
+    var centerX = (size.width - cropWidth) * 0.5;
+    var centerY = (size.height - cropHeight) * 0.5;
+    var cropX = Math.floor(Phaser.Math.Clamp(centerX + Math.cos(index * 1.7) * size.width * 0.16, 0, Math.max(0, size.width - cropWidth)));
+    var cropY = Math.floor(Phaser.Math.Clamp(centerY + Math.sin(index * 1.3) * size.height * 0.14, 0, Math.max(0, size.height - cropHeight)));
+    sprite.setCrop(cropX, cropY, cropWidth, cropHeight);
+    sprite.isCropped = true;
+    sprite.cropWidth = cropWidth;
+    sprite.cropHeight = cropHeight;
   }
 
   function scheduleSpriteFade(system, list, sprite, holdMs, config) {
@@ -297,17 +407,23 @@
   }
 
   function tweenAndRemoveSprite(system, list, sprite, config) {
+    var onCompleteExtra = config.onCompleteExtra;
     var tweenConfig = {
       targets: sprite,
       onComplete: function () {
         remove(list, sprite);
+        if (onCompleteExtra) {
+          onCompleteExtra();
+        }
         if (sprite.active) {
           sprite.destroy();
         }
       }
     };
     Object.keys(config).forEach(function (key) {
-      tweenConfig[key] = config[key];
+      if (key !== "onCompleteExtra") {
+        tweenConfig[key] = config[key];
+      }
     });
     system.scene.tweens.add(tweenConfig);
   }
@@ -470,9 +586,17 @@
 
   function capAssetSprites(system) {
     var max = (system.config.splashAssets && system.config.splashAssets.maxActiveSprites) || 48;
-    while (system.splashSprites.length + system.foamSprites.length > max) {
+    while (system.splashSprites.length + system.foamSprites.length + system.dropletSprites.length > max) {
       var list = system.foamSprites.length >= system.splashSprites.length ? system.foamSprites : system.splashSprites;
+      if (system.dropletSprites.length > list.length) {
+        list = system.dropletSprites;
+      }
       var sprite = list.shift();
+      remove(system.splashSprites, sprite);
+      remove(system.fragmentSprites, sprite);
+      remove(system.foamSprites, sprite);
+      remove(system.dropletSprites, sprite);
+      remove(system.fullCrownSprites, sprite);
       if (sprite && sprite.active) {
         sprite.destroy();
       }
@@ -530,12 +654,21 @@
       activeRippleCount: system ? system.arcs.length : 0,
       rippleCount: system ? system.arcs.length : 0,
       foamCount: system ? system.foam.length : 0,
-      activeSplashCount: system ? system.arcs.length + system.foam.length + system.splashSprites.length + system.foamSprites.length : 0,
+      activeSplashCount: system ? system.arcs.length + system.foam.length + system.splashSprites.length + system.foamSprites.length + system.dropletSprites.length : 0,
       activeFoamCount: system ? system.foam.length + system.foamSprites.length : 0,
       activeArcCount: system ? system.arcs.length : 0,
       usesAssetSplash: Boolean(system && system.usesAssetSplash),
+      splashMode: system && system.config && system.config.splashAssets ? system.config.splashAssets.mode || "legacy" : null,
       activeSplashSpriteCount: system ? system.splashSprites.length : 0,
       activeFoamSpriteCount: system ? system.foamSprites.length : 0,
+      activeFragmentCount: system ? system.fragmentSprites.length : 0,
+      activeDropletSpriteCount: system ? system.dropletSprites.length : 0,
+      fullCrownSpriteCount: system ? system.fullCrownSprites.length : 0,
+      totalFragmentSpriteCount: system ? system.totalFragmentSpriteCount : 0,
+      totalFoamSpriteCount: system ? system.totalFoamSpriteCount : 0,
+      totalDropletSpriteCount: system ? system.totalDropletSpriteCount : 0,
+      totalFullCrownSpriteCount: system ? system.totalFullCrownSpriteCount : 0,
+      coloredDamageCircleCount: 0,
       geometryArcPrimary: Boolean(system && system.config && system.config.splashAssets && system.config.splashAssets.geometryArcPrimary),
       lastSplashAssetType: system ? system.lastSplashAssetType : null,
       fullCircleRippleCount: system ? system.fullCircleRippleCount : 0,
@@ -582,12 +715,30 @@
       }
     });
     system.splashSprites = [];
+    system.fragmentSprites.forEach(function (sprite) {
+      if (sprite && sprite.active) {
+        sprite.destroy();
+      }
+    });
+    system.fragmentSprites = [];
     system.foamSprites.forEach(function (sprite) {
       if (sprite && sprite.active) {
         sprite.destroy();
       }
     });
     system.foamSprites = [];
+    system.dropletSprites.forEach(function (sprite) {
+      if (sprite && sprite.active) {
+        sprite.destroy();
+      }
+    });
+    system.dropletSprites = [];
+    system.fullCrownSprites.forEach(function (sprite) {
+      if (sprite && sprite.active) {
+        sprite.destroy();
+      }
+    });
+    system.fullCrownSprites = [];
     if (system.causticOverlay && system.causticOverlay.active) {
       system.causticOverlay.destroy();
     }
