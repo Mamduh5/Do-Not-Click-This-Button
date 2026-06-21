@@ -244,55 +244,101 @@
     var texture = config.sandTexture || {};
     graphics.fillStyle((texture.baseColors && texture.baseColors[0]) || config.baseColor, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
-    (texture.baseColors || []).forEach(function (color, index) {
-      graphics.fillStyle(color, texture.patchAlpha || 0.06);
-      for (var patch = 0; patch < (texture.patchCount || 0) / Math.max(1, texture.baseColors.length); patch += 1) {
-        var px = (patch * 139 + index * 211) % CONFIG.canvas.width;
-        var py = (patch * 97 + index * 173) % CONFIG.canvas.height;
-        graphics.fillEllipse(px, py, 120 + (patch % 4) * 28, 42 + (patch % 3) * 18);
-      }
-    });
-    var grainDensity = texture.grainDensity || config.grainDensity;
-    for (var grain = 0; grain < grainDensity; grain += 1) {
+
+    var colors = texture.baseColors || [config.baseColor];
+    for (var patch = 0; patch < (texture.patchCount || 0); patch += 1) {
+      var patchColor = colors[(patch * 3 + 1) % colors.length];
+      var px = (patch * 137 + (patch % 5) * 53) % CONFIG.canvas.width;
+      var py = (patch * 89 + (patch % 7) * 41) % CONFIG.canvas.height;
+      var radiusX = Phaser.Math.Between(texture.patchRadiusMin || 50, texture.patchRadiusMax || 150);
+      var radiusY = Phaser.Math.Between((texture.patchRadiusMin || 50) * 0.35, (texture.patchRadiusMax || 150) * 0.58);
+      graphics.fillStyle(patchColor, texture.patchAlpha || 0.08);
+      graphics.fillEllipse(px, py, radiusX, radiusY);
+    }
+
+    for (var depression = 0; depression < (texture.depressionCount || 0); depression += 1) {
+      graphics.fillStyle(0xa47a3c, texture.depressionAlpha || 0.06);
+      graphics.fillEllipse((depression * 181) % CONFIG.canvas.width, (depression * 107) % CONFIG.canvas.height, 64 + (depression % 5) * 18, 18 + (depression % 4) * 9);
+    }
+
+    var fineCount = texture.fineGrainCount || texture.grainDensity || config.grainDensity;
+    for (var grain = 0; grain < fineCount; grain += 1) {
       var gx = (grain * 53) % CONFIG.canvas.width;
       var gy = (grain * 97) % CONFIG.canvas.height;
       var color = config.grainColors[grain % config.grainColors.length];
-      graphics.fillStyle(color, grain % 3 === 0 ? config.coarseGrainAlpha : config.grainAlpha);
-      var size = (texture.grainSizeMin || 1) + (grain % Math.max(1, (texture.grainSizeMax || 3) - (texture.grainSizeMin || 1) + 1));
+      graphics.fillStyle(color, texture.fineGrainAlpha || config.grainAlpha);
+      var size = texture.grainSizeMin || 1;
       graphics.fillRect(gx, gy, size, size);
     }
-    graphics.lineStyle(1, config.detailColor, texture.duneLineAlpha || config.duneLineAlpha);
-    for (var line = 0; line < (texture.duneLineCount || config.duneLineCount); line += 1) {
-      var y = line * config.duneLineSpacing + 26;
-      var lastX = 0;
-      var lastY = y;
-      for (var x = config.duneLineSegment; x <= CONFIG.canvas.width; x += config.duneLineSegment) {
-        var nextY = y + Math.sin((x * 0.018) + line * 0.82) * config.duneWaveAmplitude;
-        graphics.lineBetween(lastX, lastY, x, nextY);
-        lastX = x;
-        lastY = nextY;
+
+    for (var coarse = 0; coarse < (texture.coarseGrainCount || 0); coarse += 1) {
+      var cx = (coarse * 109) % CONFIG.canvas.width;
+      var cy = (coarse * 157) % CONFIG.canvas.height;
+      graphics.fillStyle(coarse % 2 ? 0xb0833f : 0xf0d28a, texture.coarseGrainAlpha || 0.16);
+      graphics.fillRect(cx, cy, 2 + (coarse % 2), 1 + (coarse % 3 === 0 ? 1 : 0));
+    }
+
+    graphics.lineStyle(1, config.detailColor, texture.windStreakAlpha || texture.duneLineAlpha || config.duneLineAlpha);
+    for (var streak = 0; streak < (texture.windStreakCount || 0); streak += 1) {
+      var startX = (streak * 97 + 31) % CONFIG.canvas.width;
+      var startY = (streak * 61 + 47) % CONFIG.canvas.height;
+      var length = Phaser.Math.Between(texture.windStreakLengthMin || 40, texture.windStreakLengthMax || 120);
+      var segments = 4 + (streak % 4);
+      var previousX = startX;
+      var previousY = startY;
+      for (var segment = 1; segment <= segments; segment += 1) {
+        if (segment === 2 && streak % 3 === 0) {
+          previousX += length / segments;
+          continue;
+        }
+        var progress = segment / segments;
+        var nextX = startX + length * progress;
+        var nextY = startY + Math.sin(progress * Math.PI + streak * 0.7) * (texture.windStreakCurve || 0.3) * 22 + progress * 10;
+        graphics.lineBetween(previousX, previousY, nextX, nextY);
+        previousX = nextX;
+        previousY = nextY;
       }
+    }
+
+    for (var pebble = 0; pebble < (texture.pebbleCount || texture.decorativeRockCount || 0); pebble += 1) {
+      graphics.fillStyle(pebble % 2 ? 0x8a6638 : 0x6f5534, 0.22);
+      graphics.fillEllipse((pebble * 211) % CONFIG.canvas.width, (pebble * 127) % CONFIG.canvas.height, 3 + (pebble % 3), 2 + (pebble % 2));
     }
   }
 
   function drawWaterSurface(graphics, config) {
     var texture = config.waterTexture || {};
     var colors = texture.baseColors || [config.baseColor];
-    colors.forEach(function (color, index) {
-      graphics.fillStyle(color, index === 0 ? 1 : 0.34);
-      graphics.fillRect(0, index * CONFIG.canvas.height / colors.length, CONFIG.canvas.width, CONFIG.canvas.height / colors.length + 2);
+    graphics.fillStyle(colors[0], 1);
+    graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    colors.slice(1).forEach(function (color, index) {
+      graphics.fillStyle(color, 0.18);
+      for (var patch = 0; patch < 6; patch += 1) {
+        graphics.fillEllipse((patch * 181 + index * 113) % CONFIG.canvas.width, (patch * 97 + index * 151) % CONFIG.canvas.height, 170 + patch * 18, 52 + (patch % 3) * 18);
+      }
     });
-    graphics.fillStyle(config.waveBandColor, texture.bandAlpha || config.waveBandAlpha);
+    graphics.fillStyle(config.waveBandColor, (texture.bandAlpha || config.waveBandAlpha) * 0.65);
     for (var band = 0; band < (texture.bandCount || config.waveLineCount); band += 1) {
-      var bandY = 18 + band * (CONFIG.canvas.height / (texture.bandCount || config.waveLineCount));
-      graphics.fillRect(0, bandY, CONFIG.canvas.width, config.waveBandHeight + (band % 3) * 2);
+      var bandY = 24 + band * (CONFIG.canvas.height / (texture.bandCount || config.waveLineCount));
+      var lastX = 0;
+      var lastY = bandY;
+      for (var x = 24; x <= CONFIG.canvas.width; x += 24) {
+        var nextY = bandY + Math.sin(x * 0.018 + band) * 8;
+        graphics.lineStyle(3, config.waveBandColor, (texture.bandAlpha || 0.08) * 0.7);
+        graphics.lineBetween(lastX, lastY, x, nextY);
+        lastX = x;
+        lastY = nextY;
+      }
     }
     graphics.lineStyle(1, config.waveLineColor, config.waveAlpha);
     for (var line = 0; line < (texture.causticCount || config.causticLineCount); line += 1) {
       var startX = (line * 71) % CONFIG.canvas.width;
       var startY = (line * 43) % CONFIG.canvas.height;
       graphics.lineStyle(1, config.waveLineColor, texture.causticAlpha || config.causticAlpha);
-      graphics.lineBetween(startX, startY, startX + 38, startY + 10 + (line % 4) * 3);
+      graphics.lineBetween(startX, startY, startX + 22 + (line % 4) * 9, startY + 6 + (line % 3) * 4);
+      if (line % 3 === 0) {
+        graphics.lineBetween(startX + 8, startY + 6, startX + 28, startY - 2);
+      }
     }
     for (var shimmer = 0; shimmer < (texture.shimmerCount || 0); shimmer += 1) {
       var sx = (shimmer * 101) % CONFIG.canvas.width;
@@ -1213,6 +1259,12 @@
         id: system.material.id,
         name: system.material.name,
         repairMode: system.material.repair.mode
+      } : null,
+      sandTexture: system && system.material && system.material.surface && system.material.surface.sandTexture ? {
+        layerCount: 6,
+        fineGrainCount: system.material.surface.sandTexture.fineGrainCount || 0,
+        windStreakCount: system.material.surface.sandTexture.windStreakCount || 0,
+        patchCount: system.material.surface.sandTexture.patchCount || 0
       } : null,
       damageCount: system ? system.damageCount : 0,
       repairCount: system ? system.repairCount : 0,

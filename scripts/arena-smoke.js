@@ -74,6 +74,8 @@ async function run() {
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.shimmerCount > 0, "Water animation snapshot should expose shimmer count");
     assert(afterWaterSwitch.waterSurface && afterWaterSwitch.waterSurface.active === true, "Water should expose active water surface system");
     assert(afterWaterSwitch.waterSurface.visualEnabled === true, "Water should expose visible water renderer");
+    assert(afterWaterSwitch.waterSurface.debugGridVisible === false, "Water debug grid should be hidden in normal play");
+    assert(afterWaterSwitch.waterSurface.showEnergyCells === false, "Water energy cells should be hidden in normal play");
     assert(afterWaterSwitch.waterSurface.gridCols > 0 && afterWaterSwitch.waterSurface.gridRows > 0, "Water surface should expose ripple grid dimensions");
     const beforeWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
     await page.evaluate(() => {
@@ -89,6 +91,8 @@ async function run() {
     assert(afterWaterBreak.waterSurface.lastImpulseType === "groundBreak", "Ground Break on Water should record water impulse type");
     assert(afterWaterBreak.waterSurface.rippleCount > 0, "Ground Break on Water should create visible ripple objects");
     assert(afterWaterBreak.waterSurface.foamCount > 0, "Ground Break on Water should create visible foam objects");
+    assert(afterWaterBreak.waterSurface.activeArcCount > 0, "Ground Break on Water should create broken ripple arc visuals");
+    assert(afterWaterBreak.waterSurface.fullCircleRippleCount === 0, "Ground Break on Water should not create full-circle ripple visuals");
     assert((afterWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0) === (beforeWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0), "Ground Break on Water should not create crack collapse response");
     assert(afterWaterBreak.effectCounts.backgroundWaterRipple > (beforeWaterBreak.effectCounts.backgroundWaterRipple || 0), "Ground Break on Water should create ripple/splash debug event");
     const groundImpulseStrength = afterWaterBreak.waterSurface.strongestImpulse;

@@ -334,6 +334,7 @@
         window.__arenaDebug = {
           activeBackgroundSkin: scene.state.activeBackgroundSkin,
           backgroundMaterial: destructibleSnapshot.backgroundMaterial,
+          sandTexture: destructibleSnapshot.sandTexture,
           waterAnimation: destructibleSnapshot.waterAnimation,
           waterSurface: waterSurfaceSnapshot,
           obstacles: obstacleSnapshot.obstacles,

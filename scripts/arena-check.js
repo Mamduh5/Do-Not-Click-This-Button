@@ -107,6 +107,8 @@ assert(sandSkin.damageResponses.pixelShatter.type === "sandGridDisruption", "San
 assert(sandSkin.surface.grainDensity > 0 && sandSkin.surface.grainAlpha > 0, "Sand should define grain values");
 assert(sandSkin.surface.duneLineCount > 0 && sandSkin.surface.duneLineAlpha > 0, "Sand should define dune values");
 assert(sandSkin.surface.sandTexture && sandSkin.surface.sandTexture.patchCount > 0, "Sand texture config should exist");
+assert(sandSkin.surface.sandTexture.fineGrainCount >= 500, "Sand texture should define dense fine grain");
+assert(sandSkin.surface.sandTexture.windStreakCount > 0 && sandSkin.surface.sandTexture.depressionCount > 0, "Sand texture should define wind streaks and depressions");
 assert(sandSkin.damageResponses.groundBreak.craterSoftness > 0, "Sand Ground Break should define crater softness");
 const waterSkin = ARENA.BackgroundSkins.get("water");
 assert(waterSkin.damageResponses.groundBreak.type === "waterRipple", "Water Ground Break should use splash/ripple response");
@@ -120,6 +122,8 @@ assert(waterSkin.animation.rippleMaxCount > 0 && waterSkin.animation.rippleDurat
 assert(waterSkin.damageResponses.groundBreak.splashRadius > 0 && waterSkin.damageResponses.groundBreak.foamCount > 0, "Water Ground Break should define splash and foam values");
 assert(waterSkin.waterSurface && waterSkin.waterSurface.enabled === true, "Water should define reactive water surface config");
 assert(waterSkin.waterSurface.visualEnabled === true && waterSkin.waterSurface.rippleRingMax > 0, "Water surface should define visible renderer config");
+assert(waterSkin.waterSurface.debugGridVisible === false && waterSkin.waterSurface.showEnergyCells === false, "Water debug grid/energy cells should be hidden in normal play");
+assert(waterSkin.waterSurface.splash && waterSkin.waterSurface.splash.arcCountMin > 0 && waterSkin.waterSurface.splash.dropletCount > 0, "Water splash config should define broken arcs and droplets");
 assert(waterSkin.surface.waterTexture && waterSkin.surface.waterTexture.causticCount > 0, "Water texture config should exist");
 assert(waterSkin.waterSurface.gridCols > 0 && waterSkin.waterSurface.gridRows > 0, "Water surface should define a low-resolution ripple grid");
 assert(waterSkin.waterSurface.propagation > 0 && waterSkin.waterSurface.damping > 0, "Water surface should define propagation and damping");
@@ -344,6 +348,26 @@ const fakeScene = {
         destroy() {}
       };
     },
+    arc() {
+      return {
+        active: true,
+        rotation: 0,
+        setStrokeStyle() {},
+        setDepth() {},
+        destroy() {
+          this.active = false;
+        }
+      };
+    },
+    ellipse() {
+      return {
+        active: true,
+        setDepth() {},
+        destroy() {
+          this.active = false;
+        }
+      };
+    },
     circle() {
       return {
         active: true,
@@ -370,8 +394,10 @@ const arrowImpulse = ARENA.WaterSurface.addImpulse(waterSurfaceSystem, "arrowRai
 assert(groundImpulse.count === 1, "Ground Break on Water should create one central impulse");
 assert(meteorImpulse.strength > groundImpulse.strength, "Meteor on Water should create stronger impulse than Ground Break");
 assert(arrowImpulse.count > 1, "Arrow Rain on Water should create multiple small impulses");
-assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).rippleCount > 0, "Water clicks should create visible ripple objects");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).activeArcCount > 0, "Water clicks should create visible broken arc objects");
 assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).foamCount > 0, "Strong Water clicks should create visible foam objects");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).fullCircleRippleCount === 0, "Water should not create full-circle ripple visuals");
+assert(ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).debugGridVisible === false && ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).showEnergyCells === false, "Water debug grid visuals should remain disabled");
 fakeScene.time.now = 100;
 ARENA.WaterSurface.update(waterSurfaceSystem, 100);
 const activeEnergy = ARENA.WaterSurface.getSnapshot(waterSurfaceSystem).averageEnergy;
