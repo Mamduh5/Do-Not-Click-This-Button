@@ -17,10 +17,18 @@
       enabled: Boolean(rules.enabled),
       padding: padding,
       avoidanceForce: rules.avoidanceForce || 1,
+      obstacleInfluence: rules.obstacleInfluence || 20,
+      spawnClearance: rules.spawnClearance || 0,
+      boundaryClearance: rules.boundaryClearance || 1,
+      stuckDetectionMs: rules.stuckDetectionMs || 700,
+      stuckDistance: rules.stuckDistance || 1,
+      directionRerollCooldownMs: rules.directionRerollCooldownMs || 500,
       obstacles: obstacles,
+      townMap: material && material.surface && material.surface.map ? material.surface.map : null,
       debugOverlay: null,
       avoidanceCount: 0,
-      pushOutCount: 0
+      pushOutCount: 0,
+      stuckRerollCount: 0
     };
 
     if (rules.debugOverlay && obstacles.length > 0) {
@@ -75,9 +83,9 @@
     return null;
   }
 
-  function nearestSafePoint(obstacle, x, y, radius) {
+  function nearestSafePoint(system, obstacle, x, y, radius) {
     radius = radius || 0;
-    var clearance = 1;
+    var clearance = system && system.boundaryClearance !== undefined ? system.boundaryClearance : 1;
     var distances = [
       { side: "left", value: Math.abs(x - (obstacle.left - radius)), x: obstacle.left - radius - clearance, y: y },
       { side: "right", value: Math.abs((obstacle.right + radius) - x), x: obstacle.right + radius + clearance, y: y },
@@ -94,11 +102,11 @@
   }
 
   function getSafeSpawnPoint(system, x, y, radius) {
-    var obstacle = findContainingObstacle(system, x, y, radius);
+    var obstacle = findContainingObstacle(system, x, y, radius + (system ? system.spawnClearance : 0));
     if (!obstacle) {
       return { x: x, y: y, adjusted: false };
     }
-    var safe = nearestSafePoint(obstacle, x, y, radius);
+    var safe = nearestSafePoint(system, obstacle, x, y, radius + system.spawnClearance);
     if (system) {
       system.pushOutCount += 1;
     }
@@ -113,7 +121,7 @@
     var radius = enemy.radius || enemy.baseRadius || 0;
     var containing = findContainingObstacle(system, nextX, nextY, radius);
     if (containing) {
-      var safe = nearestSafePoint(containing, nextX, nextY, radius);
+      var safe = nearestSafePoint(system, containing, nextX, nextY, radius);
       system.pushOutCount += 1;
       return steerResult(enemy, safe.x, safe.y, true);
     }
@@ -125,12 +133,12 @@
       var closestX = Phaser.Math.Clamp(adjustedX, obstacle.left, obstacle.right);
       var closestY = Phaser.Math.Clamp(adjustedY, obstacle.top, obstacle.bottom);
       var distance = Phaser.Math.Distance.Between(adjustedX, adjustedY, closestX, closestY);
-      var influence = Math.max(radius + 12, 20);
+      var influence = Math.max(radius + system.obstacleInfluence, system.obstacleInfluence);
       if (distance > 0 && distance < influence) {
         var strength = (influence - distance) / influence * system.avoidanceForce;
         var angle = Phaser.Math.Angle.Between(closestX, closestY, adjustedX, adjustedY);
-        adjustedX += Math.cos(angle) * strength * 7;
-        adjustedY += Math.sin(angle) * strength * 7;
+        adjustedX += Math.cos(angle) * strength * 8;
+        adjustedY += Math.sin(angle) * strength * 8;
         adjusted = true;
       }
     });
@@ -141,6 +149,27 @@
     }
 
     return { x: nextX, y: nextY, adjusted: false };
+  }
+
+  function updateEnemyState(system, enemy, previousX, previousY, deltaMs, timeMs) {
+    if (!system || !system.enabled || !enemy || !enemy.active) {
+      return;
+    }
+    var distance = Phaser.Math.Distance.Between(previousX, previousY, enemy.x, enemy.y);
+    if (distance <= system.stuckDistance) {
+      enemy.obstacleStillMs = (enemy.obstacleStillMs || 0) + deltaMs;
+    } else {
+      enemy.obstacleStillMs = 0;
+      enemy.obstacleStuck = false;
+    }
+    if (enemy.obstacleStillMs >= system.stuckDetectionMs) {
+      enemy.obstacleStuck = true;
+      if (!enemy.obstacleNextRerollAt || timeMs >= enemy.obstacleNextRerollAt) {
+        enemy.driftAngle += Phaser.Math.FloatBetween(1.35, 2.4) * (Math.random() < 0.5 ? -1 : 1);
+        enemy.obstacleNextRerollAt = timeMs + system.directionRerollCooldownMs;
+        system.stuckRerollCount += 1;
+      }
+    }
   }
 
   function steerResult(enemy, x, y, adjusted) {
@@ -164,15 +193,28 @@
   }
 
   function getSnapshot(system, enemies) {
+    var insideCount = countEnemiesInside(system, enemies || []);
+    var stuckCount = countStuckEnemies(system, enemies || []);
     return {
       enabled: Boolean(system && system.enabled),
       materialId: system ? system.materialId : null,
       obstacleCount: system ? system.obstacles.length : 0,
       padding: system ? system.padding : 0,
       avoidanceForce: system ? system.avoidanceForce : 0,
+      obstacleInfluence: system ? system.obstacleInfluence : 0,
+      spawnClearance: system ? system.spawnClearance : 0,
       avoidanceCount: system ? system.avoidanceCount : 0,
       pushOutCount: system ? system.pushOutCount : 0,
+      stuckEnemyCount: stuckCount,
+      stuckRerollCount: system ? system.stuckRerollCount : 0,
       debugOverlay: Boolean(system && system.debugOverlay),
+      townMap: system && system.townMap ? {
+        roadCount: system.townMap.roadCount,
+        plazaCount: system.townMap.plazaCount,
+        buildingCount: system.townMap.buildingCount,
+        enemiesInsideObstacles: insideCount,
+        stuckEnemyCount: stuckCount
+      } : null,
       obstacles: system ? system.obstacles.map(function (obstacle) {
         return {
           id: obstacle.id,
@@ -187,8 +229,17 @@
           bottom: obstacle.bottom
         };
       }) : [],
-      enemiesInsideObstacles: countEnemiesInside(system, enemies || [])
+      enemiesInsideObstacles: insideCount
     };
+  }
+
+  function countStuckEnemies(system, enemies) {
+    if (!system || !system.enabled) {
+      return 0;
+    }
+    return enemies.filter(function (enemy) {
+      return enemy.active && enemy.obstacleStuck;
+    }).length;
   }
 
   function clear(system) {
@@ -204,6 +255,7 @@
     isPointInside: isPointInside,
     getSafeSpawnPoint: getSafeSpawnPoint,
     avoidMovement: avoidMovement,
+    updateEnemyState: updateEnemyState,
     countEnemiesInside: countEnemiesInside,
     getSnapshot: getSnapshot
   };

@@ -17,6 +17,7 @@
       enabled: Boolean(CONFIG.destructibleBackground.enabled),
       material: ARENA.BackgroundSkins.get(scene.state.activeBackgroundSkin),
       activeTemporaryChunks: [],
+      activeWaterRipples: [],
       lastBrushByResponse: {},
       waterAnimation: null
     };
@@ -40,7 +41,7 @@
       return;
     }
     system.waterAnimation.lastUpdateMs = timeMs;
-    drawWaterOverlay(system.waterAnimation.graphics, system.material.surface, timeMs * system.waterAnimation.waveSpeed);
+    drawWaterOverlay(system.waterAnimation.graphics, system.material.surface, system.material.animation, timeMs);
   }
 
   function apply(system, skin, x, y, scale) {
@@ -181,7 +182,7 @@
       var gx = (grain * 53) % CONFIG.canvas.width;
       var gy = (grain * 97) % CONFIG.canvas.height;
       var color = config.grainColors[grain % config.grainColors.length];
-      graphics.fillStyle(color, grain % 3 === 0 ? 0.16 : 0.08);
+      graphics.fillStyle(color, grain % 3 === 0 ? config.coarseGrainAlpha : config.grainAlpha);
       graphics.fillRect(gx, gy, 2 + (grain % 2), 1 + (grain % 3 === 0 ? 1 : 0));
     }
     graphics.lineStyle(1, config.detailColor, config.duneLineAlpha);
@@ -189,7 +190,7 @@
       var y = line * config.duneLineSpacing + 26;
       var lastX = 0;
       var lastY = y;
-      for (var x = 18; x <= CONFIG.canvas.width; x += 18) {
+      for (var x = config.duneLineSegment; x <= CONFIG.canvas.width; x += config.duneLineSegment) {
         var nextY = y + Math.sin((x * 0.018) + line * 0.82) * config.duneWaveAmplitude;
         graphics.lineBetween(lastX, lastY, x, nextY);
         lastX = x;
@@ -201,15 +202,16 @@
   function drawWaterSurface(graphics, config) {
     graphics.fillStyle(config.baseColor, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
-    graphics.fillStyle(config.waveBandColor, 0.12);
+    graphics.fillStyle(config.waveBandColor, config.waveBandAlpha);
     for (var band = 0; band < config.waveLineCount; band += 1) {
       var bandY = 18 + band * (CONFIG.canvas.height / config.waveLineCount);
-      graphics.fillRect(0, bandY, CONFIG.canvas.width, 8 + (band % 3) * 2);
+      graphics.fillRect(0, bandY, CONFIG.canvas.width, config.waveBandHeight + (band % 3) * 2);
     }
     graphics.lineStyle(1, config.waveLineColor, config.waveAlpha);
     for (var line = 0; line < config.causticLineCount; line += 1) {
       var startX = (line * 71) % CONFIG.canvas.width;
       var startY = (line * 43) % CONFIG.canvas.height;
+      graphics.lineStyle(1, config.waveLineColor, config.causticAlpha);
       graphics.lineBetween(startX, startY, startX + 38, startY + 10 + (line % 4) * 3);
     }
   }
@@ -268,14 +270,24 @@
       graphics: graphics,
       waveSpeed: material.animation.waveSpeed,
       updateIntervalMs: material.animation.updateIntervalMs,
-      lastUpdateMs: -Infinity
+      lastUpdateMs: -Infinity,
+      waveCount: material.animation.waveLineCount,
+      shimmerCount: material.animation.shimmerCount,
+      rippleMaxCount: material.animation.rippleMaxCount || material.animation.maxRipples
     };
-    drawWaterOverlay(graphics, material.surface, 0);
+    drawWaterOverlay(graphics, material.surface, material.animation, 0);
     return animation;
   }
 
-  function drawWaterOverlay(graphics, config, offset) {
+  function drawWaterOverlay(graphics, config, animation, timeMs) {
+    var offset = timeMs * animation.waveSpeed;
+    var bandOffset = timeMs * animation.waveBandOffsetSpeed;
     graphics.clear();
+    graphics.fillStyle(config.waveBandColor, config.waveBandAlpha * 0.55);
+    for (var band = 0; band < Math.ceil(config.waveLineCount * 0.55); band += 1) {
+      var bandY = (band * 92 + bandOffset) % (CONFIG.canvas.height + 80) - 40;
+      graphics.fillRect(0, bandY, CONFIG.canvas.width, config.waveBandHeight);
+    }
     graphics.lineStyle(1, config.waveLineColor, config.waveAlpha);
     for (var line = 0; line < config.waveLineCount; line += 1) {
       var baseY = 28 + line * (CONFIG.canvas.height / config.waveLineCount);
@@ -287,6 +299,14 @@
         previousX = x;
         previousY = y;
       }
+    }
+    for (var shimmer = 0; shimmer < config.shimmerCount; shimmer += 1) {
+      var shimmerPhase = timeMs * config.shimmerSpeed + shimmer * 17.3;
+      var sx = (shimmer * 89 + shimmerPhase * 36) % CONFIG.canvas.width;
+      var sy = (shimmer * 47 + Math.sin(shimmerPhase) * 22) % CONFIG.canvas.height;
+      var alpha = config.shimmerAlpha * (0.45 + 0.55 * Math.abs(Math.sin(shimmerPhase)));
+      graphics.lineStyle(1, config.detailColor, alpha * config.shimmerIntensity);
+      graphics.lineBetween(sx, sy, sx + config.shimmerLength, sy + Math.sin(shimmerPhase) * 5);
     }
   }
 
@@ -904,28 +924,50 @@
       ring.setStrokeStyle(2, color, Math.max(0.12, 0.34 - index * 0.04));
       ring.setDepth(CONFIG.destructibleBackground.repairDepth + 1);
       system.activeTemporaryChunks.push(ring);
-      tweenAndRemoveChunk(system, ring, {
+      system.activeWaterRipples.push(ring);
+      tweenAndRemoveWaterRipple(system, ring, {
         scale: 1.65 + index * 0.18,
         alpha: 0,
         duration: damage.repairDurationMs || 1000
       });
     }
+    var depression = system.scene.add.circle(x, y, Math.max(10, (damage.splashRadius || damage.rippleRadius || 28) * 0.42 * scale), damage.underlayerColor || 0x0d697e, 0.18);
+    depression.setDepth(CONFIG.destructibleBackground.repairDepth + 0.8);
+    system.activeTemporaryChunks.push(depression);
+    tweenAndRemoveChunk(system, depression, {
+      scale: 1.24,
+      alpha: 0,
+      duration: damage.splashDurationMs || 520
+    });
     for (var splash = 0; splash < (damage.splashParticleCount || 0); splash += 1) {
       var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       var particle = system.scene.add.circle(x, y, Math.max(1.5, 2.5 * scale), color, 0.7);
       particle.setDepth(CONFIG.destructibleBackground.repairDepth + 1.2);
       system.activeTemporaryChunks.push(particle);
       tweenAndRemoveChunk(system, particle, {
-        x: x + Math.cos(angle) * Phaser.Math.Between(10, 34) * scale,
-        y: y + Math.sin(angle) * Phaser.Math.Between(10, 34) * scale,
+        x: x + Math.cos(angle) * Phaser.Math.Between(10, damage.splashRadius || 34) * scale,
+        y: y + Math.sin(angle) * Phaser.Math.Between(10, damage.splashRadius || 34) * scale,
         alpha: 0,
         scale: 0.2,
-        duration: 520
+        duration: damage.splashDurationMs || 520
+      });
+    }
+    for (var foam = 0; foam < (damage.foamCount || 0); foam += 1) {
+      var foamAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var foamRadius = Phaser.Math.Between((damage.rippleRadius || 24) * 0.35, damage.rippleRadius || 36) * scale;
+      var foamParticle = system.scene.add.circle(x + Math.cos(foamAngle) * foamRadius, y + Math.sin(foamAngle) * foamRadius, Math.max(1.5, 2 * scale), color, 0.44);
+      foamParticle.setDepth(CONFIG.destructibleBackground.repairDepth + 1.1);
+      system.activeTemporaryChunks.push(foamParticle);
+      tweenAndRemoveChunk(system, foamParticle, {
+        scale: 0.35,
+        alpha: 0,
+        duration: (damage.repairDurationMs || 1000) * 0.82
       });
     }
     if (damage.type === "waterPixelRipple") {
       createCellFlicker(system, damage, geometry);
     }
+    capWaterRipples(system);
     markEffect(system.scene, "backgroundWaterRipple");
   }
 
@@ -962,11 +1004,36 @@
     }
   }
 
+  function capWaterRipples(system) {
+    var maxRipples = system.waterAnimation ? system.waterAnimation.rippleMaxCount : 34;
+    while (system.activeWaterRipples.length > maxRipples) {
+      var ripple = system.activeWaterRipples.shift();
+      remove(system.activeTemporaryChunks, ripple);
+      if (ripple && ripple.active) {
+        ripple.destroy();
+      }
+    }
+  }
+
   function tweenAndRemoveChunk(system, chunk, config) {
     var tweenConfig = {
       targets: chunk,
       onComplete: function () {
         removeChunk(system, chunk);
+      }
+    };
+    Object.keys(config).forEach(function (key) {
+      tweenConfig[key] = config[key];
+    });
+    system.scene.tweens.add(tweenConfig);
+  }
+
+  function tweenAndRemoveWaterRipple(system, ripple, config) {
+    var tweenConfig = {
+      targets: ripple,
+      onComplete: function () {
+        remove(system.activeWaterRipples, ripple);
+        removeChunk(system, ripple);
       }
     };
     Object.keys(config).forEach(function (key) {
@@ -1004,6 +1071,12 @@
       }
     });
     system.activeTemporaryChunks = [];
+    system.activeWaterRipples.forEach(function (ripple) {
+      if (ripple && ripple.active) {
+        ripple.destroy();
+      }
+    });
+    system.activeWaterRipples = [];
     if (system.surface) {
       system.surface.destroy();
       system.surface = null;
@@ -1031,7 +1104,12 @@
       repairCount: system ? system.repairCount : 0,
       activeTemporaryChunks: system ? system.activeTemporaryChunks.length : 0,
       waterAnimation: system && system.waterAnimation ? {
+        active: system.waterAnimation.enabled,
         enabled: system.waterAnimation.enabled,
+        waveCount: system.waterAnimation.waveCount,
+        shimmerCount: system.waterAnimation.shimmerCount,
+        rippleCount: system.activeWaterRipples.length,
+        rippleMaxCount: system.waterAnimation.rippleMaxCount,
         waveSpeed: system.waterAnimation.waveSpeed,
         updateIntervalMs: system.waterAnimation.updateIntervalMs
       } : null,

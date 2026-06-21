@@ -320,6 +320,7 @@
           waterAnimation: destructibleSnapshot.waterAnimation,
           obstacles: obstacleSnapshot.obstacles,
           enemiesInsideObstacles: obstacleSnapshot.enemiesInsideObstacles,
+          townMap: obstacleSnapshot.townMap,
           lastBackgroundResponse: destructibleSnapshot.lastBackgroundResponse,
           lastGroundBreakBrush: destructibleSnapshot.lastGroundBreakBrush,
           lastPixelShatterBrush: destructibleSnapshot.lastPixelShatterBrush,
@@ -356,6 +357,7 @@
               rotation: enemy.rotation,
               lastMoveAngle: enemy.lastMoveAngle,
               movingAmount: enemy.movingAmount,
+              obstacleStuck: Boolean(enemy.obstacleStuck),
               skin: enemy.enemySkin.id,
               forwardAngleOffset: enemy.enemySkin.animation.forwardAngleOffset,
               segmentCount: enemy.enemySkin.ant ? enemy.enemySkin.ant.segmentCount : null
@@ -368,6 +370,7 @@
           destructibleBackground: destructibleSnapshot,
           obstacles: obstacleSnapshot,
           enemiesInsideObstacles: obstacleSnapshot.enemiesInsideObstacles,
+          townMap: obstacleSnapshot.townMap,
           backgroundDecalCount: scene.backgroundEffectSystem.decals.length,
           activeClickSkin: scene.state.activeClickSkin,
           unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),

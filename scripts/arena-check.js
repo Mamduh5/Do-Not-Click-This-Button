@@ -99,19 +99,28 @@ assert(backgroundSkin.damageResponses.pixelShatter.repairMode === "cell", "Pixel
 const sandSkin = ARENA.BackgroundSkins.get("sand");
 assert(sandSkin.damageResponses.groundBreak.type === "sandCrater", "Sand Ground Break should use crater response");
 assert(sandSkin.damageResponses.pixelShatter.type === "sandGridDisruption", "Sand Pixel Shatter should use granular grid disruption");
-assert(sandSkin.surface.grainDensity > 0 && sandSkin.surface.duneLineAlpha > 0, "Sand should define grain and dune values");
+assert(sandSkin.surface.grainDensity > 0 && sandSkin.surface.grainAlpha > 0, "Sand should define grain values");
+assert(sandSkin.surface.duneLineCount > 0 && sandSkin.surface.duneLineAlpha > 0, "Sand should define dune values");
+assert(sandSkin.damageResponses.groundBreak.craterSoftness > 0, "Sand Ground Break should define crater softness");
 const waterSkin = ARENA.BackgroundSkins.get("water");
 assert(waterSkin.damageResponses.groundBreak.type === "waterRipple", "Water Ground Break should use splash/ripple response");
 assert(waterSkin.damageResponses.groundBreak.affectsSurface === false, "Water Ground Break should not erase floor holes");
 assert(waterSkin.damageResponses.groundBreak.type !== "localizedCollapse", "Water Ground Break should not use crack response");
 assert(waterSkin.damageResponses.pixelShatter.type === "waterPixelRipple", "Water Pixel Shatter should use blocky ripple response");
 assert(waterSkin.animation && waterSkin.animation.enabled && waterSkin.animation.waveSpeed > 0, "Water should define animated wave config");
+assert(waterSkin.animation.waveLineCount > 0 && waterSkin.animation.waveAmplitude > 0 && waterSkin.animation.waveAlpha > 0, "Water should define active wave values");
+assert(waterSkin.animation.shimmerCount > 0 && waterSkin.animation.shimmerSpeed > 0, "Water should define shimmer values");
+assert(waterSkin.animation.rippleMaxCount > 0 && waterSkin.animation.rippleDurationMs > 0, "Water should define capped ripple values");
+assert(waterSkin.damageResponses.groundBreak.splashRadius > 0 && waterSkin.damageResponses.groundBreak.foamCount > 0, "Water Ground Break should define splash and foam values");
 const townSkin = ARENA.BackgroundSkins.get("town");
 assert(townSkin.damageResponses.groundBreak.type === "townPavementBreak", "Town Ground Break should use pavement response");
 assert(townSkin.damageResponses.pixelShatter.type === "townGridDisruption", "Town Pixel Shatter should use town grid disruption");
 assert(townSkin.obstacleRules && townSkin.obstacleRules.enabled === true, "Town should enable obstacle rules");
 assert(townSkin.obstacleRules.obstacles.length > 0, "Town should define obstacle geometry");
 assert(townSkin.obstacleRules.debugOverlay === true, "Town obstacle debug overlay should be configurable");
+assert(townSkin.surface.roads.length > 0 && townSkin.surface.buildingRects.length > 0, "Town should define roads and buildings from config");
+assert(townSkin.surface.map && townSkin.surface.map.roadCount > 0 && townSkin.surface.map.buildingCount === townSkin.surface.buildingRects.length, "Town should define map debug counts");
+assert(townSkin.obstacleRules.spawnClearance > 0 && townSkin.obstacleRules.stuckDetectionMs > 0, "Town should define spawn clearance and stuck detection config");
 assert(ARENA.CLICK_EFFECT_SKINS.length >= 6, "arena should define required click effect skins");
 const soundSignatures = new Set();
 requiredSkinIds.forEach((id) => {
@@ -287,6 +296,13 @@ assert(!ARENA.Obstacles.isPointInside(obstacleSystem, avoided.x, avoided.y, AREN
 const obstacleSnapshot = ARENA.Obstacles.getSnapshot(obstacleSystem, [{ active: true, x: safeSpawn.x, y: safeSpawn.y, radius: ARENA.BALANCE_CONFIG.enemy.radius }]);
 assert(obstacleSnapshot.debugOverlay === true, "Town obstacle debug snapshot should exist");
 assert(obstacleSnapshot.enemiesInsideObstacles === 0, "safe enemy snapshot should not report obstacle overlap");
+assert(obstacleSnapshot.townMap && obstacleSnapshot.townMap.roadCount > 0 && obstacleSnapshot.townMap.buildingCount === townSkin.surface.buildingRects.length, "Town map debug snapshot should expose roads and buildings");
+assert(obstacleSnapshot.stuckEnemyCount === 0, "Obstacle snapshot should expose stuck enemy count");
+const stuckEnemy = { active: true, x: 240, y: 240, radius: ARENA.BALANCE_CONFIG.enemy.radius, driftAngle: 0 };
+ARENA.Obstacles.updateEnemyState(obstacleSystem, stuckEnemy, stuckEnemy.x, stuckEnemy.y, townSkin.obstacleRules.stuckDetectionMs + 1, 1000);
+assert(stuckEnemy.obstacleStuck === true, "ObstacleSystem should mark stuck enemies after configured delay");
+const stuckSnapshot = ARENA.Obstacles.getSnapshot(obstacleSystem, [stuckEnemy]);
+assert(stuckSnapshot.stuckEnemyCount === 1 && stuckSnapshot.townMap.stuckEnemyCount === 1, "Obstacle snapshot should count stuck enemies");
 
 const migratedTreeSave = ARENA.Save.validateState({
   activeEnemySkin: "tree",

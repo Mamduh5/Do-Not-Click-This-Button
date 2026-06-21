@@ -104,6 +104,9 @@
       }
       enemy.x = nextX;
       enemy.y = nextY;
+      if (ARENA.Obstacles && scene.obstacleSystem) {
+        ARENA.Obstacles.updateEnemyState(scene.obstacleSystem, enemy, previousX, previousY, deltaMs, scene.time.now);
+      }
       enemy.knockbackX *= Math.pow(CONFIG.enemy.knockbackDecay, deltaMs / 16.67);
       enemy.knockbackY *= Math.pow(CONFIG.enemy.knockbackDecay, deltaMs / 16.67);
       updateOrientation(enemy, enemy.x - previousX, enemy.y - previousY, deltaMs);
