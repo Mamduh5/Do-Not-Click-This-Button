@@ -17,7 +17,8 @@
       enabled: Boolean(CONFIG.destructibleBackground.enabled),
       material: ARENA.BackgroundSkins.get(scene.state.activeBackgroundSkin),
       activeTemporaryChunks: [],
-      lastBrushByResponse: {}
+      lastBrushByResponse: {},
+      waterAnimation: null
     };
 
     if (!system.enabled) {
@@ -26,8 +27,20 @@
 
     system.underlayer = createUnderlayer(scene, system.material);
     system.surface = createSurface(scene, system.material);
+    system.waterAnimation = createWaterAnimation(scene, system.material);
     system.renderTextureUsed = Boolean(system.surface && system.surface.erase && CONFIG.destructibleBackground.useRenderTexture);
     return system;
+  }
+
+  function update(system, timeMs) {
+    if (!system || !system.waterAnimation || !system.waterAnimation.enabled) {
+      return;
+    }
+    if (timeMs - system.waterAnimation.lastUpdateMs < system.waterAnimation.updateIntervalMs) {
+      return;
+    }
+    system.waterAnimation.lastUpdateMs = timeMs;
+    drawWaterOverlay(system.waterAnimation.graphics, system.material.surface, timeMs * system.waterAnimation.waveSpeed);
   }
 
   function apply(system, skin, x, y, scale) {
@@ -92,11 +105,13 @@
     graphics.fillStyle(underlayer.color, config.underlayerAlpha);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
     graphics.lineStyle(1, underlayer.crackColor, underlayer.gridAlpha);
-    for (var x = 0; x <= CONFIG.canvas.width; x += surface.gridSize) {
-      graphics.lineBetween(x, 0, x, CONFIG.canvas.height);
-    }
-    for (var y = 0; y <= CONFIG.canvas.height; y += surface.gridSize) {
-      graphics.lineBetween(0, y, CONFIG.canvas.width, y);
+    if (surface.gridSize && underlayer.gridAlpha > 0) {
+      for (var x = 0; x <= CONFIG.canvas.width; x += surface.gridSize) {
+        graphics.lineBetween(x, 0, x, CONFIG.canvas.height);
+      }
+      for (var y = 0; y <= CONFIG.canvas.height; y += surface.gridSize) {
+        graphics.lineBetween(0, y, CONFIG.canvas.width, y);
+      }
     }
     graphics.lineStyle(1, underlayer.glowColor, 0.12);
     graphics.strokeCircle(CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, surface.coreRingRadius * 1.08);
@@ -118,6 +133,22 @@
 
   function drawCleanFloor(graphics, config) {
     graphics.clear();
+    if (config.type === "sand") {
+      drawSandSurface(graphics, config);
+      return;
+    }
+    if (config.type === "water") {
+      drawWaterSurface(graphics, config);
+      return;
+    }
+    if (config.type === "town") {
+      drawTownSurface(graphics, config);
+      return;
+    }
+    drawContainmentSurface(graphics, config);
+  }
+
+  function drawContainmentSurface(graphics, config) {
     graphics.fillStyle(config.baseColor, 1);
     graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
     if (config.subtleNoise) {
@@ -143,7 +174,138 @@
     graphics.strokeCircle(CONFIG.canvas.width / 2, CONFIG.canvas.height / 2, config.coreRingRadius);
   }
 
+  function drawSandSurface(graphics, config) {
+    graphics.fillStyle(config.baseColor, 1);
+    graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    for (var grain = 0; grain < config.grainDensity; grain += 1) {
+      var gx = (grain * 53) % CONFIG.canvas.width;
+      var gy = (grain * 97) % CONFIG.canvas.height;
+      var color = config.grainColors[grain % config.grainColors.length];
+      graphics.fillStyle(color, grain % 3 === 0 ? 0.16 : 0.08);
+      graphics.fillRect(gx, gy, 2 + (grain % 2), 1 + (grain % 3 === 0 ? 1 : 0));
+    }
+    graphics.lineStyle(1, config.detailColor, config.duneLineAlpha);
+    for (var line = 0; line < config.duneLineCount; line += 1) {
+      var y = line * config.duneLineSpacing + 26;
+      var lastX = 0;
+      var lastY = y;
+      for (var x = 18; x <= CONFIG.canvas.width; x += 18) {
+        var nextY = y + Math.sin((x * 0.018) + line * 0.82) * config.duneWaveAmplitude;
+        graphics.lineBetween(lastX, lastY, x, nextY);
+        lastX = x;
+        lastY = nextY;
+      }
+    }
+  }
+
+  function drawWaterSurface(graphics, config) {
+    graphics.fillStyle(config.baseColor, 1);
+    graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    graphics.fillStyle(config.waveBandColor, 0.12);
+    for (var band = 0; band < config.waveLineCount; band += 1) {
+      var bandY = 18 + band * (CONFIG.canvas.height / config.waveLineCount);
+      graphics.fillRect(0, bandY, CONFIG.canvas.width, 8 + (band % 3) * 2);
+    }
+    graphics.lineStyle(1, config.waveLineColor, config.waveAlpha);
+    for (var line = 0; line < config.causticLineCount; line += 1) {
+      var startX = (line * 71) % CONFIG.canvas.width;
+      var startY = (line * 43) % CONFIG.canvas.height;
+      graphics.lineBetween(startX, startY, startX + 38, startY + 10 + (line % 4) * 3);
+    }
+  }
+
+  function drawTownSurface(graphics, config) {
+    graphics.fillStyle(config.baseColor, 1);
+    graphics.fillRect(0, 0, CONFIG.canvas.width, CONFIG.canvas.height);
+    graphics.fillStyle(config.sidewalkColor, 1);
+    config.sidewalks.forEach(function (rect) {
+      graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+    });
+    graphics.fillStyle(config.roadColor, 1);
+    config.roads.forEach(function (rect) {
+      graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+    });
+    graphics.lineStyle(2, config.roadLineColor, 0.66);
+    var horizontalRoad = config.roads.find(function (road) {
+      return road.laneY !== undefined;
+    });
+    var verticalRoad = config.roads.find(function (road) {
+      return road.laneX !== undefined;
+    });
+    if (horizontalRoad) {
+      for (var dashX = horizontalRoad.x + 12; dashX < horizontalRoad.x + horizontalRoad.width; dashX += config.roadDashSpacing) {
+        graphics.lineBetween(dashX, horizontalRoad.laneY, dashX + config.roadDashLength, horizontalRoad.laneY);
+      }
+    }
+    if (verticalRoad) {
+      for (var dashY = verticalRoad.y + 12; dashY < verticalRoad.y + verticalRoad.height; dashY += config.roadDashSpacing) {
+        graphics.lineBetween(verticalRoad.laneX, dashY, verticalRoad.laneX, dashY + config.roadDashLength);
+      }
+    }
+    graphics.fillStyle(config.plazaColor, 1);
+    config.plazas.forEach(function (rect) {
+      graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+    });
+    config.buildingRects.forEach(function (rect, index) {
+      var roof = config.roofColors[index % config.roofColors.length];
+      graphics.fillStyle(config.buildingColor, 1);
+      graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+      graphics.fillStyle(roof, 0.92);
+      graphics.fillRect(rect.x + 6, rect.y + 6, rect.width - 12, rect.height - 12);
+      graphics.lineStyle(1, config.buildingAccentColor, 0.65);
+      graphics.strokeRect(rect.x + 9, rect.y + 9, rect.width - 18, rect.height - 18);
+    });
+  }
+
+  function createWaterAnimation(scene, material) {
+    if (!material.animation || !material.animation.enabled || material.animation.type !== "waveOverlay") {
+      return null;
+    }
+    var graphics = scene.add.graphics();
+    graphics.setDepth(CONFIG.destructibleBackground.surfaceDepth + 0.25);
+    var animation = {
+      enabled: true,
+      graphics: graphics,
+      waveSpeed: material.animation.waveSpeed,
+      updateIntervalMs: material.animation.updateIntervalMs,
+      lastUpdateMs: -Infinity
+    };
+    drawWaterOverlay(graphics, material.surface, 0);
+    return animation;
+  }
+
+  function drawWaterOverlay(graphics, config, offset) {
+    graphics.clear();
+    graphics.lineStyle(1, config.waveLineColor, config.waveAlpha);
+    for (var line = 0; line < config.waveLineCount; line += 1) {
+      var baseY = 28 + line * (CONFIG.canvas.height / config.waveLineCount);
+      var previousX = 0;
+      var previousY = baseY + Math.sin(offset + line) * config.waveAmplitude;
+      for (var x = 20; x <= CONFIG.canvas.width; x += 20) {
+        var y = baseY + Math.sin(offset + x * 0.025 + line * 0.7) * config.waveAmplitude;
+        graphics.lineBetween(previousX, previousY, x, y);
+        previousX = x;
+        previousY = y;
+      }
+    }
+  }
+
   function createGeometry(damage, x, y, scale) {
+    if (damage.type === "sandCrater") {
+      return createSandCraterGeometry(damage, x, y, scale);
+    }
+    if (damage.type === "sandPunctures" || damage.type === "waterPunctures") {
+      return createPunctureGeometry(damage, x, y, scale);
+    }
+    if (damage.type === "waterRipple") {
+      return createWaterRippleGeometry(damage, x, y, scale);
+    }
+    if (damage.type === "sandGridDisruption" || damage.type === "waterPixelRipple" || damage.type === "townGridDisruption") {
+      return createLocalGridBreakGeometry(damage, x, y, scale);
+    }
+    if (damage.type === "townPavementBreak") {
+      return createLocalizedCollapseGeometry(damage, x, y, scale);
+    }
     if (damage.type === "localizedCollapse") {
       return createLocalizedCollapseGeometry(damage, x, y, scale);
     }
@@ -243,6 +405,45 @@
         x: Math.round(x / cellSize) * cellSize,
         y: Math.round(y / cellSize) * cellSize,
         size: cellSize
+      });
+    }
+    return geometry;
+  }
+
+  function createSandCraterGeometry(damage, x, y, scale) {
+    var geometry = {
+      type: "sandCrater",
+      circles: [
+        { x: x, y: y, radius: damage.craterRadius * scale },
+        { x: x, y: y, radius: damage.displacementRadius * scale }
+      ],
+      rects: [],
+      lines: []
+    };
+    for (var index = 0; index < (damage.granularDebrisCount || 8); index += 1) {
+      var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var distance = Phaser.Math.FloatBetween(damage.craterRadius * 0.65, damage.displacementRadius) * scale;
+      geometry.rects.push({
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        size: Phaser.Math.Between(3, 6) * scale
+      });
+    }
+    return geometry;
+  }
+
+  function createWaterRippleGeometry(damage, x, y, scale) {
+    var geometry = {
+      type: "waterRipple",
+      circles: [],
+      lines: []
+    };
+    var count = damage.rippleCount || 3;
+    for (var index = 0; index < count; index += 1) {
+      geometry.circles.push({
+        x: x,
+        y: y,
+        radius: damage.rippleRadius * scale * (0.34 + index * 0.22)
       });
     }
     return geometry;
@@ -424,6 +625,9 @@
   }
 
   function damageSurface(system, damage, geometry) {
+    if (damage.affectsSurface === false) {
+      return;
+    }
     var brush = system.scene.make.graphics({ add: false });
     drawGeometry(brush, geometry, 0xffffff, 1, true);
 
@@ -618,7 +822,11 @@
   }
 
   function createTemporaryResponseFx(system, damage, geometry, x, y, scale) {
-    if (geometry.type === "floorFracture" || geometry.type === "localizedCollapse") {
+    if (geometry.type === "waterRipple" || damage.type === "waterPixelRipple" || damage.type === "waterPunctures") {
+      createWaterResponseFx(system, damage, geometry, x, y, scale);
+    } else if (geometry.type === "sandCrater" || damage.type === "sandPunctures") {
+      createSandResponseFx(system, damage, geometry, x, y, scale);
+    } else if (geometry.type === "floorFracture" || geometry.type === "localizedCollapse") {
       createFractureChunks(system, damage, geometry, x, y, scale);
     } else if (geometry.type === "cellGrid" || geometry.type === "localGridBreak") {
       createCellChunks(system, damage, geometry, x, y, scale);
@@ -687,6 +895,64 @@
     markEffect(system.scene, "backgroundCellFlicker");
   }
 
+  function createWaterResponseFx(system, damage, geometry, x, y, scale) {
+    var color = damage.detailColor || 0xe9ffff;
+    var rippleCount = damage.rippleCount || (geometry.circles ? geometry.circles.length : 3);
+    for (var index = 0; index < rippleCount; index += 1) {
+      var radius = (damage.rippleRadius || 28) * scale * (0.38 + index * 0.24);
+      var ring = system.scene.add.circle(x, y, radius, color, 0.015);
+      ring.setStrokeStyle(2, color, Math.max(0.12, 0.34 - index * 0.04));
+      ring.setDepth(CONFIG.destructibleBackground.repairDepth + 1);
+      system.activeTemporaryChunks.push(ring);
+      tweenAndRemoveChunk(system, ring, {
+        scale: 1.65 + index * 0.18,
+        alpha: 0,
+        duration: damage.repairDurationMs || 1000
+      });
+    }
+    for (var splash = 0; splash < (damage.splashParticleCount || 0); splash += 1) {
+      var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var particle = system.scene.add.circle(x, y, Math.max(1.5, 2.5 * scale), color, 0.7);
+      particle.setDepth(CONFIG.destructibleBackground.repairDepth + 1.2);
+      system.activeTemporaryChunks.push(particle);
+      tweenAndRemoveChunk(system, particle, {
+        x: x + Math.cos(angle) * Phaser.Math.Between(10, 34) * scale,
+        y: y + Math.sin(angle) * Phaser.Math.Between(10, 34) * scale,
+        alpha: 0,
+        scale: 0.2,
+        duration: 520
+      });
+    }
+    if (damage.type === "waterPixelRipple") {
+      createCellFlicker(system, damage, geometry);
+    }
+    markEffect(system.scene, "backgroundWaterRipple");
+  }
+
+  function createSandResponseFx(system, damage, geometry, x, y, scale) {
+    var color = damage.detailColor || system.material.surface.tileColor;
+    var count = damage.dustCount || damage.particleCount || 10;
+    for (var index = 0; index < count; index += 1) {
+      var angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      var distance = Phaser.Math.Between(8, damage.particleDistance || 32) * scale;
+      var particle = system.scene.add.circle(x, y, Math.max(1.5, (damage.particleSize || 3) * 0.5 * scale), color, 0.36);
+      particle.setDepth(CONFIG.destructibleBackground.repairDepth + 1);
+      system.activeTemporaryChunks.push(particle);
+      tweenAndRemoveChunk(system, particle, {
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        alpha: 0,
+        scale: 0.25,
+        duration: 620
+      });
+    }
+    if (geometry.type === "localGridBreak") {
+      createCellChunks(system, damage, geometry, x, y, scale);
+      createCellFlicker(system, damage, geometry);
+    }
+    markEffect(system.scene, "backgroundSandDust");
+  }
+
   function capTemporaryChunks(system) {
     while (system.activeTemporaryChunks.length > CONFIG.destructibleBackground.maxTemporaryChunks) {
       var chunk = system.activeTemporaryChunks.shift();
@@ -746,6 +1012,10 @@
       system.underlayer.destroy();
       system.underlayer = null;
     }
+    if (system.waterAnimation && system.waterAnimation.graphics) {
+      system.waterAnimation.graphics.destroy();
+      system.waterAnimation = null;
+    }
   }
 
   function getSnapshot(system) {
@@ -760,8 +1030,14 @@
       damageCount: system ? system.damageCount : 0,
       repairCount: system ? system.repairCount : 0,
       activeTemporaryChunks: system ? system.activeTemporaryChunks.length : 0,
+      waterAnimation: system && system.waterAnimation ? {
+        enabled: system.waterAnimation.enabled,
+        waveSpeed: system.waterAnimation.waveSpeed,
+        updateIntervalMs: system.waterAnimation.updateIntervalMs
+      } : null,
       lastGroundBreakBrush: system && system.lastBrushByResponse.groundBreak ? system.lastBrushByResponse.groundBreak : null,
       lastPixelShatterBrush: system && system.lastBrushByResponse.pixelShatter ? system.lastBrushByResponse.pixelShatter : null,
+      lastBackgroundResponse: system ? lastResponse(system.lastBrushByResponse) : null,
       activeDamageMarks: system ? system.activeDamageMarks.length : 0,
       repairingDamageMarks: system ? system.activeDamageMarks.filter(function (mark) {
         return mark.repairStarted && !mark.repairComplete;
@@ -786,6 +1062,11 @@
     };
   }
 
+  function lastResponse(responses) {
+    var keys = Object.keys(responses || {});
+    return keys.length ? responses[keys[keys.length - 1]] : null;
+  }
+
   function remove(list, item) {
     var index = list.indexOf(item);
     if (index >= 0) {
@@ -795,6 +1076,7 @@
 
   ARENA.DestructibleBackground = {
     create: create,
+    update: update,
     apply: apply,
     clear: clear,
     getSnapshot: getSnapshot

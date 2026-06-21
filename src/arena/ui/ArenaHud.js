@@ -12,6 +12,7 @@
       log: document.getElementById("arenaLog"),
       skinSelect: document.getElementById("arenaSkinSelect"),
       enemySkinSelect: document.getElementById("arenaEnemySkinSelect"),
+      backgroundSkinSelect: document.getElementById("arenaBackgroundSkinSelect"),
       mute: document.getElementById("arenaMuteBtn"),
       reset: document.getElementById("arenaResetBtn")
     };
@@ -23,6 +24,9 @@
     });
     elements.enemySkinSelect.addEventListener("change", function () {
       options.onSetEnemySkin(elements.enemySkinSelect.value);
+    });
+    elements.backgroundSkinSelect.addEventListener("change", function () {
+      options.onSetBackgroundSkin(elements.backgroundSkinSelect.value);
     });
 
     ARENA.CLICK_EFFECT_SKINS.forEach(function (skin) {
@@ -37,6 +41,12 @@
       option.textContent = skin.name;
       elements.enemySkinSelect.appendChild(option);
     });
+    ARENA.BACKGROUND_SKINS.forEach(function (skin) {
+      var option = document.createElement("option");
+      option.value = skin.id;
+      option.textContent = skin.name;
+      elements.backgroundSkinSelect.appendChild(option);
+    });
 
     function update(state, combo) {
       elements.energy.textContent = ARENA.formatNumber(state.energy);
@@ -46,12 +56,16 @@
       elements.mute.textContent = "Sound: " + (state.muted ? "OFF" : "ON");
       elements.skinSelect.value = state.activeClickSkin;
       elements.enemySkinSelect.value = state.activeEnemySkin;
+      elements.backgroundSkinSelect.value = state.activeBackgroundSkin;
 
       Array.from(elements.skinSelect.options).forEach(function (option) {
         option.disabled = !state.unlockedClickSkins[option.value];
       });
       Array.from(elements.enemySkinSelect.options).forEach(function (option) {
         option.disabled = !state.unlockedEnemySkins[option.value];
+      });
+      Array.from(elements.backgroundSkinSelect.options).forEach(function (option) {
+        option.disabled = !state.unlockedBackgroundSkins[option.value];
       });
     }
 

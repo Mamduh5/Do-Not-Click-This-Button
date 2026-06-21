@@ -6,10 +6,21 @@ const { runInThisContext } = require("node:vm");
 global.window = global;
 global.Phaser = {
   Math: {
+    Angle: {
+      Between(x1, y1, x2, y2) {
+        return Math.atan2(y2 - y1, x2 - x1);
+      }
+    },
+    Clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    },
     Distance: {
       Between(x1, y1, x2, y2) {
         return Math.hypot(x2 - x1, y2 - y1);
       }
+    },
+    FloatBetween(min, max) {
+      return (min + max) / 2;
     }
   }
 };
@@ -34,6 +45,7 @@ global.localStorage = {
   "src/arena/data/backgroundSkins.js",
   "src/arena/systems/NumberFormat.js",
   "src/arena/systems/DestructibleBackgroundSystem.js",
+  "src/arena/systems/ObstacleSystem.js",
   "src/arena/systems/ClickEffectSkinSystem.js",
   "src/arena/systems/EnemySkinSystem.js",
   "src/arena/systems/SaveSystem.js",
@@ -59,10 +71,20 @@ const state = ARENA.Save.createDefaultState();
 const baseStats = ARENA.Upgrades.computeStats(state);
 const requiredSkinIds = ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak", "paperDrop", "arrowStrike"];
 const requiredEnemySkinIds = ["ant", "eyes", "tank", "hat", "worm"];
+const requiredBackgroundSkinIds = ["containmentFloor", "sand", "water", "town"];
 
 assert(ARENA.UPGRADE_DEFS.length >= 5, "arena should define at least five upgrades");
 assert(ARENA.BACKGROUND_SKINS.length >= 1, "arena should define background material profiles");
 const backgroundSkin = ARENA.BackgroundSkins.get("containmentFloor");
+requiredBackgroundSkinIds.forEach((id) => {
+  const skin = ARENA.BackgroundSkins.get(id);
+  assert(skin.id === id, id + " background skin should exist");
+  assert(skin.unlockedByDefault === true, id + " background skin should be unlocked by default for testing");
+  assert(skin.surface && skin.surface.type, id + " should define surface appearance");
+  assert(skin.underlayer && skin.underlayer.voidColor !== undefined, id + " should define underlayer appearance");
+  assert(skin.repair && skin.repair.durationMs > 0, id + " should define repair behavior");
+  assert(skin.damageResponses.groundBreak && skin.damageResponses.pixelShatter, id + " should define Ground Break and Pixel Shatter responses");
+});
 assert(backgroundSkin.id === "containmentFloor", "Containment Floor background material should exist");
 assert(backgroundSkin.surface && backgroundSkin.surface.gridSize > 0, "background material should define surface style");
 assert(backgroundSkin.underlayer && backgroundSkin.underlayer.voidColor !== undefined, "background material should define underlayer style");
@@ -74,6 +96,22 @@ assert(backgroundSkin.damageResponses.groundBreak.shortCrackLengthMax <= 24, "Gr
 assert(backgroundSkin.damageResponses.groundBreak.chunkCountMin >= 4, "Ground Break material response should define broken floor chunks");
 assert(backgroundSkin.damageResponses.pixelShatter.gridWidthCells > 0 && backgroundSkin.damageResponses.pixelShatter.gridHeightCells > 0, "Pixel Shatter material response should define local grid dimensions");
 assert(backgroundSkin.damageResponses.pixelShatter.repairMode === "cell", "Pixel Shatter material response should repair as cells");
+const sandSkin = ARENA.BackgroundSkins.get("sand");
+assert(sandSkin.damageResponses.groundBreak.type === "sandCrater", "Sand Ground Break should use crater response");
+assert(sandSkin.damageResponses.pixelShatter.type === "sandGridDisruption", "Sand Pixel Shatter should use granular grid disruption");
+assert(sandSkin.surface.grainDensity > 0 && sandSkin.surface.duneLineAlpha > 0, "Sand should define grain and dune values");
+const waterSkin = ARENA.BackgroundSkins.get("water");
+assert(waterSkin.damageResponses.groundBreak.type === "waterRipple", "Water Ground Break should use splash/ripple response");
+assert(waterSkin.damageResponses.groundBreak.affectsSurface === false, "Water Ground Break should not erase floor holes");
+assert(waterSkin.damageResponses.groundBreak.type !== "localizedCollapse", "Water Ground Break should not use crack response");
+assert(waterSkin.damageResponses.pixelShatter.type === "waterPixelRipple", "Water Pixel Shatter should use blocky ripple response");
+assert(waterSkin.animation && waterSkin.animation.enabled && waterSkin.animation.waveSpeed > 0, "Water should define animated wave config");
+const townSkin = ARENA.BackgroundSkins.get("town");
+assert(townSkin.damageResponses.groundBreak.type === "townPavementBreak", "Town Ground Break should use pavement response");
+assert(townSkin.damageResponses.pixelShatter.type === "townGridDisruption", "Town Pixel Shatter should use town grid disruption");
+assert(townSkin.obstacleRules && townSkin.obstacleRules.enabled === true, "Town should enable obstacle rules");
+assert(townSkin.obstacleRules.obstacles.length > 0, "Town should define obstacle geometry");
+assert(townSkin.obstacleRules.debugOverlay === true, "Town obstacle debug overlay should be configurable");
 assert(ARENA.CLICK_EFFECT_SKINS.length >= 6, "arena should define required click effect skins");
 const soundSignatures = new Set();
 requiredSkinIds.forEach((id) => {
@@ -145,6 +183,9 @@ assert(state.activeEnemySkin === "ant", "default enemy skin");
 assert(state.activeBackgroundSkin === "containmentFloor", "default active background material");
 assert(state.unlockedEnemySkins.hat === true, "default unlocked enemy skins");
 assert(state.unlockedBackgroundSkins.containmentFloor === true, "default background material should be unlocked");
+assert(state.unlockedBackgroundSkins.sand === true, "sand background should be unlocked by default");
+assert(state.unlockedBackgroundSkins.water === true, "water background should be unlocked by default");
+assert(state.unlockedBackgroundSkins.town === true, "town background should be unlocked by default");
 assert(state.unlockedEnemySkins.worm === true, "worm enemy skin should be unlocked by default");
 assert(!state.unlockedEnemySkins.tree, "tree enemy skin should not be unlocked by default");
 assert(ARENA.BALANCE_CONFIG.backgroundEffects.maxDecals > 0, "background decal cap should be configured");
@@ -207,6 +248,45 @@ assert(loaded.unlockedClickSkins.meteorImpact === true, "unlocked skins should p
 assert(loaded.activeEnemySkin === "eyes", "active enemy skin should persist");
 assert(loaded.unlockedEnemySkins.ant === true, "unlocked enemy skins should persist");
 assert(loaded.activeBackgroundSkin === "containmentFloor", "active background material should persist");
+
+assert(ARENA.BackgroundSkins.setActive(loaded, "water"), "background skin switch should update active background skin");
+assert(loaded.activeBackgroundSkin === "water", "active background skin should switch");
+assert(ARENA.Save.save(loaded), "arena save should persist switched background skin");
+const loadedBackground = ARENA.Save.load();
+assert(loadedBackground.activeBackgroundSkin === "water", "active background skin should persist through save/load");
+const invalidBackground = ARENA.Save.validateState({
+  activeBackgroundSkin: "lava",
+  unlockedBackgroundSkins: { lava: true },
+  upgrades: {}
+});
+assert(invalidBackground.activeBackgroundSkin === "containmentFloor", "invalid saved background skin should fall back safely");
+
+const obstacleSystem = ARENA.Obstacles.create({
+  add: {
+    graphics() {
+      return {
+        setDepth() {},
+        lineStyle() {},
+        strokeRect() {},
+        fillStyle() {},
+        fillRect() {},
+        destroy() {}
+      };
+    }
+  }
+}, townSkin);
+assert(obstacleSystem.obstacles.length === townSkin.obstacleRules.obstacles.length, "ObstacleSystem should load town obstacles");
+const obstacle = obstacleSystem.obstacles[0];
+const safeSpawn = ARENA.Obstacles.getSafeSpawnPoint(obstacleSystem, obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2, ARENA.BALANCE_CONFIG.enemy.radius);
+assert(safeSpawn.adjusted === true, "ObstacleSystem should move spawn points out of town obstacles");
+assert(!ARENA.Obstacles.isPointInside(obstacleSystem, safeSpawn.x, safeSpawn.y, ARENA.BALANCE_CONFIG.enemy.radius), "adjusted spawn should not remain inside obstacle");
+const enemyForAvoidance = { x: obstacle.left - 6, y: obstacle.y + obstacle.height / 2, radius: ARENA.BALANCE_CONFIG.enemy.radius, driftAngle: 0 };
+const avoided = ARENA.Obstacles.avoidMovement(obstacleSystem, enemyForAvoidance, enemyForAvoidance.x, enemyForAvoidance.y, obstacle.left + 4, enemyForAvoidance.y);
+assert(avoided.adjusted === true, "ObstacleSystem should adjust projected movement into an obstacle");
+assert(!ARENA.Obstacles.isPointInside(obstacleSystem, avoided.x, avoided.y, ARENA.BALANCE_CONFIG.enemy.radius), "adjusted movement should not remain inside obstacle");
+const obstacleSnapshot = ARENA.Obstacles.getSnapshot(obstacleSystem, [{ active: true, x: safeSpawn.x, y: safeSpawn.y, radius: ARENA.BALANCE_CONFIG.enemy.radius }]);
+assert(obstacleSnapshot.debugOverlay === true, "Town obstacle debug snapshot should exist");
+assert(obstacleSnapshot.enemiesInsideObstacles === 0, "safe enemy snapshot should not report obstacle overlap");
 
 const migratedTreeSave = ARENA.Save.validateState({
   activeEnemySkin: "tree",

@@ -46,11 +46,16 @@ async function run() {
     assert(await page.locator("#arenaUpgradeList .arena-upgrade-card").count() >= 5, "shop should render at least five upgrades");
     assert(await page.locator("#arenaSkinSelect option").count() >= 6, "skin selector should render required click skins");
     assert(await page.locator("#arenaEnemySkinSelect option").count() >= 5, "enemy skin selector should render required enemy skins");
+    assert(await page.locator("#arenaBackgroundSkinSelect option").count() >= 4, "background selector should render required background skins");
     const clickSkinOptions = await page.locator("#arenaSkinSelect option").evaluateAll((options) => options.map((option) => option.textContent.trim()));
     const enemySkinOptions = await page.locator("#arenaEnemySkinSelect option").evaluateAll((options) => options.map((option) => option.textContent.trim()));
+    const backgroundSkinOptions = await page.locator("#arenaBackgroundSkinSelect option").evaluateAll((options) => options.map((option) => option.textContent.trim()));
     assert(clickSkinOptions.includes("Arrow Rain"), "click skin selector should show Arrow Rain");
     assert(enemySkinOptions.includes("Worm"), "enemy skin selector should show Worm");
     assert(!enemySkinOptions.includes("Tree"), "enemy skin selector should not show removed Tree skin");
+    assert(backgroundSkinOptions.includes("Sand"), "background selector should show Sand");
+    assert(backgroundSkinOptions.includes("Water"), "background selector should show Water");
+    assert(backgroundSkinOptions.includes("Town"), "background selector should show Town");
     assert(initial.activeClickSkin === "meteorImpact", "default active click skin should be Meteor Impact");
     assert(initial.activeEnemySkin === "ant", "default enemy skin should be Ant");
     await page.selectOption("#arenaSkinSelect", "pixelShatter");
@@ -59,6 +64,38 @@ async function run() {
     await page.selectOption("#arenaEnemySkinSelect", "eyes");
     const afterEnemyUiSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterEnemyUiSwitch.activeEnemySkin === "eyes", "enemy skin selector should update active enemy skin");
+    await page.selectOption("#arenaBackgroundSkinSelect", "water");
+    const afterWaterSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterWaterSwitch.activeBackgroundSkin === "water", "background selector should update active background skin");
+    assert(afterWaterSwitch.destructibleBackground.backgroundMaterial.id === "water", "background switch should rebuild material");
+    assert(afterWaterSwitch.destructibleBackground.waterAnimation && afterWaterSwitch.destructibleBackground.waterAnimation.enabled === true, "Water should expose animation debug snapshot");
+    const beforeWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    await page.evaluate(() => {
+      window.__containmentArena.setClickSkin("groundBreak");
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.clickAt(150, 150);
+    });
+    const afterWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterWaterBreak.destructibleBackground.lastGroundBreakBrush.damageType === "waterRipple", "Ground Break on Water should use ripple response");
+    assert(afterWaterBreak.destructibleBackground.lastGroundBreakBrush.type === "waterRipple", "Ground Break on Water should expose ripple brush");
+    assert((afterWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0) === (beforeWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0), "Ground Break on Water should not create crack collapse response");
+    assert(afterWaterBreak.effectCounts.backgroundWaterRipple > (beforeWaterBreak.effectCounts.backgroundWaterRipple || 0), "Ground Break on Water should create ripple/splash debug event");
+    await page.selectOption("#arenaBackgroundSkinSelect", "town");
+    const afterTownSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterTownSwitch.activeBackgroundSkin === "town", "background selector should switch to Town");
+    assert(afterTownSwitch.obstacles.enabled === true && afterTownSwitch.obstacles.obstacleCount > 0, "Town should expose obstacles");
+    assert(afterTownSwitch.obstacles.debugOverlay === true, "Town obstacle debug snapshot should exist");
+    await page.evaluate(() => {
+      const obstacle = window.__containmentArena.getSnapshot().obstacles.obstacles[0];
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.spawnEnemyAt(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2, 99);
+    });
+    await page.waitForTimeout(180);
+    const afterTownSpawn = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterTownSpawn.enemiesInsideObstacles === 0, "Enemies should not spawn or remain inside Town obstacles");
+    await page.selectOption("#arenaBackgroundSkinSelect", "containmentFloor");
+    const afterContainmentSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterContainmentSwitch.activeBackgroundSkin === "containmentFloor", "background selector should switch back to Containment Floor");
 
     for (const skinId of ["meteorImpact", "pixelShatter", "sciFiLaser", "groundBreak", "paperDrop", "arrowStrike"]) {
       const beforeEmptySkin = await page.evaluate(() => window.__containmentArena.getSnapshot());
@@ -242,12 +279,14 @@ async function run() {
     assert(afterHelperKill.backgroundDecalCount <= 42, "background decals should stay capped");
 
     await page.click("#arenaMuteBtn");
+    await page.selectOption("#arenaBackgroundSkinSelect", "town");
     await page.reload({ waitUntil: "networkidle" });
     await waitForArena(page);
     const persisted = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(persisted.muted === true, "mute setting should persist after reload");
     assert(persisted.activeClickSkin === "arrowStrike", "active click skin should persist after reload");
     assert(persisted.activeEnemySkin === "hat", "active enemy skin should persist after reload");
+    assert(persisted.activeBackgroundSkin === "town", "active background skin should persist after reload");
     assert(consoleErrors.length === 0, "arena smoke should have no console errors: " + consoleErrors.join(" | "));
   } finally {
     await browser.close();

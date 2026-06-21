@@ -12,10 +12,20 @@
     var height = CONFIG.canvas.height;
     var x = edge === 0 ? -margin : edge === 1 ? width + margin : Phaser.Math.Between(0, width);
     var y = edge === 2 ? -margin : edge === 3 ? height + margin : Phaser.Math.Between(0, height);
+    if (ARENA.Obstacles && scene.obstacleSystem) {
+      var safe = ARENA.Obstacles.getSafeSpawnPoint(scene.obstacleSystem, x, y, CONFIG.enemy.radius);
+      x = safe.x;
+      y = safe.y;
+    }
     return create(scene, x, y, wave);
   }
 
   function create(scene, x, y, wave, forcedHealth) {
+    if (ARENA.Obstacles && scene.obstacleSystem) {
+      var safe = ARENA.Obstacles.getSafeSpawnPoint(scene.obstacleSystem, x, y, CONFIG.enemy.radius);
+      x = safe.x;
+      y = safe.y;
+    }
     var health = CONFIG.enemy.baseHealth * (1 + (wave - 1) * CONFIG.enemy.waveHealthScale);
     var skin = ARENA.EnemySkins.get(scene.state.activeEnemySkin);
     var shadow = scene.add.circle(x + 2, y + 4, CONFIG.enemy.radius * CONFIG.enemy.visualScale * 1.15, CONFIG.enemy.shadowColor, CONFIG.enemy.shadowAlpha);
@@ -85,10 +95,15 @@
       var previousY = enemy.y;
       var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
       var angle = enemy.driftAngle + wiggle * 0.01;
-      enemy.x += Math.cos(angle) * enemy.speed * deltaSeconds;
-      enemy.y += Math.sin(angle) * enemy.speed * deltaSeconds;
-      enemy.x += enemy.knockbackX * deltaSeconds;
-      enemy.y += enemy.knockbackY * deltaSeconds;
+      var nextX = enemy.x + Math.cos(angle) * enemy.speed * deltaSeconds + enemy.knockbackX * deltaSeconds;
+      var nextY = enemy.y + Math.sin(angle) * enemy.speed * deltaSeconds + enemy.knockbackY * deltaSeconds;
+      if (ARENA.Obstacles && scene.obstacleSystem) {
+        var adjusted = ARENA.Obstacles.avoidMovement(scene.obstacleSystem, enemy, previousX, previousY, nextX, nextY);
+        nextX = adjusted.x;
+        nextY = adjusted.y;
+      }
+      enemy.x = nextX;
+      enemy.y = nextY;
       enemy.knockbackX *= Math.pow(CONFIG.enemy.knockbackDecay, deltaMs / 16.67);
       enemy.knockbackY *= Math.pow(CONFIG.enemy.knockbackDecay, deltaMs / 16.67);
       updateOrientation(enemy, enemy.x - previousX, enemy.y - previousY, deltaMs);

@@ -29,6 +29,7 @@
 
     drawRoom(this);
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.obstacleSystem = ARENA.Obstacles.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.input.on("pointerdown", this.handlePointerDown, this);
@@ -37,7 +38,8 @@
       onToggleMute: this.toggleMute.bind(this),
       onReset: this.resetPrototype.bind(this),
       onSetClickSkin: this.setClickSkin.bind(this),
-      onSetEnemySkin: this.setEnemySkin.bind(this)
+      onSetEnemySkin: this.setEnemySkin.bind(this),
+      onSetBackgroundSkin: this.setBackgroundSkin.bind(this)
     });
     this.panel = ARENA.createUpgradePanel({
       onBuy: this.buyUpgrade.bind(this)
@@ -64,6 +66,7 @@
     }
 
     this.spawnEnemies();
+    ARENA.DestructibleBackground.update(this.destructibleBackgroundSystem, time);
     ARENA.Enemies.update(this, this.enemies, deltaMs);
     this.enemies = this.enemies.filter(function (enemy) {
       return enemy.active;
@@ -166,6 +169,48 @@
     this.refreshUi();
   };
 
+  ArenaScene.prototype.setBackgroundSkin = function (id) {
+    if (!ARENA.BackgroundSkins.setActive(this.state, id)) {
+      this.hud.log("BACKGROUND LOCKED");
+      this.refreshUi();
+      return;
+    }
+
+    this.rebuildBackgroundSystems();
+    this.pushEnemiesOutOfObstacles();
+    this.hud.log("BACKGROUND: " + ARENA.BackgroundSkins.get(id).name);
+    ARENA.Save.save(this.state);
+    this.refreshUi();
+  };
+
+  ArenaScene.prototype.rebuildBackgroundSystems = function () {
+    ARENA.DestructibleBackground.clear(this.destructibleBackgroundSystem);
+    ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
+    if (this.obstacleSystem) {
+      ARENA.Obstacles.clear(this.obstacleSystem);
+    }
+    this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.obstacleSystem = ARENA.Obstacles.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
+    this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
+  };
+
+  ArenaScene.prototype.pushEnemiesOutOfObstacles = function () {
+    if (!this.obstacleSystem || !this.obstacleSystem.enabled) {
+      return;
+    }
+    this.enemies.forEach(function (enemy) {
+      var safe = ARENA.Obstacles.getSafeSpawnPoint(this.obstacleSystem, enemy.x, enemy.y, enemy.radius || enemy.baseRadius || 0);
+      if (safe.adjusted) {
+        enemy.x = safe.x;
+        enemy.y = safe.y;
+        if (enemy.shadow && enemy.shadow.active) {
+          enemy.shadow.x = enemy.x + 2;
+          enemy.shadow.y = enemy.y + 4;
+        }
+      }
+    }, this);
+  };
+
   ArenaScene.prototype.resetPrototype = function () {
     this.state = ARENA.Save.reset();
     this.stats = ARENA.Upgrades.computeStats(this.state);
@@ -188,7 +233,11 @@
     this.lastPixelShatterEffect = null;
     ARENA.DestructibleBackground.clear(this.destructibleBackgroundSystem);
     ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
+    if (this.obstacleSystem) {
+      ARENA.Obstacles.clear(this.obstacleSystem);
+    }
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.obstacleSystem = ARENA.Obstacles.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.hud.log("PROTOTYPE SAVE RESET");
@@ -259,10 +308,19 @@
       setEnemySkin: function (id) {
         scene.setEnemySkin(id);
       },
+      setBackgroundSkin: function (id) {
+        scene.setBackgroundSkin(id);
+      },
       getSnapshot: function () {
         var destructibleSnapshot = ARENA.DestructibleBackground.getSnapshot(scene.destructibleBackgroundSystem);
+        var obstacleSnapshot = ARENA.Obstacles.getSnapshot(scene.obstacleSystem, scene.enemies);
         window.__arenaDebug = {
+          activeBackgroundSkin: scene.state.activeBackgroundSkin,
           backgroundMaterial: destructibleSnapshot.backgroundMaterial,
+          waterAnimation: destructibleSnapshot.waterAnimation,
+          obstacles: obstacleSnapshot.obstacles,
+          enemiesInsideObstacles: obstacleSnapshot.enemiesInsideObstacles,
+          lastBackgroundResponse: destructibleSnapshot.lastBackgroundResponse,
           lastGroundBreakBrush: destructibleSnapshot.lastGroundBreakBrush,
           lastPixelShatterBrush: destructibleSnapshot.lastPixelShatterBrush,
           lastGroundBreakEffect: scene.lastGroundBreakEffect || null,
@@ -308,6 +366,8 @@
           lastGroundBreakEffect: scene.lastGroundBreakEffect || null,
           lastPixelShatterEffect: scene.lastPixelShatterEffect || null,
           destructibleBackground: destructibleSnapshot,
+          obstacles: obstacleSnapshot,
+          enemiesInsideObstacles: obstacleSnapshot.enemiesInsideObstacles,
           backgroundDecalCount: scene.backgroundEffectSystem.decals.length,
           activeClickSkin: scene.state.activeClickSkin,
           unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),
