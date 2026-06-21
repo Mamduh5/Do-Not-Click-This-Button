@@ -72,6 +72,8 @@ async function run() {
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.active === true, "Water animation snapshot should be active");
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.waveCount > 0, "Water animation snapshot should expose wave count");
     assert(afterWaterSwitch.destructibleBackground.waterAnimation.shimmerCount > 0, "Water animation snapshot should expose shimmer count");
+    assert(afterWaterSwitch.waterSurface && afterWaterSwitch.waterSurface.active === true, "Water should expose active water surface system");
+    assert(afterWaterSwitch.waterSurface.gridCols > 0 && afterWaterSwitch.waterSurface.gridRows > 0, "Water surface should expose ripple grid dimensions");
     const beforeWaterBreak = await page.evaluate(() => window.__containmentArena.getSnapshot());
     await page.evaluate(() => {
       window.__containmentArena.setClickSkin("groundBreak");
@@ -82,8 +84,28 @@ async function run() {
     assert(afterWaterBreak.destructibleBackground.lastGroundBreakBrush.damageType === "waterRipple", "Ground Break on Water should use ripple response");
     assert(afterWaterBreak.destructibleBackground.lastGroundBreakBrush.type === "waterRipple", "Ground Break on Water should expose ripple brush");
     assert(afterWaterBreak.destructibleBackground.waterAnimation.rippleCount > 0, "Ground Break on Water should expose active ripple debug count");
+    assert(afterWaterBreak.waterSurface.totalImpulseCount > beforeWaterBreak.waterSurface.totalImpulseCount, "Ground Break on Water should add water surface impulse");
+    assert(afterWaterBreak.waterSurface.lastImpulseType === "groundBreak", "Ground Break on Water should record water impulse type");
     assert((afterWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0) === (beforeWaterBreak.effectCounts.backgroundDamage_localizedCollapse || 0), "Ground Break on Water should not create crack collapse response");
     assert(afterWaterBreak.effectCounts.backgroundWaterRipple > (beforeWaterBreak.effectCounts.backgroundWaterRipple || 0), "Ground Break on Water should create ripple/splash debug event");
+    const groundImpulseStrength = afterWaterBreak.waterSurface.strongestImpulse;
+    await page.evaluate(() => {
+      window.__containmentArena.setClickSkin("meteorImpact");
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.clickAt(180, 150);
+    });
+    const afterWaterMeteor = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterWaterMeteor.waterSurface.lastImpulseType === "meteor", "Meteor on Water should record meteor impulse type");
+    assert(afterWaterMeteor.waterSurface.strongestImpulse > groundImpulseStrength, "Meteor on Water should create stronger impulse than Ground Break");
+    const beforeWaterArrow = afterWaterMeteor;
+    await page.evaluate(() => {
+      window.__containmentArena.setClickSkin("arrowStrike");
+      window.__containmentArena.clearEnemies();
+      window.__containmentArena.clickAt(220, 150);
+    });
+    const afterWaterArrow = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterWaterArrow.waterSurface.lastImpulseType === "arrowRain", "Arrow Rain on Water should record arrow impulse type");
+    assert(afterWaterArrow.waterSurface.totalImpulseCount >= beforeWaterArrow.waterSurface.totalImpulseCount + 3, "Arrow Rain on Water should create multiple water impulses");
     await page.selectOption("#arenaBackgroundSkinSelect", "town");
     const afterTownSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterTownSwitch.activeBackgroundSkin === "town", "background selector should switch to Town");
@@ -91,16 +113,27 @@ async function run() {
     assert(afterTownSwitch.obstacles.debugOverlay === true, "Town obstacle debug snapshot should exist");
     assert(afterTownSwitch.townMap && afterTownSwitch.townMap.roadCount > 0, "Town should expose road debug snapshot");
     assert(afterTownSwitch.townMap.buildingCount === afterTownSwitch.obstacles.obstacleCount, "Town should expose matching building/obstacle counts");
+    assert(afterTownSwitch.townNavigation && afterTownSwitch.townNavigation.active === true, "Town should expose active navigation system");
+    assert(afterTownSwitch.townNavigation.walkableCells > 0 && afterTownSwitch.townNavigation.blockedCells > 0, "Town navigation should expose walkability grid counts");
     await page.evaluate(() => {
       const obstacle = window.__containmentArena.getSnapshot().obstacles.obstacles[0];
       window.__containmentArena.clearEnemies();
       window.__containmentArena.spawnEnemyAt(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2, 99);
     });
-    await page.waitForTimeout(180);
+    await page.waitForTimeout(650);
     const afterTownSpawn = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterTownSpawn.enemiesInsideObstacles === 0, "Enemies should not spawn or remain inside Town obstacles");
     assert(afterTownSpawn.townMap.enemiesInsideObstacles === 0, "Town map debug should report no enemy obstacle overlap");
     assert(typeof afterTownSpawn.townMap.stuckEnemyCount === "number", "Town map debug should expose stuck enemy count");
+    assert(afterTownSpawn.townNavigation.activePathCount > 0 || afterTownSpawn.townNavigation.lastPathLength > 0, "Town enemies should use navigation path/debug data");
+    await page.evaluate(() => {
+      const obstacle = window.__containmentArena.getSnapshot().obstacles.obstacles[0];
+      window.__containmentArena.setClickSkin("meteorImpact");
+      window.__containmentArena.clickAt(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+    });
+    const afterTownBuildingClick = await page.evaluate(() => window.__containmentArena.getSnapshot());
+    assert(afterTownBuildingClick.lastTownSurfaceHit && afterTownBuildingClick.lastTownSurfaceHit.surfaceType === "building", "Town building click should expose building surface hit");
+    assert(afterTownBuildingClick.lastTownSurfaceHit.obstacleHit === true, "Town building click should report obstacle hit");
     await page.selectOption("#arenaBackgroundSkinSelect", "containmentFloor");
     const afterContainmentSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterContainmentSwitch.activeBackgroundSkin === "containmentFloor", "background selector should switch back to Containment Floor");

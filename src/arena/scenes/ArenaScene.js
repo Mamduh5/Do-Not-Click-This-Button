@@ -29,7 +29,9 @@
 
     drawRoom(this);
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.waterSurfaceSystem = ARENA.WaterSurface.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.obstacleSystem = ARENA.Obstacles.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
+    this.townNavigationSystem = ARENA.TownNavigation.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.input.on("pointerdown", this.handlePointerDown, this);
@@ -67,6 +69,7 @@
 
     this.spawnEnemies();
     ARENA.DestructibleBackground.update(this.destructibleBackgroundSystem, time);
+    ARENA.WaterSurface.update(this.waterSurfaceSystem, time);
     ARENA.Enemies.update(this, this.enemies, deltaMs);
     this.enemies = this.enemies.filter(function (enemy) {
       return enemy.active;
@@ -185,12 +188,18 @@
 
   ArenaScene.prototype.rebuildBackgroundSystems = function () {
     ARENA.DestructibleBackground.clear(this.destructibleBackgroundSystem);
+    ARENA.WaterSurface.clear(this.waterSurfaceSystem);
     ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
     if (this.obstacleSystem) {
       ARENA.Obstacles.clear(this.obstacleSystem);
     }
+    if (this.townNavigationSystem) {
+      ARENA.TownNavigation.clear(this.townNavigationSystem);
+    }
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.waterSurfaceSystem = ARENA.WaterSurface.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.obstacleSystem = ARENA.Obstacles.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
+    this.townNavigationSystem = ARENA.TownNavigation.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
   };
 
@@ -232,12 +241,18 @@
     this.lastGroundBreakEffect = null;
     this.lastPixelShatterEffect = null;
     ARENA.DestructibleBackground.clear(this.destructibleBackgroundSystem);
+    ARENA.WaterSurface.clear(this.waterSurfaceSystem);
     ARENA.BackgroundEffects.clear(this.backgroundEffectSystem);
     if (this.obstacleSystem) {
       ARENA.Obstacles.clear(this.obstacleSystem);
     }
+    if (this.townNavigationSystem) {
+      ARENA.TownNavigation.clear(this.townNavigationSystem);
+    }
     this.destructibleBackgroundSystem = ARENA.DestructibleBackground.create(this);
+    this.waterSurfaceSystem = ARENA.WaterSurface.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.obstacleSystem = ARENA.Obstacles.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
+    this.townNavigationSystem = ARENA.TownNavigation.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
     this.hud.log("PROTOTYPE SAVE RESET");
@@ -313,14 +328,19 @@
       },
       getSnapshot: function () {
         var destructibleSnapshot = ARENA.DestructibleBackground.getSnapshot(scene.destructibleBackgroundSystem);
+        var waterSurfaceSnapshot = ARENA.WaterSurface.getSnapshot(scene.waterSurfaceSystem);
         var obstacleSnapshot = ARENA.Obstacles.getSnapshot(scene.obstacleSystem, scene.enemies);
+        var townNavigationSnapshot = ARENA.TownNavigation.getSnapshot(scene.townNavigationSystem, scene.enemies);
         window.__arenaDebug = {
           activeBackgroundSkin: scene.state.activeBackgroundSkin,
           backgroundMaterial: destructibleSnapshot.backgroundMaterial,
           waterAnimation: destructibleSnapshot.waterAnimation,
+          waterSurface: waterSurfaceSnapshot,
           obstacles: obstacleSnapshot.obstacles,
           enemiesInsideObstacles: obstacleSnapshot.enemiesInsideObstacles,
           townMap: obstacleSnapshot.townMap,
+          townNavigation: townNavigationSnapshot,
+          lastTownSurfaceHit: scene.lastTownSurfaceHit || null,
           lastBackgroundResponse: destructibleSnapshot.lastBackgroundResponse,
           lastGroundBreakBrush: destructibleSnapshot.lastGroundBreakBrush,
           lastPixelShatterBrush: destructibleSnapshot.lastPixelShatterBrush,
@@ -358,6 +378,8 @@
               lastMoveAngle: enemy.lastMoveAngle,
               movingAmount: enemy.movingAmount,
               obstacleStuck: Boolean(enemy.obstacleStuck),
+              townStuck: Boolean(enemy.townStuck),
+              townPathLength: enemy.townPath ? enemy.townPath.length : 0,
               skin: enemy.enemySkin.id,
               forwardAngleOffset: enemy.enemySkin.animation.forwardAngleOffset,
               segmentCount: enemy.enemySkin.ant ? enemy.enemySkin.ant.segmentCount : null
@@ -368,9 +390,12 @@
           lastGroundBreakEffect: scene.lastGroundBreakEffect || null,
           lastPixelShatterEffect: scene.lastPixelShatterEffect || null,
           destructibleBackground: destructibleSnapshot,
+          waterSurface: waterSurfaceSnapshot,
           obstacles: obstacleSnapshot,
           enemiesInsideObstacles: obstacleSnapshot.enemiesInsideObstacles,
           townMap: obstacleSnapshot.townMap,
+          townNavigation: townNavigationSnapshot,
+          lastTownSurfaceHit: scene.lastTownSurfaceHit || null,
           backgroundDecalCount: scene.backgroundEffectSystem.decals.length,
           activeClickSkin: scene.state.activeClickSkin,
           unlockedClickSkins: Object.assign({}, scene.state.unlockedClickSkins),

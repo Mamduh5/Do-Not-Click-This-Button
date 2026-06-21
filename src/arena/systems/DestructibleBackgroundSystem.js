@@ -53,6 +53,18 @@
     if (!damage || damage.enabled === false || damage.type === "none") {
       return null;
     }
+    if (system.material && system.material.id === "water" && system.scene.waterSurfaceSystem && ARENA.WaterSurface) {
+      ARENA.WaterSurface.addImpulse(system.scene.waterSurfaceSystem, request.response || damage.type, x, y, scale, {
+        radius: system.material.waterSurface ? system.material.waterSurface.impulseRadius : undefined
+      });
+    }
+    if (system.material && system.material.id === "town") {
+      var townHit = determineTownSurfaceHit(system.material, x, y);
+      system.scene.lastTownSurfaceHit = townHit;
+      if (townHit.obstacleHit) {
+        damage = createTownBuildingHitDamage(damage);
+      }
+    }
 
     var brushScale = scale * CONFIG.destructibleBackground.brushScale * (request.intensity || 1);
     var geometry = createGeometry(damage, x, y, brushScale);
@@ -95,6 +107,46 @@
       }
     });
     return merged;
+  }
+
+  function determineTownSurfaceHit(material, x, y) {
+    var surface = material.surface || {};
+    var obstacle = findRect(surface.buildingRects || [], x, y);
+    if (obstacle) {
+      return { surfaceType: "building", obstacleHit: true };
+    }
+    if (findRect(surface.plazas || [], x, y)) {
+      return { surfaceType: "plaza", obstacleHit: false };
+    }
+    if (findRect(surface.roads || [], x, y)) {
+      return { surfaceType: "road", obstacleHit: false };
+    }
+    return { surfaceType: "open", obstacleHit: false };
+  }
+
+  function findRect(rects, x, y) {
+    for (var index = 0; index < rects.length; index += 1) {
+      var rect = rects[index];
+      if (x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height) {
+        return rect;
+      }
+    }
+    return null;
+  }
+
+  function createTownBuildingHitDamage(source) {
+    var damage = {};
+    Object.keys(source).forEach(function (key) {
+      damage[key] = source[key];
+    });
+    damage.type = "scorch";
+    damage.radius = Math.min(16, source.radius || source.collapseRadius || 16);
+    damage.affectsSurface = false;
+    damage.underlayerColor = 0x4b3b34;
+    damage.detailColor = 0xd8c7a5;
+    damage.repairDelayMs = source.repairDelayMs || 620;
+    damage.repairDurationMs = source.repairDurationMs || 900;
+    return damage;
   }
 
   function createUnderlayer(scene, material) {

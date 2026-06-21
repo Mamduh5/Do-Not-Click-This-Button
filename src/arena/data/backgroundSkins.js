@@ -305,6 +305,32 @@
         maxRipples: 34,
         updateIntervalMs: 80
       },
+      waterSurface: {
+        enabled: true,
+        gridCols: 48,
+        gridRows: 31,
+        updateIntervalMs: 70,
+        propagation: 0.22,
+        damping: 0.88,
+        impulseRadius: 2,
+        maxRippleObjects: 42,
+        ringAlpha: 0.38,
+        highlightColor: 0xe9ffff,
+        shadowColor: 0x0b5d70,
+        foamColor: 0xe9ffff,
+        foamDurationMs: 760,
+        splashParticleCount: 18,
+        renderThreshold: 0.08,
+        maxRenderedCells: 72,
+        effectImpulseScale: {
+          groundBreak: 1.25,
+          meteor: 1.9,
+          pixelShatter: 0.72,
+          sciFiLaser: 0.52,
+          arrowRain: 0.34,
+          paper: 0.22
+        }
+      },
       repair: {
         mode: "settle",
         delayMs: 460,
@@ -490,6 +516,41 @@
           { type: "rect", x: 598, y: 348, width: 152, height: 108 },
           { type: "rect", x: 458, y: 428, width: 88, height: 74 },
           { type: "rect", x: 780, y: 424, width: 98, height: 84 }
+        ]
+      },
+      navigation: {
+        enabled: true,
+        cellSize: 32,
+        obstaclePadding: 12,
+        pathRecalcMs: 900,
+        targetRerollMs: 2400,
+        stuckRepathMs: 700,
+        waypointReachDistance: 18,
+        maxPathLength: 80,
+        maxSearchIterations: 900,
+        maxPathRequestsPerTick: 6,
+        debugOverlay: false,
+        roads: [
+          { x: 0, y: 276, width: 960, height: 68 },
+          { x: 342, y: 0, width: 66, height: 620 }
+        ],
+        plazas: [
+          { x: 446, y: 230, width: 104, height: 124 }
+        ],
+        buildings: [
+          { x: 102, y: 96, width: 122, height: 76 },
+          { x: 118, y: 190, width: 96, height: 48 },
+          { x: 392, y: 86, width: 138, height: 88 },
+          { x: 706, y: 112, width: 128, height: 82 },
+          { x: 154, y: 360, width: 132, height: 104 },
+          { x: 598, y: 348, width: 152, height: 108 },
+          { x: 458, y: 428, width: 88, height: 74 },
+          { x: 780, y: 424, width: 98, height: 84 }
+        ],
+        spawnZones: [
+          { x: 0, y: 276, width: 960, height: 68 },
+          { x: 342, y: 0, width: 66, height: 620 },
+          { x: 446, y: 230, width: 104, height: 124 }
         ]
       },
       repair: {
