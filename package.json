@@ -7,13 +7,18 @@
     "start": "vite --host 127.0.0.1",
     "check": "node scripts/check.js && node scripts/gameplay-check.js && node scripts/arena-check.js",
     "smoke:browser": "node scripts/browser-smoke.js",
-    "smoke:arena": "node scripts/arena-smoke.js"
+    "smoke:arena": "node scripts/arena-smoke.js",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "deploy:cloudflare": "npm run build && wrangler deploy",
+    "preview:cloudflare": "npm run build && wrangler dev"
   },
   "dependencies": {
     "phaser": "3.90.0",
     "vite": "latest"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.0"
+    "@playwright/test": "^1.61.0",
+    "wrangler": "^4.129.0"
   }
 }

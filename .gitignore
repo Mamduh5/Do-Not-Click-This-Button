@@ -2,3 +2,6 @@ node_modules/
 .vite/
 dist/
 test-results/
+.wrangler/
+.dev.vars*
+!.dev.vars.example
