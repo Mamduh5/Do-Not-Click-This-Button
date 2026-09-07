@@ -10,6 +10,11 @@
       version: CONFIG.saveVersion,
       energy: CONFIG.initialState.energy,
       wave: CONFIG.initialState.wave,
+      waveKills: 0,
+      wavePhase: "active",
+      highestWaveCleared: 0,
+      bestCombo: 0,
+      pulseCharge: 0,
       elapsedSeconds: CONFIG.initialState.elapsedSeconds,
       totalDefeated: CONFIG.initialState.totalDefeated,
       muted: CONFIG.initialState.muted,
@@ -38,7 +43,19 @@
     var upgrades = source.upgrades && typeof source.upgrades === "object" ? source.upgrades : {};
 
     state.energy = Math.max(0, safeNumber(source.energy, state.energy));
-    state.wave = Math.max(1, safeInteger(source.wave, state.wave));
+    // Legacy waves measured time, not clears. Keep purchases/currency and start earned operations at wave 1.
+    if (safeInteger(source.version, 0) >= 2) {
+      state.wave = Math.max(1, Math.min(Number.MAX_SAFE_INTEGER, safeInteger(source.wave, state.wave)));
+      var target = ARENA.Waves.getDefinition(state.wave).target;
+      state.waveKills = Math.min(target, safeInteger(source.waveKills, 0));
+      state.wavePhase = state.waveKills >= target ? "cleared" : "active";
+      state.highestWaveCleared = Math.min(state.wave, safeInteger(source.highestWaveCleared, 0));
+      if (state.wavePhase === "cleared") {
+        state.highestWaveCleared = Math.max(state.highestWaveCleared, state.wave);
+      }
+      state.bestCombo = safeInteger(source.bestCombo, 0);
+      state.pulseCharge = Math.max(0, Math.min(CONFIG.operations.pulseMaxCharge, safeNumber(source.pulseCharge, 0)));
+    }
     state.elapsedSeconds = Math.max(0, safeNumber(source.elapsedSeconds, state.elapsedSeconds));
     state.totalDefeated = safeInteger(source.totalDefeated, state.totalDefeated);
     state.muted = Boolean(source.muted);

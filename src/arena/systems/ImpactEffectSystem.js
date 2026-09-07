@@ -76,8 +76,8 @@
         y: y + Math.sin(angle) * distance,
         alpha: 0,
         duration: CONFIG.feedback.impactMs,
-        onComplete: function () {
-          particle.destroy();
+        onComplete: function (tween, targets) {
+          targets.forEach(function (target) { target.destroy(); });
         }
       });
     }
@@ -98,8 +98,8 @@
         alpha: 0,
         scale: 0.35,
         duration: CONFIG.feedback.splatterMs,
-        onComplete: function () {
-          particle.destroy();
+        onComplete: function (tween, targets) {
+          targets.forEach(function (target) { target.destroy(); });
         }
       });
     }

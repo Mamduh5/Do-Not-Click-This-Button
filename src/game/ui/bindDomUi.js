@@ -44,7 +44,9 @@
   function bindDomUi() {
     var root = getElement("gameRoot");
     var state = DNC.Save.load();
-    var clickCountThisRun = 0;
+    var lastForecastShards = DNC.Instability.getShardReward(state);
+    var forecastFeedbackTimeoutId = null;
+    var currentGuide = CONFIG.operatorGuide.firstContact;
     var awaitingBreach = false;
     var lastBand = "";
     var lastConsoleAt = 0;
@@ -56,6 +58,17 @@
 
     var elements = {
       root: root,
+      guideTitle: getElement("guideTitle"),
+      guideText: getElement("guideText"),
+      guideAction: getElement("guideAction"),
+      breachForecast: getElement("breachForecast"),
+      forecastShards: getElement("forecastShards"),
+      forecastNext: getElement("forecastNext"),
+      forecastRemaining: getElement("forecastRemaining"),
+      forecastFill: getElement("forecastFill"),
+      forecastMeter: getElement("forecastMeter"),
+      heatClicks: getElement("heatClicks"),
+      heatRate: getElement("heatRate"),
       headlineText: getElement("headlineText"),
       warnHeadline: getElement("warnHeadline"),
       powerDisplay: getElement("powerDisplay"),
@@ -98,6 +111,7 @@
       totalShardLine: getElement("totalShardLine"),
       breachCountLine: getElement("breachCountLine"),
       breachClicks: getElement("breachClicks"),
+      breachPower: getElement("breachPower"),
       continueButton: getElement("breachContinueBtn")
     }, closeBreach);
 
@@ -110,6 +124,13 @@
 
     function bindEvents() {
       elements.mainBtn.addEventListener("click", handleClick);
+      elements.guideAction.addEventListener("click", function () {
+        tabs.activate(currentGuide.tab);
+        var tabButton = root.querySelector('[data-tab="' + currentGuide.tab + '"]');
+        tabButton.focus({ preventScroll: true });
+        tabButton.scrollIntoView({ block: "nearest", behavior: "auto" });
+      });
+      window.addEventListener("pagehide", save);
       elements.menuBtn.addEventListener("click", function (event) {
         event.stopPropagation();
         toggleMenu();
@@ -217,8 +238,9 @@
       sound.unlock();
       state.power += state.powerPerClick;
       state.totalPowerEarned += state.powerPerClick;
+      state.runPowerEarned += state.powerPerClick;
       state.totalClicks += 1;
-      clickCountThisRun += 1;
+      state.runClicks += 1;
       state.instability = DNC.clamp(state.instability + state.instabilityPerClick, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability);
 
       if (!firstClickLogged) {
@@ -285,6 +307,7 @@
       if (powerGain > 0) {
         state.power += powerGain;
         state.totalPowerEarned += powerGain;
+        state.runPowerEarned += powerGain;
         updateAutoCursor(deltaSeconds);
       }
 
@@ -309,11 +332,12 @@
       }
 
       var shardsEarned = DNC.Instability.getShardReward(state);
+      var completedRun = { clicks: state.runClicks, power: state.runPowerEarned };
       awaitingBreach = true;
       closeMenu();
       DNC.resetRunAfterBreach(state, shardsEarned);
       consoleLog.add("REALITY BREACH DETECTED. Containment failed.", "critical");
-      breachModal.show(shardsEarned, state.anomalyShards, clickCountThisRun || state.totalClicks, state.breachCount);
+      breachModal.show(shardsEarned, state.anomalyShards, completedRun.clicks, state.breachCount, completedRun.power);
       sound.play("breach");
 
       if (!state.reducedMotion) {
@@ -329,16 +353,16 @@
 
     function closeBreach() {
       awaitingBreach = false;
-      clickCountThisRun = 0;
       breachModal.hide();
       consoleLog.add("System reinitialized. Shards retained.", "normal");
       addPermanentEffectConsole();
+      tabs.activate("shard");
+      elements.mainBtn.focus({ preventScroll: true });
       refresh();
     }
 
     function resetCurrentRun() {
       DNC.resetCurrentRun(state);
-      clickCountThisRun = 0;
       awaitingBreach = false;
       firstClickLogged = state.totalClicks > 0;
       breachModal.hide();
@@ -352,7 +376,6 @@
     function deleteSaveData() {
       state = DNC.Save.reset();
       sound = DNC.createSoundSystem(state);
-      clickCountThisRun = 0;
       awaitingBreach = false;
       firstClickLogged = false;
       breachModal.hide();
@@ -422,6 +445,12 @@
     }
 
     function applyMenuLabels() {
+      getElement("forecastLabel").textContent = CONFIG.operatorGuide.forecastLabel;
+      getElement("forecastBasis").textContent = CONFIG.operatorGuide.forecastBasis;
+      getElement("breachContinueBtn").textContent = CONFIG.operatorGuide.breachContinueLabel;
+      root.style.setProperty("--reward-feedback-ms", CONFIG.timing.rewardFeedbackMs + "ms");
+      root.style.setProperty("--meter-transition-ms", CONFIG.timing.meterTransitionMs + "ms");
+      root.style.setProperty("--floating-text-ms", CONFIG.timing.floatingTextMs + "ms");
       elements.menuBtn.textContent = CONFIG.menu.buttonLabel;
       elements.menuTitle.textContent = CONFIG.menu.title;
       elements.resetRunBtn.textContent = CONFIG.menu.resetRunLabel;
@@ -500,9 +529,54 @@
         }
       }
 
+      refreshRunProgress(band);
       refreshCards();
       refreshShardCards();
       autoCursor.setActive(state.powerPerSecond > 0);
+    }
+
+    function refreshRunProgress(band) {
+      var guide = CONFIG.operatorGuide;
+      var forecast = DNC.Instability.getForecast(state);
+      var hasAffordableShard = DNC.SHARD_UPGRADE_DEFS.some(function (upgrade) { return DNC.ShardUpgrades.canBuy(state, upgrade.id); });
+      if (hasAffordableShard && state.breachCount > 0 && Object.keys(state.upgrades).length === 0) {
+        currentGuide = guide.permanent;
+      } else if (state.totalClicks === 0) {
+        currentGuide = guide.firstContact;
+      } else if (band === "critical") {
+        currentGuide = guide.critical;
+      } else if (band === "unstable" || band === "disturbed") {
+        currentGuide = guide.unstable;
+      } else if (!state.upgrades.powerTap) {
+        currentGuide = guide.firstUpgrade;
+      } else if (state.powerPerSecond === 0) {
+        currentGuide = guide.automation;
+      } else {
+        currentGuide = guide.growing;
+      }
+      elements.guideTitle.textContent = currentGuide.title;
+      elements.guideText.textContent = currentGuide.text;
+      elements.guideAction.textContent = currentGuide.action;
+      elements.forecastShards.textContent = "+" + DNC.formatNumber(forecast.shards) + (forecast.shards === 1 ? " SHARD" : " SHARDS");
+      elements.forecastNext.textContent = guide.nextShardLabel + ": +" + DNC.formatNumber(forecast.nextShards);
+      elements.forecastRemaining.textContent = DNC.formatNumber(Math.ceil(forecast.remainingPower)) + " Power away";
+      elements.forecastFill.style.width = (forecast.progress * 100) + "%";
+      elements.forecastMeter.setAttribute("aria-valuenow", Math.round(forecast.progress * 100));
+      elements.heatClicks.textContent = forecast.clicksToBreach + " " + guide.clicksLabel;
+      if (forecast.netInstability === 0) {
+        elements.heatRate.textContent = guide.balancedLabel;
+      } else {
+        elements.heatRate.textContent = Math.abs(forecast.netInstability).toFixed(2) + "% " + (forecast.netInstability < 0 ? guide.coolingLabel : guide.heatingLabel);
+      }
+      elements.heatRate.classList.toggle("heating", forecast.netInstability > 0);
+      if (forecast.shards > lastForecastShards && !awaitingBreach) {
+        elements.breachForecast.classList.add("reward-increased");
+        window.clearTimeout(forecastFeedbackTimeoutId);
+        forecastFeedbackTimeoutId = window.setTimeout(function () { elements.breachForecast.classList.remove("reward-increased"); }, CONFIG.timing.rewardFeedbackMs);
+        consoleLog.add(guide.rewardIncreaseLog.replace("{shards}", forecast.shards), "normal");
+        sound.play("shardUpgrade");
+      }
+      lastForecastShards = forecast.shards;
     }
 
     function formatRate(value) {

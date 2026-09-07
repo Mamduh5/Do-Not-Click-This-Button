@@ -36,7 +36,9 @@
     this.enemies = [];
     this.spawnAccumulatorMs = 0;
     this.autosaveAccumulatorMs = 0;
-    this.lastWave = this.state.wave;
+    this.waveSystem = ARENA.Waves.create(this.state);
+    this.paused = false;
+    this.uiAccumulatorMs = 0;
     this.combo = 0;
     this.comboExpiresAt = 0;
     this.effectCounts = {};
@@ -52,9 +54,16 @@
     this.townNavigationSystem = ARENA.TownNavigation.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
+    this.pulsePreview = this.add.circle(this.core.x, this.core.y, this.stats.pulseRadius);
+    this.pulsePreview.setStrokeStyle(CONFIG.operations.pulsePreviewLineWidth, CONFIG.operations.pulseColor, CONFIG.operations.pulsePreviewAlpha);
+    this.pulsePreview.setDepth(CONFIG.operations.pulsePreviewDepth);
+    this.pulsePreview.setVisible(false);
     this.input.on("pointerdown", this.handlePointerDown, this);
 
     this.hud = ARENA.createArenaHud({
+      onNextWave: this.nextWave.bind(this),
+      onPause: this.togglePause.bind(this),
+      onPulse: this.dischargePulse.bind(this),
       onToggleMute: this.toggleMute.bind(this),
       onReset: this.resetPrototype.bind(this),
       onSetClickSkin: this.setClickSkin.bind(this),
@@ -65,21 +74,33 @@
       onBuy: this.buyUpgrade.bind(this)
     });
 
+    this.handleKey = function (event) {
+      if (event.repeat || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName)) { return; }
+      if (event.code === "Space" && event.target.tagName !== "BUTTON") { event.preventDefault(); this.dischargePulse(); }
+      if (event.code === "KeyP") { event.preventDefault(); this.togglePause(); }
+    }.bind(this);
+    this.handlePageHide = function () { ARENA.Save.save(this.state); }.bind(this);
+    this.handleVisibility = function () {
+      if (document.hidden && !this.paused && this.state.wavePhase === "active") { this.togglePause(); }
+    }.bind(this);
+    window.addEventListener("keydown", this.handleKey);
+    window.addEventListener("pagehide", this.handlePageHide);
+    document.addEventListener("visibilitychange", this.handleVisibility);
+    this.events.once("shutdown", function () {
+      window.removeEventListener("keydown", this.handleKey);
+      window.removeEventListener("pagehide", this.handlePageHide);
+      document.removeEventListener("visibilitychange", this.handleVisibility);
+    }, this);
     this.refreshUi();
     exposeDebugApi(this);
   };
 
   ArenaScene.prototype.update = function (time, deltaMs) {
+    if (this.paused) { return; }
+    deltaMs = Math.min(deltaMs, CONFIG.operations.maxFrameDeltaMs);
     this.state.elapsedSeconds += deltaMs / 1000;
-    this.state.wave = 1 + Math.floor(this.state.elapsedSeconds / CONFIG.enemy.waveEverySeconds);
     this.spawnAccumulatorMs += deltaMs;
     this.autosaveAccumulatorMs += deltaMs;
-
-    if (this.state.wave !== this.lastWave) {
-      this.lastWave = this.state.wave;
-      this.soundSystem.play("wave");
-      this.hud.log("MORE ANOMALIES ENTERED THE ROOM");
-    }
 
     if (this.combo > 0 && this.time.now > this.comboExpiresAt) {
       this.combo = 0;
@@ -92,55 +113,128 @@
     this.enemies = this.enemies.filter(function (enemy) {
       return enemy.active;
     });
-    ARENA.HelperCursors.update(this.helperCursorSystem, this.stats, deltaMs);
+    if (this.state.wavePhase === "active") {
+      ARENA.HelperCursors.update(this.helperCursorSystem, this.stats, deltaMs);
+    }
 
     if (this.autosaveAccumulatorMs >= CONFIG.autosaveMs) {
       this.autosaveAccumulatorMs = 0;
       ARENA.Save.save(this.state);
     }
 
-    this.refreshUi();
+    this.uiAccumulatorMs += deltaMs;
+    if (this.uiAccumulatorMs >= CONFIG.operations.uiRefreshMs) {
+      this.uiAccumulatorMs = 0;
+      this.refreshUi();
+    }
   };
 
   ArenaScene.prototype.spawnEnemies = function () {
-    if (!this.spawningEnabled) {
-      return;
-    }
-
-    if (this.enemies.length >= CONFIG.enemy.maxEnemies) {
-      return;
-    }
-
-    var spawnInterval = Math.max(
-      CONFIG.enemy.minimumSpawnIntervalMs,
-      CONFIG.enemy.spawnIntervalMs * Math.pow(0.94, this.state.wave - 1)
-    );
-
-    while (this.spawnAccumulatorMs >= spawnInterval) {
-      this.spawnAccumulatorMs -= spawnInterval;
-      for (var index = 0; index < CONFIG.enemy.spawnBurst; index += 1) {
-        if (this.enemies.length < CONFIG.enemy.maxEnemies) {
-          this.enemies.push(ARENA.Enemies.spawn(this, this.state.wave));
-        }
-      }
-    }
+    var definition = ARENA.Waves.getDefinition(this.state.wave);
+    this.spawnAccumulatorMs = Math.min(this.spawnAccumulatorMs, definition.spawnIntervalMs);
+    if (!this.spawningEnabled || this.paused ||
+        !ARENA.Waves.canSpawn(this.waveSystem, this.state, this.enemies.filter(function (enemy) { return enemy.active; }).length) ||
+        this.spawnAccumulatorMs < definition.spawnIntervalMs) { return; }
+    this.spawnAccumulatorMs = 0;
+    var role = ARENA.Waves.nextRole(this.state, this.waveSystem.spawned);
+    var enemy = ARENA.Enemies.spawn(this, this.state.wave, role);
+    enemy.operationTarget = true;
+    enemy.operationWave = this.state.wave;
+    this.waveSystem.spawned += 1;
+    this.enemies.push(enemy);
+    if (role === "champion") { this.hud.log("CHAMPION RELEASED / BREAK ITS CONTAINMENT"); }
   };
 
   ArenaScene.prototype.handlePointerDown = function (pointer) {
+    if (this.paused || this.state.wavePhase !== "active") { return; }
     var point = pointer.positionToCamera(this.cameras.main);
     this.soundSystem.unlock();
     ARENA.CursorAttack.attack(this, point.x, point.y, this.stats);
     this.refreshUi();
   };
 
-  ArenaScene.prototype.registerKill = function (x, y) {
+  ArenaScene.prototype.registerKill = function (x, y, source) {
+    if (this.time.now > this.comboExpiresAt) { this.combo = 0; }
     this.combo += 1;
+    this.state.bestCombo = Math.max(this.state.bestCombo, this.combo);
+    if (source === "manual") {
+      this.state.pulseCharge = Math.min(CONFIG.operations.pulseMaxCharge, this.state.pulseCharge + CONFIG.operations.manualKillCharge);
+    }
     this.comboExpiresAt = this.time.now + CONFIG.cursor.comboWindowMs;
 
     if (this.combo > 1) {
       ARENA.ImpactEffects.showComboPopup(this, this.combo, x || CONFIG.canvas.width / 2, y || 98);
       this.soundSystem.play("comboTick");
     }
+  };
+
+  ArenaScene.prototype.registerOperationKill = function (enemy) {
+    var result = ARENA.Waves.registerKill(this.waveSystem, this.state, enemy);
+    if (result.cleared) {
+      this.soundSystem.play("waveClear");
+      this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY / INSTALL UPGRADES");
+      this.refreshUi();
+    }
+    ARENA.Save.save(this.state);
+  };
+
+  ArenaScene.prototype.nextWave = function () {
+    if (this.paused || !ARENA.Waves.next(this.waveSystem, this.state)) { return; }
+    this.combo = 0;
+    this.comboExpiresAt = 0;
+    this.spawnAccumulatorMs = ARENA.Waves.getDefinition(this.state.wave).spawnIntervalMs;
+    this.soundSystem.unlock();
+    this.soundSystem.play("wave");
+    this.hud.log("WAVE " + this.state.wave + " RELEASED");
+    ARENA.Save.save(this.state);
+    this.refreshUi();
+  };
+
+  ArenaScene.prototype.togglePause = function () {
+    if (this.state.wavePhase !== "active") { return; }
+    this.paused = !this.paused;
+    if (this.paused) {
+      this.pausedAt = this.time.now;
+      this.tweens.pauseAll();
+      this.time.paused = true;
+    } else {
+      // Phaser's clock now follows the game timestamp even while its timers are paused.
+      var shift = this.time.now - this.pausedAt;
+      this.comboExpiresAt += shift;
+      this.enemies.forEach(function (enemy) { enemy.nextTurnAt += shift; });
+      this.helperCursorSystem.cursors.forEach(function (cursor) {
+        cursor.cooldownUntil += shift;
+        cursor.stateStartedAt += shift;
+        cursor.nextActionAt += shift;
+        cursor.clickFlashUntil += shift;
+      });
+      this.time.paused = false;
+      this.tweens.resumeAll();
+    }
+    ARENA.Save.save(this.state);
+    this.refreshUi();
+  };
+
+  ArenaScene.prototype.dischargePulse = function () {
+    if (this.paused || this.state.wavePhase !== "active" ||
+        this.state.pulseCharge < CONFIG.operations.pulseMaxCharge) { return; }
+    this.state.pulseCharge = 0;
+    this.soundSystem.unlock();
+    var x = CONFIG.canvas.width / 2;
+    var y = CONFIG.canvas.height / 2;
+    ARENA.CursorAttack.attack(this, x, y, this.stats, {
+      source: "pulse", radius: this.stats.pulseRadius,
+      damage: this.stats.clickDamage * this.stats.pulseDamageMultiplier
+    });
+    var ring = this.add.circle(x, y, this.stats.pulseRadius, CONFIG.operations.pulseColor, CONFIG.operations.pulseAlpha);
+    ring.setStrokeStyle(CONFIG.operations.pulseLineWidth, CONFIG.operations.pulseColor);
+    ring.setDepth(CONFIG.operations.pulsePreviewDepth);
+    this.tweens.add({ targets: ring, alpha: 0, duration: CONFIG.operations.pulseDurationMs,
+      onComplete: function () { ring.destroy(); } });
+    this.soundSystem.play("pulse");
+    this.hud.log("PULSE DISCHARGED / CENTER FIELD");
+    ARENA.Save.save(this.state);
+    this.refreshUi();
   };
 
   ArenaScene.prototype.buyUpgrade = function (id) {
@@ -239,7 +333,11 @@
   };
 
   ArenaScene.prototype.resetPrototype = function () {
+    if (this.paused) { this.togglePause(); }
     this.state = ARENA.Save.reset();
+    this.waveSystem = ARENA.Waves.create(this.state);
+    this.spawnAccumulatorMs = 0;
+    this.autosaveAccumulatorMs = 0;
     this.stats = ARENA.Upgrades.computeStats(this.state);
     this.soundSystem = ARENA.createSoundSystem(this.state);
     this.combo = 0;
@@ -278,7 +376,8 @@
   };
 
   ArenaScene.prototype.refreshUi = function () {
-    this.hud.update(this.state, this.combo);
+    this.pulsePreview.setVisible(!this.paused && this.state.wavePhase === "active" && this.state.pulseCharge >= CONFIG.operations.pulseMaxCharge);
+    this.hud.update(this.state, this.combo, this);
     this.panel.update(this.state);
   };
 
@@ -405,6 +504,10 @@
         return {
           energy: scene.state.energy,
           wave: scene.state.wave,
+          wavePhase: scene.state.wavePhase,
+          waveKills: scene.state.waveKills,
+          pulseCharge: scene.state.pulseCharge,
+          paused: scene.paused,
           totalDefeated: scene.state.totalDefeated,
           enemyCount: scene.enemies.length,
           helperCursorCount: scene.helperCursorSystem.cursors.length,
@@ -432,6 +535,8 @@
               townStuck: Boolean(enemy.townStuck),
               townPathLength: enemy.townPath ? enemy.townPath.length : 0,
               skin: enemy.enemySkin.id,
+              role: enemy.roleId,
+              health: enemy.health,
               forwardAngleOffset: enemy.enemySkin.animation.forwardAngleOffset,
               segmentCount: enemy.enemySkin.ant ? enemy.enemySkin.ant.segmentCount : null
             };

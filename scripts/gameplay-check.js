@@ -165,3 +165,6 @@ assert(deletedSaveState.audioEnabled === true, "delete all reset should restore 
 assert(DNC.Save.load().anomalyShards === 0, "delete all reset should remove persisted save data");
 
 console.log("Gameplay checks passed.");
+
+const spentStartingPower = DNC.validateState({ power: 0, shardUpgrades: { residualCharge: 1 } });
+assert(spentStartingPower.power === 0, "loading spent starting Power must not refund the run-start grant");

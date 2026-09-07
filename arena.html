@@ -3,36 +3,70 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Containment Swarm</title>
+    <title>Containment Swarm · Do Not Click This Button</title>
     <link rel="stylesheet" href="src/styles/arena.css">
   </head>
   <body>
     <div class="arena-shell">
       <header class="arena-header">
         <div>
-          <div class="arena-kicker">UNIT-12 FIELD TEST</div>
+          <a class="mode-link" href="index.html">&#8592; THE FORBIDDEN BUTTON</a>
+          <div class="arena-kicker">UNIT-12 / CONTAINMENT OPERATIONS</div>
           <h1>Containment Swarm</h1>
         </div>
         <div class="arena-status">
           <div><span>Energy</span><strong id="arenaEnergy">0</strong></div>
           <div><span>Wave</span><strong id="arenaWave">1</strong></div>
           <div><span>Defeated</span><strong id="arenaDefeated">0</strong></div>
-          <div><span>Combo</span><strong id="arenaCombo">0x</strong></div>
+          <div><span>Kill chain</span><strong id="arenaCombo">0</strong></div>
         </div>
       </header>
 
       <main class="arena-layout">
         <section class="arena-stage">
+          <div class="operation-bar">
+            <div class="operation-heading"><span class="operation-dot"></span><span id="arenaPhase">CONTAINMENT IN PROGRESS</span><span id="arenaWaveProgress">0 / 8</span></div>
+            <div class="operation-title"><h2 id="arenaWaveTitle">First Contact</h2><span id="arenaRewardPreview"></span></div>
+            <p id="arenaWaveHint">Click anomalies to collect Energy. Clear the room to earn a bonus.</p>
+            <div class="operation-progress"><div id="arenaWaveFill"></div></div>
+          </div>
+          <div class="arena-field">
           <div id="arenaMount" class="arena-mount"></div>
-          <div class="arena-log" id="arenaLog">AUTO-PULSE ONLINE</div>
+          <div class="arena-log" id="arenaLog" role="status">CLICK ANOMALIES. MAKE EVERY CHAIN COUNT.</div>
+          <div class="operation-overlay" id="arenaOperationOverlay" hidden>
+            <div class="operation-result">
+              <div class="result-icon" aria-hidden="true">&#9671;</div>
+              <div class="arena-kicker" id="arenaResultKicker">CONTAINMENT COMPLETE</div>
+              <h2 id="arenaResultTitle">Room secured.</h2>
+              <p id="arenaResultHint"></p>
+              <div class="result-reward" id="arenaResultReward"></div>
+              <button class="primary-action" id="arenaNextWaveBtn" type="button">RELEASE NEXT WAVE</button>
+              <button class="primary-action" id="arenaResumeBtn" type="button" hidden>RESUME OPERATION</button>
+            </div>
+          </div>
+          </div>
+          <div class="combat-bar">
+            <div class="pulse-control">
+              <button type="button" id="arenaPulseBtn" disabled><span class="pulse-icon" aria-hidden="true">&#9889;</span><span id="arenaPulseLabel">CHARGING PULSE</span><kbd>SPACE</kbd></button>
+              <div class="pulse-meter"><div id="arenaPulseFill"></div></div>
+              <span class="control-hint" id="arenaPulseHint">Manual kills charge a room-wide burst.</span>
+            </div>
+            <div class="chain-control"><span id="arenaChainBonus">CHAIN BONUS x1.00</span><div class="chain-meter"><div id="arenaChainFill"></div></div><span class="control-hint" id="arenaBestCombo">BEST CHAIN 0</span></div>
+            <button class="secondary-action" type="button" id="arenaPauseBtn" aria-pressed="false">PAUSE <kbd>P</kbd></button>
+          </div>
         </section>
 
         <aside class="arena-shop">
           <div class="shop-head">
             <div>
-              <div class="arena-kicker">VISIBLE UPGRADES</div>
-              <h2>Systems</h2>
+              <div class="arena-kicker">SPEND ENERGY / GROW STRONGER</div>
+              <h2>Field upgrades</h2>
             </div>
+          </div>
+          <div class="loadout-summary" id="arenaLoadout">DMG 2 / REACH 24 / HELPERS 0</div>
+          <div id="arenaUpgradeList" class="arena-upgrade-list"></div>
+          <div class="field-guide"><div class="arena-kicker">KNOW YOUR TARGETS</div><p><span class="role-mark runner"></span><strong>Runner</strong> Fast &amp; fragile</p><p><span class="role-mark brute"></span><strong>Brute</strong> Tough &amp; valuable</p><p><span class="role-mark champion"></span><strong>Champion</strong> Every fifth wave</p></div>
+          <details class="arena-settings" id="arenaSettings"><summary>Appearance &amp; sound</summary>
             <div class="shop-actions">
               <label class="skin-select-label" for="arenaSkinSelect">Click Skin</label>
               <select id="arenaSkinSelect" class="skin-select"></select>
@@ -41,16 +75,17 @@
               <label class="skin-select-label" for="arenaBackgroundSkinSelect">Background</label>
               <select id="arenaBackgroundSkinSelect" class="skin-select"></select>
               <button type="button" id="arenaMuteBtn">Sound: ON</button>
-              <button type="button" id="arenaResetBtn">Reset</button>
+              <button type="button" id="arenaResetBtn">Reset Arena progress</button>
             </div>
-          </div>
-          <div id="arenaUpgradeList" class="arena-upgrade-list"></div>
+          </details>
         </aside>
       </main>
     </div>
 
     <script src="node_modules/phaser/dist/phaser.min.js"></script>
     <script src="src/arena/data/arenaBalanceConfig.js"></script>
+    <script src="src/arena/data/arenaUiConfig.js"></script>
+    <script src="src/arena/data/enemyRoles.js"></script>
     <script src="src/arena/data/arenaUpgrades.js"></script>
     <script src="src/arena/data/clickEffectSkins.js"></script>
     <script src="src/arena/data/enemySkins.js"></script>
@@ -66,6 +101,7 @@
     <script src="src/arena/systems/TownNavigationSystem.js"></script>
     <script src="src/arena/systems/SaveSystem.js"></script>
     <script src="src/arena/systems/UpgradeSystem.js"></script>
+    <script src="src/arena/systems/WaveSystem.js"></script>
     <script src="src/arena/systems/EnemySystem.js"></script>
     <script src="src/arena/systems/ImpactEffectSystem.js"></script>
     <script src="src/arena/systems/CursorAttackSystem.js"></script>

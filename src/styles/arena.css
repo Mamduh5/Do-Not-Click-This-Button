@@ -242,3 +242,91 @@ button {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Operations console: dark controls frame the existing light, reactive arena. */
+:root { color-scheme: dark; --ink: #e5edf0; --muted: #99adb6; --line: #293944; --cyan: #77e1dc; --ui-transition: 160ms; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+button, select { font: inherit; }
+button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+.arena-shell { height: 100dvh; grid-template-rows: auto minmax(0, 1fr); max-width: 1920px; margin: auto; background: #0b1219; }
+.arena-header { padding: 18px 28px; gap: 24px; border-top: 3px solid #f86660; border-bottom: 1px solid var(--line); background: #0e171f; }
+.mode-link { display: inline-block; margin-bottom: 10px; color: #b5c3c9; font-size: 10px; letter-spacing: 1.4px; text-decoration: none; }
+.mode-link:hover { color: var(--cyan); }
+.arena-kicker { color: var(--muted); font-size: 10px; letter-spacing: 1.6px; line-height: 1.6; }
+.arena-header h1 { margin: 3px 0 0; color: var(--ink); font-size: clamp(20px, 2vw, 29px); letter-spacing: 1px; }
+.arena-status { gap: 0; min-width: 0; grid-template-columns: repeat(4, minmax(90px, 1fr)); }
+.arena-status > div { padding: 7px 22px; border: 0; border-left: 1px solid var(--line); background: none; }
+.arena-status span { color: var(--muted); font-size: 10px; letter-spacing: 1.4px; }
+.arena-status strong { margin-top: 7px; font-size: 25px; color: var(--ink); font-weight: normal; font-variant-numeric: tabular-nums; }
+.arena-status > div:first-child strong { color: var(--cyan); }
+.arena-status > div:last-child strong { color: #f6bc70; }
+.arena-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+.arena-stage { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; background: #0b1219; }
+.operation-bar { padding: 17px 24px 0; background: #111c25; }
+.operation-heading { display: flex; align-items: center; gap: 8px; font-size: 10px; letter-spacing: 1.3px; color: var(--cyan); }
+.operation-dot { width: 6px; height: 6px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 8px #77e1dc55; }
+#arenaWaveProgress { margin-left: auto; color: #dce8ec; font-variant-numeric: tabular-nums; }
+.operation-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.operation-title h2 { font-size: 20px; margin: 9px 0 4px; font-weight: normal; }
+#arenaRewardPreview { color: #f6bc70; font-size: 11px; white-space: nowrap; }
+.operation-bar p { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0 0 14px; }
+.operation-progress { height: 3px; margin: 0 -24px; background: #24333d; }
+.operation-progress > div { width: 0; height: 100%; background: var(--cyan); transition: width var(--ui-transition) ease-out; }
+.arena-field { position: relative; min-height: 0; min-width: 0; overflow: hidden; background: #dee7ea; }
+.arena-mount { touch-action: manipulation; }
+.arena-mount canvas { width: auto; height: auto; }
+.arena-log { bottom: 14px; left: 18px; max-width: calc(100% - 36px); padding: 7px 10px; border: 0; border-left: 2px solid var(--cyan); color: #c3e4e4; background: #0d1a24e8; font-size: 10px; line-height: 1.5; letter-spacing: .5px; pointer-events: none; }
+.combat-bar { display: flex; align-items: center; gap: 24px; padding: 16px 24px; background: #101a23; border-top: 1px solid var(--line); }
+.pulse-control { flex: 1; max-width: 380px; min-width: 0; }
+#arenaPulseBtn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 1px solid #415660; background: #1b2e37; color: var(--cyan); font-size: 11px; letter-spacing: .5px; cursor: pointer; }
+#arenaPulseBtn:disabled { color: #a7bbc4; cursor: default; background: #17232c; border-color: #31424c; }
+#arenaPulseBtn:not(:disabled):hover { background: #214941; border-color: var(--cyan); }
+#arenaPulseBtn kbd { margin-left: auto; }
+.pulse-icon { font-size: 19px; line-height: 1; color: #f6bc70; }
+kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding: 2px 4px; border-radius: 3px; }
+.pulse-meter, .chain-meter { height: 3px; background: #283943; }
+.pulse-meter > div, .chain-meter > div { height: 100%; width: 0; background: var(--cyan); }
+.control-hint { display: block; color: var(--muted); font-size: 10px; line-height: 1.5; margin-top: 6px; }
+.chain-control { flex: 1; max-width: 220px; color: #f6bc70; font-size: 11px; }
+.chain-meter { margin-top: 9px; }.chain-meter > div { background: #f6bc70; }
+.secondary-action { margin-left: auto; background: transparent; border: 1px solid #40515d; color: #c0cdd4; padding: 9px 12px; font-size: 11px; white-space: nowrap; cursor: pointer; }
+.secondary-action kbd { margin-left: 5px; }
+.operation-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 20px; background: #08121aca; backdrop-filter: blur(4px); }
+.operation-result { text-align: center; width: min(100%, 440px); background: #101f29; padding: 25px 30px; border: 1px solid #42636a; box-shadow: 0 24px 70px #0006; }
+.result-icon { color: var(--cyan); font-size: 40px; line-height: 1; margin-bottom: 12px; }
+.operation-result h2 { margin: 8px 0 12px; font-size: 29px; font-weight: normal; }
+.operation-result p { color: #afc1c9; font-size: 12px; line-height: 1.7; margin: 0; }
+.result-reward { color: #f6bc70; font-size: 18px; margin: 18px 0; }
+.primary-action { display: block; width: 100%; border: 1px solid #88ebe0; padding: 13px 12px; font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #071c22; background: #8adbd1; cursor: pointer; }
+.primary-action:hover { background: #b0f2e9; }
+.arena-shop { background: #0e171f; border-left: 1px solid var(--line); padding: 22px 18px; scrollbar-color: #41535e #0e171f; scrollbar-width: thin; }
+.shop-head { border: 0; padding: 0; }.shop-head h2 { margin: 4px 0 13px; color: var(--ink); font-size: 20px; font-weight: normal; letter-spacing: 0; text-transform: none; }
+.loadout-summary { padding: 10px 0 14px; border-bottom: 1px solid var(--line); color: var(--cyan); font-size: 10px; line-height: 1.6; }
+.arena-upgrade-list { gap: 9px; padding-top: 15px; }
+.arena-upgrade-card { position: relative; overflow: hidden; border: 1px solid #33434e; border-radius: 3px; background: #172631; color: var(--ink); padding: 12px 13px 14px; transition: background var(--ui-transition), border-color var(--ui-transition); }
+.arena-upgrade-card:hover:not(:disabled) { border-color: var(--cyan); background: #203841; }
+.arena-upgrade-card:disabled { cursor: default; background: #121d26; border-color: #26353f; opacity: 1; }
+.arena-upgrade-card.maxed { border-color: #487965; opacity: 1; }
+.upgrade-name { color: var(--ink); font-size: 12px; letter-spacing: .5px; text-transform: none; }
+.upgrade-meta { display: flex; justify-content: space-between; gap: 8px; color: var(--cyan); font-size: 11px; margin: 6px 0; }
+.arena-upgrade-card:disabled .upgrade-meta { color: #a1b7bf; }
+.upgrade-desc { color: #a1b2bc; font-size: 11px; line-height: 1.5; }
+.upgrade-preview { margin-top: 8px; color: #d2c5a6; font-size: 10px; line-height: 1.6; }
+.upgrade-afford { position: absolute; bottom: 0; left: 0; height: 2px; background: #46767a; width: 0; }
+.arena-upgrade-card:not(:disabled) .upgrade-afford { background: var(--cyan); }
+.field-guide { border-top: 1px solid var(--line); padding: 18px 0 9px; margin-top: 20px; }
+.field-guide p { display: flex; align-items: center; gap: 7px; color: #a6b8c2; font-size: 10px; margin: 10px 0; }
+.field-guide strong { font-weight: normal; color: var(--ink); min-width: 64px; }
+.role-mark { display: inline-block; width: 7px; height: 7px; border: 1px solid currentColor; transform: rotate(45deg); margin-right: 4px; }
+.role-mark.runner { color: #23cbd1; }.role-mark.brute { color: #e9a84c; }.role-mark.champion { color: #e85ab2; }
+.arena-settings { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 8px; }
+.arena-settings summary { font-size: 11px; color: #c1cfd6; cursor: pointer; padding: 5px 0; }
+.shop-actions { gap: 7px; margin-top: 14px; }
+.skin-select-label { color: var(--muted); font-size: 10px; margin-top: 6px; }
+.shop-actions button, .skin-select { background: #17232d; color: #cbd7de; border: 1px solid #3c505e; padding: 9px; font-size: 11px; min-width: 0; width: 100%; }
+#arenaResetBtn { color: #e9a4a0; margin-top: 7px; }
+@media (max-width: 1100px) { .arena-layout { grid-template-columns: minmax(0, 1fr) 280px; } .arena-header { padding: 14px 20px; gap: 14px; } .arena-status > div { padding: 7px 13px; } .combat-bar { gap: 14px; padding: 14px 18px; } .chain-control { max-width: 125px; } .secondary-action kbd { display: none; } }
+@media (max-width: 900px) { .arena-shell { height: auto; min-height: 100dvh; } .arena-header { flex-direction: row; flex-wrap: wrap; } .arena-status { width: 100%; margin-top: 6px; grid-template-columns: repeat(4, minmax(0, 1fr)); } .arena-status > div { padding-left: 12px; } .arena-layout { grid-template-columns: 1fr; } .arena-stage { height: auto; grid-template-rows: auto 460px auto; } .arena-shop { border-left: 0; border-top: 1px solid var(--line); padding: 24px; } .arena-upgrade-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .chain-control { max-width: 220px; } }
+@media (max-width: 560px) { .arena-header { padding: 13px 16px; } .arena-header h1 { font-size: 23px; } .arena-status strong { font-size: 22px; } .arena-status span { font-size: 9px; letter-spacing: .5px; } .operation-bar { padding: 15px 16px 0; } .operation-progress { margin: 0 -16px; } .operation-title h2 { font-size: 18px; } .operation-title { flex-wrap: wrap; gap: 0; } #arenaRewardPreview { margin-bottom: 7px; font-size: 10px; } .operation-bar p { font-size: 11px; } .arena-stage { grid-template-rows: auto 330px auto; } .combat-bar { flex-wrap: wrap; gap: 15px; padding: 14px 16px; } .pulse-control { flex: 1 1 100%; max-width: none; } .chain-control { max-width: none; } .arena-shop { padding: 22px 16px; } .arena-upgrade-list { grid-template-columns: 1fr; } .operation-result { padding: 18px 20px; } .operation-result h2 { font-size: 24px; } .result-icon { font-size: 28px; margin-bottom: 8px; } .result-reward { margin: 12px 0; } .arena-log { left: 10px; bottom: 10px; max-width: calc(100% - 20px); font-size: 9px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; } }

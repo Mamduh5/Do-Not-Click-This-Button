@@ -150,8 +150,8 @@
         angle: Phaser.Math.Between(-90, 90),
         scale: 0.45,
         duration: skin.durationMs,
-        onComplete: function () {
-          chunk.destroy();
+        onComplete: function (tween, targets) {
+          targets.forEach(function (target) { target.destroy(); });
         }
       });
     });
@@ -229,8 +229,8 @@
         alpha: 0,
         angle: chunk.angle + Phaser.Math.Between(-30, 30),
         duration: skin.durationMs * 0.78,
-        onComplete: function () {
-          chunk.destroy();
+        onComplete: function (tween, targets) {
+          targets.forEach(function (target) { target.destroy(); });
         }
       });
     }
@@ -362,8 +362,8 @@
         alpha: 0,
         scale: 0.2,
         duration: skin.durationMs,
-        onComplete: function () {
-          particle.destroy();
+        onComplete: function (tween, targets) {
+          targets.forEach(function (target) { target.destroy(); });
         }
       });
     }

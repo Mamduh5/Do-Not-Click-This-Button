@@ -115,7 +115,7 @@
     {
       id: "realityPatch",
       name: "Reality Patch",
-      description: "Reduce instability by 20%",
+      description: "Remove 20 instability points now",
       baseCost: 140,
       costMultiplier: 2,
       maxLevel: null,

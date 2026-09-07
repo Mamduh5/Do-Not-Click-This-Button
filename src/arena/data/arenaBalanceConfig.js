@@ -4,7 +4,7 @@
   window.ARENA = window.ARENA || {};
 
   ARENA.BALANCE_CONFIG = {
-    saveVersion: 1,
+    saveVersion: 2,
     saveKey: "containmentSwarmSave",
 
     initialState: {
@@ -48,6 +48,7 @@
       minimumSpawnIntervalMs: 280,
       spawnBurst: 1,
       spawnMargin: 34,
+      spawnInset: 42,
       maxEnemies: 70,
       contactDamage: 8,
       hitFlashMs: 90,
@@ -60,18 +61,63 @@
       spawnFadeMs: 180,
       spawnRingMs: 260,
       waveEverySeconds: 24,
-      waveHealthScale: 0.35,
+      waveHealthScale: 0.22,
       waveSpeedScale: 0.08,
       waveRewardScale: 0.15
     },
 
+    operations: {
+      baseQuota: 8,
+      quotaPerWave: 2,
+      maxQuota: 26,
+      baseConcurrent: 4,
+      concurrentEveryWaves: 2,
+      maxConcurrent: 12,
+      championEveryWaves: 5,
+      scalingWaveCap: 30,
+      spawnIntervalScale: 0.96,
+      clearRewardBase: 8,
+      clearRewardPerWave: 4,
+      championRewardMultiplier: 2,
+      roleSchedule: [
+        { role: "brute", fromWave: 3, everySpawns: 5 },
+        { role: "runner", fromWave: 2, everySpawns: 4 }
+      ],
+      titles: ["First contact", "Quick on the trigger", "Heavy resistance", "Chain reaction", "Containment breach"],
+      hints: [
+        "Clear every anomaly. Spend Energy between waves.",
+        "Cyan runners move quickly. Catch them with a wide impact.",
+        "Armored anomalies take more hits and pay more Energy.",
+        "Keep kills close together for bonus Energy. Shock Click chains through groups.",
+        "Clear the swarm, then face the champion. Save a pulse for the final encounter."
+      ],
+      uiRefreshMs: 100,
+      maxFrameDeltaMs: 100,
+      comboRewardPerKill: 0.05,
+      comboRewardMaxBonus: 0.5,
+      manualKillCharge: 12.5,
+      pulseMaxCharge: 100,
+      pulseDamageMultiplier: 3,
+      pulseRadius: 210,
+      pulseFeedbackScale: 1.25,
+      pulseColor: 0x16a6b9,
+      pulseAlpha: 0.12,
+      pulseLineWidth: 4,
+      pulseDurationMs: 520,
+      pulseStartScale: 0.12,
+      pulsePreviewAlpha: 0.24,
+      pulsePreviewLineWidth: 2,
+      pulsePreviewDepth: 22,
+      clearFeedbackColor: 0x167d60
+    },
     cursor: {
       clickDamage: 2,
+      splashDamageRatio: 0.65,
       clickRadius: 24,
       doubleTapChance: 0,
       shockRadius: 0,
       shockDamage: 1,
-      comboWindowMs: 1300,
+      comboWindowMs: 2100,
       helperCursors: 0,
       helperClickIntervalMs: 1450,
       helperClickDamage: 1,
@@ -169,6 +215,8 @@
       comboTickVolume: 0.1,
       coreDamageVolume: 0.26,
       waveVolume: 0.2,
+      pulseVolume: 0.24,
+      waveClearVolume: 0.22,
       sounds: {
         clickMiss: { frequency: 180, endFrequency: 120, durationSeconds: 0.04, type: "triangle" },
         hit: { frequency: 150, endFrequency: 70, durationSeconds: 0.055, type: "sawtooth" },
@@ -177,6 +225,8 @@
         helperClick: { frequency: 420, endFrequency: 260, durationSeconds: 0.045, type: "square" },
         comboTick: { frequency: 520, endFrequency: 720, durationSeconds: 0.045, type: "triangle" },
         coreDamage: { frequency: 120, endFrequency: 48, durationSeconds: 0.18, type: "sawtooth" },
+        pulse: { frequency: 180, endFrequency: 720, durationSeconds: 0.24, type: "triangle" },
+        waveClear: { frequency: 440, endFrequency: 880, durationSeconds: 0.22, type: "sine" },
         wave: { frequency: 280, endFrequency: 520, durationSeconds: 0.16, type: "square" }
       }
     }

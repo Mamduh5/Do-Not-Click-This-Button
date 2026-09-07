@@ -5,7 +5,7 @@ body {
   margin: 0;
   min-width: 100%;
   min-height: 100%;
-  background: #ffffff;
+  background: #0a0c0f;
 }
 
 body {
@@ -21,10 +21,10 @@ button {
   background: #0a0c0f;
   color: #c8d0d8;
   display: grid;
-  grid-template-rows: auto auto minmax(360px, 1fr) 120px;
+  grid-template-rows: auto auto minmax(560px, 1fr) 120px;
   font-family: "Share Tech Mono", monospace;
   height: 100vh;
-  min-height: 600px;
+  min-height: 780px;
   padding: 0;
   position: relative;
   overflow: hidden;
@@ -81,7 +81,7 @@ button {
   display: flex;
   gap: 10px;
   font-size: 10px;
-  color: #3a4a3a;
+  color: #738d80;
   letter-spacing: 1px;
   min-width: 0;
   overflow: hidden;
@@ -100,7 +100,7 @@ button {
 }
 
 .sys-flavor {
-  color: #3a4a3a;
+  color: #738d80;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -129,8 +129,8 @@ button {
 }
 
 .stat-label {
-  font-size: 9px;
-  color: #3a5040;
+  font-size: 11px;
+  color: #8fa69b;
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 2px;
@@ -174,7 +174,7 @@ button {
 
 .main-area {
   display: grid;
-  grid-template-columns: 1fr 200px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 0;
   min-height: 0;
   position: relative;
@@ -197,7 +197,7 @@ button {
   color: #e84040;
   letter-spacing: 4px;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   text-align: center;
   animation: pulse-text 2s ease-in-out infinite;
 }
@@ -312,7 +312,7 @@ button {
   font-weight: 700;
   color: #20d0e0;
   font-size: 16px;
-  animation: float-up 0.8s ease-out forwards;
+  animation: float-up var(--floating-text-ms) ease-out forwards;
   top: 44%;
   left: 50%;
   transform: translateX(-50%);
@@ -334,7 +334,7 @@ button {
   color: #ff6060;
   font-size: 21px;
   text-shadow: 0 0 12px #e84040b0;
-  animation-duration: 0.95s;
+  animation-duration: var(--floating-text-ms);
 }
 
 .click-feedback.auto {
@@ -356,7 +356,7 @@ button {
 
 .click-count {
   font-size: 10px;
-  color: #2a4030;
+  color: #819b90;
   margin-top: 12px;
   letter-spacing: 1px;
 }
@@ -398,7 +398,7 @@ button {
 
 .panel-label {
   font-size: 9px;
-  color: #2a4040;
+  color: #8baca7;
   letter-spacing: 2px;
   text-transform: uppercase;
   padding: 6px 4px 4px;
@@ -426,7 +426,7 @@ button {
 }
 
 .upgrade-card.unaffordable {
-  opacity: 0.4;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
@@ -451,21 +451,21 @@ button {
 }
 
 .upgrade-name {
-  font-size: 11px;
-  color: #c0d0b0;
+  font-size: 17px;
+  color: #dce8d2;
   margin-bottom: 2px;
   font-family: "Rajdhani", sans-serif;
   font-weight: 700;
 }
 
 .upgrade-cost {
-  font-size: 10px;
+  font-size: 12px;
   color: #20d0e0;
 }
 
 .upgrade-effect {
-  font-size: 9px;
-  color: #3a5040;
+  font-size: 11px;
+  color: #8fa69b;
   margin-top: 2px;
   line-height: 1.25;
 }
@@ -603,7 +603,7 @@ button {
 
 .console-label {
   font-size: 9px;
-  color: #2a4030;
+  color: #819b90;
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 6px;
@@ -615,7 +615,7 @@ button {
 }
 
 .console-line.normal {
-  color: #2a5040;
+  color: #829e91;
 }
 
 .console-line.warning {
@@ -730,14 +730,14 @@ button {
 
 .shard-label {
   font-size: 10px;
-  color: #2a5060;
+  color: #91b1bf;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
 
 .breach-modal p {
   font-size: 11px;
-  color: #3a5060;
+  color: #aac0cb;
   margin: 12px 0;
   line-height: 1.6;
 }
@@ -775,7 +775,7 @@ button {
 .settings-btn {
   background: none;
   border: 1px solid #1a2030;
-  color: #2a4040;
+  color: #8baca7;
   font-family: "Share Tech Mono", monospace;
   font-size: 9px;
   padding: 3px 8px;
@@ -986,7 +986,7 @@ button {
   background: none;
   border: 1px solid #1a2030;
   border-bottom: none;
-  color: #2a4040;
+  color: #8baca7;
   font-family: "Share Tech Mono", monospace;
   font-size: 9px;
   padding: 3px 8px;
@@ -1029,8 +1029,13 @@ button {
 
 @media (max-width: 760px) {
   .dnc-root {
-    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: auto auto auto 120px;
+    overflow: visible;
   }
+
+  body { overflow: auto; }
 
   .main-area {
     grid-template-columns: 1fr;
@@ -1039,13 +1044,14 @@ button {
   }
 
   .center-panel {
-    min-height: 330px;
+    min-height: 560px;
   }
 
   .side-panel {
     border-left: none;
     border-top: 1px solid #141c24;
-    max-height: 230px;
+    max-height: none;
+    overflow: visible;
   }
 
   .status-bar {
@@ -1078,4 +1084,75 @@ button {
     right: 10px;
     top: 58px;
   }
+}
+
+/* The operator console keeps the button central while making the next decision readable. */
+body { overflow: auto; }
+.dnc-root { min-height: max(780px, 100vh); height: auto; }
+.main-area { min-height: 560px; }
+.center-panel { gap: 0; padding: 24px 32px; background: radial-gradient(ellipse at center, #17202b80, transparent 70%); }
+.operator-guide { max-width: 500px; width: 100%; text-align: center; margin-bottom: 24px; }
+.guide-kicker { color: #829eac; font-size: 10px; letter-spacing: 3px; }
+.operator-guide h1 { font-family: "Rajdhani", sans-serif; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.1; color: #e5edf0; margin: 8px 0; }
+.operator-guide p { color: #9aadb9; font-size: 12px; line-height: 1.6; margin: 0 auto 10px; max-width: 460px; min-height: 38px; }
+.guide-action { background: none; border: none; padding: 7px 10px; color: #55d9e1; font-size: 10px; letter-spacing: 1px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+.mode-link { color: #bcadff; font-size: 10px; text-decoration: none; border: 1px solid #8c71ce55; padding: 7px 10px; border-radius: 3px; white-space: nowrap; }
+.mode-link:hover { border-color: #bcadff; color: #efeaff; }
+button:focus-visible, a:focus-visible { outline: 2px solid #73ecf1; outline-offset: 4px; }
+.breach-forecast { width: min(100%, 460px); box-sizing: border-box; border: 1px solid #7963a54d; border-radius: 8px; background: linear-gradient(120deg, #191829, #101720); padding: 15px 18px 0; margin-top: 20px; transition: border-color var(--reward-feedback-ms), box-shadow var(--reward-feedback-ms); }
+.forecast-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 10px; color: #b2a5cf; letter-spacing: 1px; }
+.forecast-topline strong { font-family: "Rajdhani", sans-serif; font-size: 25px; color: #d7c5ff; white-space: nowrap; }
+.forecast-next { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; margin-top: 12px; color: #abb7c4; }
+.forecast-meter { height: 4px; border-radius: 5px; background: #090d16; overflow: hidden; margin-top: 7px; }
+.forecast-meter > div { width: 0; height: 100%; background: linear-gradient(90deg, #8564ce, #c1a2ff); transition: width var(--meter-transition-ms) linear; }
+.forecast-basis { margin: 10px 0 12px; font-size: 10px; line-height: 1.5; color: #8494a5; }
+.heat-telemetry { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; border-top: 1px solid #8990a521; padding: 10px 0; color: #a7b8c6; font-size: 10px; line-height: 1.5; }
+.heat-telemetry .heating { color: #f3b977; }
+.reward-increased { border-color: #c6a4ff; box-shadow: 0 0 24px #996cee38; }
+.side-panel { padding: 14px; }
+.tab-row { gap: 4px; padding: 0; }
+.tab-btn { flex: 1; min-width: 0; font-size: 10px; padding: 10px 5px; }
+.panel-label { color: #8baca7; font-size: 11px; padding: 15px 0 8px; }
+.upgrade-card { padding: 13px 12px; margin-bottom: 9px; min-height: 90px; }
+.upgrade-name { padding-right: 30px; }
+.upgrade-effect { font-size: 11px; line-height: 1.55; margin-top: 6px; }
+.shard-empty, .shard-summary { font-size: 11px; padding: 10px; }
+.shard-card { padding-right: 12px; }
+.stat-label { font-size: 10px; }
+.stat-value { font-size: 25px; line-height: 1.2; }
+.stat-block { padding: 3px; }
+.instability-bar { height: 5px; }
+.breach-overlay { position: fixed; padding: 24px; box-sizing: border-box; overflow-y: auto; }
+.breach-modal { max-width: 360px; }
+.breach-modal p { font-size: 12px; }
+.breach-modal .breach-retained { color: #bca3e5; }
+.shard-count { font-size: 48px; }
+.instability-warning { left: auto; right: 336px; bottom: 126px; transform: none; font-size: 9px; max-width: calc(100% - 368px); box-sizing: border-box; white-space: normal; text-align: center; }
+@media (min-width: 761px) and (max-width: 1080px) {
+  .main-area { grid-template-columns: minmax(0, 1fr) 285px; }
+  .center-panel { padding: 22px; }
+  .sys-flavor { display: none; }
+  .dnc-title { letter-spacing: 2px; font-size: 12px; }
+  .instability-warning { right: 301px; max-width: calc(100% - 333px); }
+}
+@media (max-width: 760px) {
+  .dnc-root { min-height: 100vh; }
+  .main-area { min-height: 0; }
+  .center-panel { padding: 26px 20px 24px; min-height: 560px; }
+  .operator-guide { margin-bottom: 22px; }
+  .operator-guide h1 { font-size: 28px; }
+  .operator-guide p { font-size: 12px; }
+  .dnc-header { padding: 12px 16px; }
+  .dnc-title { flex-basis: 100%; font-size: 12px; letter-spacing: 2px; }
+  .header-right { justify-content: space-between; gap: 8px; }
+  .dnc-sys { font-size: 9px; gap: 10px; letter-spacing: 0; }
+  .mode-link { font-size: 9px; padding: 7px; }
+  .menu-toggle { font-size: 9px; padding: 7px; }
+  .system-menu { top: 78px; }
+  .side-panel { padding: 18px; }
+  .tab-btn { padding: 12px 5px; }
+  .upgrade-card { min-height: 88px; }
+  .instability-warning { display: none !important; }
+  .breach-text { font-size: 25px; letter-spacing: 3px; }
+  .breach-modal { padding: 22px; }
 }

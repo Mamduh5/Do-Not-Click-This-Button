@@ -6,12 +6,13 @@
   function createBreachModal(elements, onContinue) {
     elements.continueButton.addEventListener("click", onContinue);
 
-    function show(shardsEarned, totalShards, totalClicks, breachCount) {
+    function show(shardsEarned, totalShards, totalClicks, breachCount, runPower) {
       elements.shardCount.textContent = "+" + DNC.formatNumber(shardsEarned);
       elements.shardLine.textContent = DNC.formatNumber(shardsEarned);
       elements.totalShardLine.textContent = DNC.formatNumber(totalShards);
       elements.breachCountLine.textContent = DNC.formatNumber(breachCount);
       elements.breachClicks.textContent = DNC.formatNumber(totalClicks);
+      elements.breachPower.textContent = DNC.formatNumber(runPower);
       elements.overlay.classList.add("is-open");
       elements.overlay.setAttribute("aria-label", "Reality breach detected. Breach count " + breachCount + ".");
       elements.continueButton.focus();

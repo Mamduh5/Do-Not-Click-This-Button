@@ -24,8 +24,10 @@
       upgrades: {},
       shardUpgrades: {},
       totalClicks: BASE_STATS.totalClicks,
+      runClicks: BASE_STATS.runClicks,
+      runPowerEarned: BASE_STATS.runPowerEarned,
       lastSavedAt: Date.now(),
-      reducedMotion: BASE_STATS.reducedMotion,
+      reducedMotion: Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) || BASE_STATS.reducedMotion,
       audioEnabled: BASE_STATS.audioEnabled
     };
   }
@@ -56,8 +58,10 @@
     state.breachCount = toSafeInteger(source.breachCount, state.breachCount);
     state.anomalyShards = toSafeInteger(source.anomalyShards, state.anomalyShards);
     state.totalClicks = toSafeInteger(source.totalClicks, state.totalClicks);
+    state.runClicks = Math.min(state.totalClicks, toSafeInteger(source.runClicks, state.runClicks));
+    state.runPowerEarned = Math.min(state.totalPowerEarned, Math.max(0, toSafeNumber(source.runPowerEarned, state.runPowerEarned)));
     state.lastSavedAt = Math.max(0, toSafeNumber(source.lastSavedAt, state.lastSavedAt));
-    state.reducedMotion = Boolean(source.reducedMotion);
+    state.reducedMotion = typeof source.reducedMotion === "boolean" ? source.reducedMotion : state.reducedMotion;
     state.audioEnabled = typeof source.audioEnabled === "boolean" ? source.audioEnabled : BASE_STATS.audioEnabled;
 
     var legacyUpgradeIds = {
@@ -83,7 +87,7 @@
     });
 
     DNC.recalculateStats(state);
-    applyStartingPowerFloor(state);
+    // Starting Power is a run-start grant, never a refund when a save is loaded.
     return state;
   }
 
@@ -131,6 +135,8 @@
     state.power = BASE_STATS.power;
     state.instability = BASE_STATS.instability;
     state.upgrades = {};
+    state.runClicks = BASE_STATS.runClicks;
+    state.runPowerEarned = BASE_STATS.runPowerEarned;
     DNC.recalculateStats(state);
     applyStartingPowerFloor(state);
   }

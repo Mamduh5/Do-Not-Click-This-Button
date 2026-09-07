@@ -40,6 +40,8 @@
   function computeStats(state) {
     var stats = {
       clickDamage: CONFIG.cursor.clickDamage,
+      pulseDamageMultiplier: CONFIG.operations.pulseDamageMultiplier,
+      pulseRadius: CONFIG.operations.pulseRadius,
       clickRadius: CONFIG.cursor.clickRadius,
       doubleTapChance: CONFIG.cursor.doubleTapChance,
       shockRadius: CONFIG.cursor.shockRadius,
@@ -92,6 +94,8 @@
       stats.shockDamage += effect.value * level;
     } else if (effect.type === "helperCursorAdd") {
       stats.helperCursors += effect.value * level;
+    } else if (effect.type === "pulseDamageMultiplierAdd") {
+      stats.pulseDamageMultiplier += effect.value * level;
     } else if (effect.type === "feedbackScaleAdd") {
       stats.feedbackScale += effect.value * level;
     }

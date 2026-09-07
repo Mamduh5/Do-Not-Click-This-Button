@@ -42,6 +42,8 @@ global.localStorage = {
 
 [
   "src/arena/data/arenaBalanceConfig.js",
+  "src/arena/data/enemyRoles.js",
+  "src/arena/systems/WaveSystem.js",
   "src/arena/data/arenaUpgrades.js",
   "src/arena/data/clickEffectSkins.js",
   "src/arena/data/enemySkins.js",
@@ -548,3 +550,28 @@ assert(sound.isSupported() === false, "arena sound should tolerate missing Audio
 assert(sound.play("clickMiss") === false, "arena sound should not throw before browser unlock");
 
 console.log("Arena checks passed.");
+
+const operation = ARENA.Save.createDefaultState();
+const waves = ARENA.Waves.create(operation);
+assert(!ARENA.Waves.next(waves, operation), "active waves cannot be skipped");
+const firstQuota = ARENA.Waves.getDefinition(1).target;
+for (let i = 0; i < firstQuota; i += 1) {
+  const enemy = { operationTarget: true, operationWave: 1 };
+  const result = ARENA.Waves.registerKill(waves, operation, enemy);
+  assert(result.cleared === (i === firstQuota - 1), "only the final target clears");
+  assert(!ARENA.Waves.registerKill(waves, operation, enemy).counted, "kills cannot count twice");
+}
+assert(operation.energy === ARENA.Waves.getDefinition(1).clearReward, "clear pays once");
+const restoredOperation = ARENA.Save.validateState(JSON.parse(JSON.stringify(operation)));
+assert(restoredOperation.wavePhase === "cleared" && restoredOperation.energy === operation.energy, "reload preserves the paid upgrade break");
+assert(!ARENA.Waves.canSpawn(waves, restoredOperation, 0), "cleared rooms stay empty");
+assert(ARENA.Waves.next(waves, restoredOperation) && restoredOperation.wave === 2, "next wave requires explicit release");
+const championState = Object.assign(ARENA.Save.createDefaultState(), { wave: 5 });
+const championWaves = { spawned: ARENA.Waves.getDefinition(5).target - 1 };
+assert(!ARENA.Waves.canSpawn(championWaves, championState, 1), "champion waits for the swarm");
+assert(ARENA.Waves.canSpawn(championWaves, championState, 0), "champion spawns in an empty room");
+assert(ARENA.Waves.nextRole(championState, championWaves.spawned) === "champion", "fifth wave ends with champion");
+assert(ARENA.Waves.comboMultiplier(2) > 1 && ARENA.Waves.comboMultiplier(999) === 1.5, "chain rewards grow and cap");
+assert(ARENA.Save.validateState({ version: 1, wave: 99, energy: 42 }).wave === 1, "legacy timed waves migrate to operation one");
+assert(ARENA.Save.validateState({ version: 1, wave: 99, energy: 42 }).energy === 42, "migration preserves currency");
+console.log("Containment operation checks passed.");

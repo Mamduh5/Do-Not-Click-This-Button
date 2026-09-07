@@ -10,6 +10,7 @@
     function activate(tabName) {
       buttons.forEach(function (button) {
         button.classList.toggle("active", button.dataset.tab === tabName);
+        button.setAttribute("aria-pressed", button.dataset.tab === tabName ? "true" : "false");
       });
 
       panels.forEach(function (panel) {
@@ -18,6 +19,8 @@
     }
 
     buttons.forEach(function (button) {
+      var names = { power: "Power upgrades", auto: "Automation upgrades", contain: "Containment upgrades", risk: "Risk upgrades", shard: "Permanent Shard upgrades" };
+      button.setAttribute("aria-label", names[button.dataset.tab]);
       button.addEventListener("click", function () {
         activate(button.dataset.tab);
       });

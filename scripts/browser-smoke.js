@@ -108,7 +108,8 @@ async function run() {
     assert((await page.locator("#soundBtn").textContent()).includes("OFF"), "sound setting should persist after refresh");
     assert((await page.locator("#motionBtn").textContent()).includes("OFF"), "motion setting should persist after refresh");
 
-    await page.evaluate((key) => {
+    // Seed before the new document boots; pagehide correctly saves the outgoing run.
+    await page.addInitScript((key) => {
       localStorage.setItem(key, JSON.stringify({
         version: 1,
         power: 150,

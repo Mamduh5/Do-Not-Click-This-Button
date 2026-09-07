@@ -4,7 +4,7 @@
   window.DNC = window.DNC || {};
 
   DNC.BALANCE_CONFIG = {
-    saveVersion: 1,
+    saveVersion: 2,
 
     initialState: {
       power: 0,
@@ -18,6 +18,8 @@
       instabilityPerSecond: 0,
       containmentPerSecond: 0,
       totalClicks: 0,
+      runClicks: 0,
+      runPowerEarned: 0,
       reducedMotion: false,
       audioEnabled: true
     },
@@ -47,11 +49,32 @@
       clickFeedbackMs: 100,
       clickShakeMs: 300,
       breachShakeMs: 320,
-      resetConfirmMs: 4000
+      resetConfirmMs: 4000,
+      rewardFeedbackMs: 1200,
+      meterTransitionMs: 250
     },
 
     console: {
       maxVisibleLines: 4
+    },
+
+    operatorGuide: {
+      firstContact: { title: "A little disobedience goes a long way.", text: "Click for Power. Install upgrades. At 100% instability, the system breaches and you keep permanent Shards.", tab: "power", action: "EXPLORE UPGRADES" },
+      firstUpgrade: { title: "Make every forbidden click count.", text: "Power Tap improves your output without adding more instability per click. Install it as soon as you can afford it.", tab: "power", action: "VIEW POWER UPGRADES" },
+      automation: { title: "Let the machine share the blame.", text: "Automation creates Power between clicks, but also heats the system. Containment can offset that pressure.", tab: "auto", action: "VIEW AUTOMATION" },
+      unstable: { title: "Contain it. Or let it break.", text: "Containment buys more time to earn Power. A breach resets run upgrades and converts your progress into permanent Shards.", tab: "contain", action: "VIEW CONTAINMENT" },
+      critical: { title: "The next breach is your decision.", text: "Keep pressing to harvest the forecast below, or install containment to extend the run and raise the reward.", tab: "contain", action: "VIEW CONTAINMENT" },
+      permanent: { title: "The system forgot. Your Shards did not.", text: "Spend Shards on permanent upgrades, then build the next run. These effects survive every breach.", tab: "shard", action: "SPEND SHARDS" },
+      growing: { title: "Build Power. Bend the rules.", text: "Safe upgrades extend a run. Risk upgrades accelerate it. Every Power you earn improves future breach rewards.", tab: "risk", action: "EXPLORE RISK UPGRADES" },
+      forecastLabel: "IF YOU BREACH NOW",
+      forecastBasis: "Based on lifetime Power + previous breaches. Spending Power never lowers this reward.",
+      nextShardLabel: "NEXT SHARD",
+      clicksLabel: "clicks to breach at current heat",
+      coolingLabel: "cooling / sec",
+      heatingLabel: "instability / sec",
+      balancedLabel: "No passive heat change",
+      rewardIncreaseLog: "Breach forecast increased to {shards} Shards.",
+      breachContinueLabel: "REINITIALIZE + VIEW SHARDS"
     },
 
     shardUi: {

@@ -64,11 +64,11 @@
     {
       id: "cursorFrenzy",
       name: "Cursor Frenzy",
-      description: "Makes impact effects larger and sharper.",
+      description: "Makes impacts bolder and boosts your charged pulse damage.",
       baseCost: 58,
       costMultiplier: 2,
       maxLevel: 5,
-      effects: [{ type: "feedbackScaleAdd", value: 0.14 }]
+      effects: [{ type: "feedbackScaleAdd", value: 0.14 }, { type: "pulseDamageMultiplierAdd", value: 0.4 }]
     }
   ];
 })();

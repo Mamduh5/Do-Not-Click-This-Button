@@ -18,6 +18,7 @@ async function run() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1280, height: 820 } });
   const consoleErrors = [];
+  page.on("pageerror", (error) => consoleErrors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") {
       consoleErrors.push(message.text());
@@ -30,7 +31,7 @@ async function run() {
     await page.waitForSelector("#arenaMount canvas");
     await page.evaluate(() => {
       localStorage.removeItem("containmentSwarmSave");
-      document.getElementById("arenaResetBtn").click();
+      window.__containmentArena.scene.resetPrototype();
       window.__containmentArena.setSpawning(false);
       window.__containmentArena.clearEnemies();
     });
@@ -61,6 +62,7 @@ async function run() {
     assert(backgroundSkinOptions.includes("Town"), "background selector should show Town");
     assert(initial.activeClickSkin === "meteorImpact", "default active click skin should be Meteor Impact");
     assert(initial.activeEnemySkin === "ant", "default enemy skin should be Ant");
+    await page.locator("#arenaSettings summary").click();
     await page.selectOption("#arenaSkinSelect", "pixelShatter");
     const afterUiSkinSwitch = await page.evaluate(() => window.__containmentArena.getSnapshot());
     assert(afterUiSkinSwitch.activeClickSkin === "pixelShatter", "skin selector should update active skin");
@@ -384,6 +386,7 @@ async function run() {
     assert(persisted.activeClickSkin === "arrowStrike", "active click skin should persist after reload");
     assert(persisted.activeEnemySkin === "hat", "active enemy skin should persist after reload");
     assert(persisted.activeBackgroundSkin === "town", "active background skin should persist after reload");
+    await require("./arena-operation-smoke")(page);
     assert(consoleErrors.length === 0, "arena smoke should have no console errors: " + consoleErrors.join(" | "));
   } finally {
     await browser.close();
