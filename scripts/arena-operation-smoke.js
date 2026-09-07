@@ -25,7 +25,8 @@ module.exports = async function checkOperations(page) {
   let snapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
   assert(snapshot.wave === 1 && snapshot.wavePhase === "cleared" && snapshot.waveKills === 8, "real wave clears its finite quota");
   assert(snapshot.pulseCharge === 100, "eight manual kills charge pulse");
-  assert(await page.locator("#arenaOperationOverlay").isVisible(), "clear screen appears");
+  await page.locator("#arenaOperationOverlay").waitFor({ state: "visible" });
+  assert(await page.locator("#arenaOperationOverlay").isVisible(), "clear screen appears after the victory beat");
   const rewardEnergy = snapshot.energy;
   await page.waitForTimeout(1200);
   snapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());

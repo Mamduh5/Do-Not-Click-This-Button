@@ -330,3 +330,37 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding
 @media (max-width: 900px) { .arena-shell { height: auto; min-height: 100dvh; } .arena-header { flex-direction: row; flex-wrap: wrap; } .arena-status { width: 100%; margin-top: 6px; grid-template-columns: repeat(4, minmax(0, 1fr)); } .arena-status > div { padding-left: 12px; } .arena-layout { grid-template-columns: 1fr; } .arena-stage { height: auto; grid-template-rows: auto 460px auto; } .arena-shop { border-left: 0; border-top: 1px solid var(--line); padding: 24px; } .arena-upgrade-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .chain-control { max-width: 220px; } }
 @media (max-width: 560px) { .arena-header { padding: 13px 16px; } .arena-header h1 { font-size: 23px; } .arena-status strong { font-size: 22px; } .arena-status span { font-size: 9px; letter-spacing: .5px; } .operation-bar { padding: 15px 16px 0; } .operation-progress { margin: 0 -16px; } .operation-title h2 { font-size: 18px; } .operation-title { flex-wrap: wrap; gap: 0; } #arenaRewardPreview { margin-bottom: 7px; font-size: 10px; } .operation-bar p { font-size: 11px; } .arena-stage { grid-template-rows: auto 330px auto; } .combat-bar { flex-wrap: wrap; gap: 15px; padding: 14px 16px; } .pulse-control { flex: 1 1 100%; max-width: none; } .chain-control { max-width: none; } .arena-shop { padding: 22px 16px; } .arena-upgrade-list { grid-template-columns: 1fr; } .operation-result { padding: 18px 20px; } .operation-result h2 { font-size: 24px; } .result-icon { font-size: 28px; margin-bottom: 8px; } .result-reward { margin: 12px 0; } .arena-log { left: 10px; bottom: 10px; max-width: calc(100% - 20px); font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; } }
+
+
+/* Operation feedback and the between-wave shopping path. */
+.arena-stage[data-phase="cleared"] .operation-dot { background: #92e8b8; }
+.arena-stage[data-phase="cleared"] .operation-heading { color: #92e8b8; }
+.arena-stage[data-phase="champion"] .operation-heading { color: #d6a2fa; }
+.arena-stage[data-phase="champion"] .operation-dot { background: #c084fc; box-shadow: 0 0 12px #c084fc88; }
+.operation-result { box-sizing: border-box; }
+.operation-overlay { overflow-y: auto; }
+.review-upgrades { display: block; width: 100%; margin: 0 0 10px; padding: 9px; border: 1px solid #527980; background: transparent; color: #a3ece5; font-size: 11px; cursor: pointer; }
+.review-upgrades:hover { background: #203841; }
+.shop-break { position: sticky; top: -1px; z-index: 6; background: #0e171f; padding: 10px 0 14px; border-bottom: 1px solid #42636a; }
+.shop-break span { display: block; margin-bottom: 9px; color: #f6bc70; font-size: 12px; }
+.shop-break .primary-action { padding: 10px; }
+.upgrade-name { font-size: 13px; }
+.upgrade-preview { font-size: 11px; }
+.arena-upgrade-card { padding: 11px 12px 12px; }
+.arena-upgrade-card:not(:disabled) .upgrade-name { color: #b0f2e9; }
+#arenaPulseBtn.pulse-ready { background: #244a46; border-color: #8adbd1; color: #c6fff3; box-shadow: 0 0 14px #77e1dc22; }
+.chain-control { font-size: 10px; line-height: 1.5; }
+.role-mark.champion { color: #c084fc; border-radius: 50%; }
+@media (max-width: 900px) {
+  .arena-shop { overflow: visible; }
+  .shop-break { top: 0; box-shadow: 0 8px 12px #0e171f; }
+  .arena-upgrade-card { scroll-margin-top: 95px; }
+}
+@media (max-width: 560px) {
+  .operation-overlay { padding: 12px; }
+  .operation-result { padding: 14px 18px; }
+  .result-icon { display: none; }
+  .operation-result h2 { margin: 6px 0 8px; }
+  .operation-result p { font-size: 11px; line-height: 1.5; }
+  .review-upgrades { padding: 8px; margin-bottom: 8px; }
+}

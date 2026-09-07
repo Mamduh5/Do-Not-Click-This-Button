@@ -40,6 +40,7 @@
               <h2 id="arenaResultTitle">Room secured.</h2>
               <p id="arenaResultHint"></p>
               <div class="result-reward" id="arenaResultReward"></div>
+              <button class="review-upgrades" id="arenaReviewUpgradesBtn" type="button">REVIEW UPGRADES</button>
               <button class="primary-action" id="arenaNextWaveBtn" type="button">RELEASE NEXT WAVE</button>
               <button class="primary-action" id="arenaResumeBtn" type="button" hidden>RESUME OPERATION</button>
             </div>
@@ -56,13 +57,14 @@
           </div>
         </section>
 
-        <aside class="arena-shop">
+        <aside class="arena-shop" id="arenaShop">
           <div class="shop-head">
             <div>
               <div class="arena-kicker">SPEND ENERGY / GROW STRONGER</div>
-              <h2>Field upgrades</h2>
+              <h2 id="arenaShopTitle" tabindex="-1">Field upgrades</h2>
             </div>
           </div>
+          <div class="shop-break" id="arenaShopBreak" hidden><span id="arenaShopBudget"></span><button class="primary-action" id="arenaShopNextWaveBtn" type="button">RELEASE NEXT WAVE</button></div>
           <div class="loadout-summary" id="arenaLoadout">DMG 2 / REACH 24 / HELPERS 0</div>
           <div id="arenaUpgradeList" class="arena-upgrade-list"></div>
           <div class="field-guide"><div class="arena-kicker">KNOW YOUR TARGETS</div><p><span class="role-mark runner"></span><strong>Runner</strong> Fast &amp; fragile</p><p><span class="role-mark brute"></span><strong>Brute</strong> Tough &amp; valuable</p><p><span class="role-mark champion"></span><strong>Champion</strong> Every fifth wave</p></div>

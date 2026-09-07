@@ -39,6 +39,7 @@
     this.waveSystem = ARENA.Waves.create(this.state);
     this.paused = false;
     this.uiAccumulatorMs = 0;
+    this.clearRevealAt = 0;
     this.combo = 0;
     this.comboExpiresAt = 0;
     this.effectCounts = {};
@@ -54,9 +55,16 @@
     this.townNavigationSystem = ARENA.TownNavigation.create(this, ARENA.BackgroundSkins.get(this.state.activeBackgroundSkin));
     this.backgroundEffectSystem = ARENA.BackgroundEffects.create(this);
     this.helperCursorSystem = ARENA.HelperCursors.create(this);
-    this.pulsePreview = this.add.circle(this.core.x, this.core.y, this.stats.pulseRadius);
+    this.pulsePreview = this.add.rectangle(this.core.x, this.core.y, CONFIG.canvas.width - 30, CONFIG.canvas.height - 30);
     this.pulsePreview.setStrokeStyle(CONFIG.operations.pulsePreviewLineWidth, CONFIG.operations.pulseColor, CONFIG.operations.pulsePreviewAlpha);
     this.pulsePreview.setDepth(CONFIG.operations.pulsePreviewDepth);
+    var updateReadabilityScale = function () {
+      var fieldWidth = this.game.canvas.getBoundingClientRect().width;
+      this.enemyReadabilityScale = Math.max(1, Math.min(CONFIG.enemy.smallScreenScaleMax, CONFIG.enemy.readableFieldWidth / Math.max(1, fieldWidth)));
+    }.bind(this);
+    updateReadabilityScale();
+    var fieldResizeObserver = new ResizeObserver(updateReadabilityScale);
+    fieldResizeObserver.observe(this.game.canvas);
     this.pulsePreview.setVisible(false);
     this.input.on("pointerdown", this.handlePointerDown, this);
 
@@ -87,6 +95,7 @@
     window.addEventListener("pagehide", this.handlePageHide);
     document.addEventListener("visibilitychange", this.handleVisibility);
     this.events.once("shutdown", function () {
+      fieldResizeObserver.disconnect();
       window.removeEventListener("keydown", this.handleKey);
       window.removeEventListener("pagehide", this.handlePageHide);
       document.removeEventListener("visibilitychange", this.handleVisibility);
@@ -171,6 +180,7 @@
   ArenaScene.prototype.registerOperationKill = function (enemy) {
     var result = ARENA.Waves.registerKill(this.waveSystem, this.state, enemy);
     if (result.cleared) {
+      this.clearRevealAt = this.time.now + CONFIG.operations.clearRevealDelayMs;
       this.soundSystem.play("waveClear");
       this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY / INSTALL UPGRADES");
       this.refreshUi();
@@ -180,8 +190,10 @@
 
   ArenaScene.prototype.nextWave = function () {
     if (this.paused || !ARENA.Waves.next(this.waveSystem, this.state)) { return; }
+    this.clearRevealAt = 0;
     this.combo = 0;
     this.comboExpiresAt = 0;
+    document.querySelector(".arena-stage").scrollIntoView({ block: "start" });
     this.spawnAccumulatorMs = ARENA.Waves.getDefinition(this.state.wave).spawnIntervalMs;
     this.soundSystem.unlock();
     this.soundSystem.play("wave");
@@ -218,10 +230,15 @@
   ArenaScene.prototype.dischargePulse = function () {
     if (this.paused || this.state.wavePhase !== "active" ||
         this.state.pulseCharge < CONFIG.operations.pulseMaxCharge) { return; }
-    this.state.pulseCharge = 0;
-    this.soundSystem.unlock();
     var x = CONFIG.canvas.width / 2;
     var y = CONFIG.canvas.height / 2;
+    var targets = ARENA.CursorAttack.findTargets(this.enemies, x, y, this.stats.pulseRadius);
+    if (!targets.length) {
+      this.hud.log("PULSE HELD / WAIT FOR TARGETS");
+      return;
+    }
+    this.state.pulseCharge = 0;
+    this.soundSystem.unlock();
     ARENA.CursorAttack.attack(this, x, y, this.stats, {
       source: "pulse", radius: this.stats.pulseRadius,
       damage: this.stats.clickDamage * this.stats.pulseDamageMultiplier
@@ -229,10 +246,11 @@
     var ring = this.add.circle(x, y, this.stats.pulseRadius, CONFIG.operations.pulseColor, CONFIG.operations.pulseAlpha);
     ring.setStrokeStyle(CONFIG.operations.pulseLineWidth, CONFIG.operations.pulseColor);
     ring.setDepth(CONFIG.operations.pulsePreviewDepth);
-    this.tweens.add({ targets: ring, alpha: 0, duration: CONFIG.operations.pulseDurationMs,
+    ring.setScale(CONFIG.operations.pulseStartScale);
+    this.tweens.add({ targets: ring, alpha: 0, scale: 1, duration: CONFIG.operations.pulseDurationMs,
       onComplete: function () { ring.destroy(); } });
     this.soundSystem.play("pulse");
-    this.hud.log("PULSE DISCHARGED / CENTER FIELD");
+    this.hud.log("PULSE DISCHARGED / " + targets.length + (targets.length === 1 ? " TARGET HIT" : " TARGETS HIT"));
     ARENA.Save.save(this.state);
     this.refreshUi();
   };
@@ -334,6 +352,7 @@
 
   ArenaScene.prototype.resetPrototype = function () {
     if (this.paused) { this.togglePause(); }
+    this.clearRevealAt = 0;
     this.state = ARENA.Save.reset();
     this.waveSystem = ARENA.Waves.create(this.state);
     this.spawnAccumulatorMs = 0;

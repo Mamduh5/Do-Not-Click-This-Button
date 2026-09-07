@@ -14,7 +14,7 @@
     var edge = Phaser.Math.Between(0, 3);
     var role = getRole(roleId);
     var skin = ARENA.EnemySkins.get(scene.state.activeEnemySkin);
-    var inset = Math.max(CONFIG.enemy.spawnInset, visualRadius(role, skin) + FEEDBACK.visibleEdgePadding);
+    var inset = Math.max(CONFIG.enemy.spawnInset, visualRadius(role, skin, scene) + FEEDBACK.visibleEdgePadding);
     var width = CONFIG.canvas.width;
     var height = CONFIG.canvas.height;
     var x = edge === 0 ? inset : edge === 1 ? width - inset : Phaser.Math.Between(inset, width - inset);
@@ -48,13 +48,13 @@
     enemy.debugId = scene.enemySerial === undefined ? 0 : scene.enemySerial++;
     enemy.baseRadius = CONFIG.enemy.radius;
     enemy.radius = radius;
-    enemy.visualScale = CONFIG.enemy.visualScale * skin.scale * role.scale;
+    enemy.visualScale = CONFIG.enemy.visualScale * skin.scale * role.scale * (scene.enemyReadabilityScale || 1);
     enemy.maxHealth = forcedHealth === undefined ? health : forcedHealth;
     enemy.health = enemy.maxHealth;
     enemy.speed = CONFIG.enemy.baseSpeed * speedVariance * (1 + (scalingWave - 1) * CONFIG.enemy.waveSpeedScale) * role.speedMultiplier;
     enemy.reward = CONFIG.enemy.baseReward * (1 + (scalingWave - 1) * CONFIG.enemy.waveRewardScale) * role.rewardMultiplier;
     enemy.hitFlashUntil = 0;
-    enemy.hitRadius = visualRadius(role, skin) + CONFIG.enemy.clickPadding * role.clickPaddingMultiplier;
+    enemy.hitRadius = visualRadius(role, skin, scene) + CONFIG.enemy.clickPadding * role.clickPaddingMultiplier;
     enemy.shadow = shadow;
     enemy.knockbackX = 0;
     enemy.knockbackY = 0;
@@ -93,14 +93,14 @@
     scene.tweens.add({
       targets: shadow,
       alpha: CONFIG.enemy.shadowAlpha,
-      scale: CONFIG.enemy.visualScale * skin.shadowScale * role.scale,
+      scale: CONFIG.enemy.visualScale * skin.shadowScale * role.scale * (scene.enemyReadabilityScale || 1),
       duration: CONFIG.enemy.spawnFadeMs
     });
     return enemy;
   }
 
-  function visualRadius(role, skin) {
-    return CONFIG.enemy.radius * CONFIG.enemy.visualScale * skin.scale * role.scale;
+  function visualRadius(role, skin, scene) {
+    return CONFIG.enemy.radius * CONFIG.enemy.visualScale * skin.scale * role.scale * (scene.enemyReadabilityScale || 1);
   }
 
   function update(scene, enemies, deltaMs) {
@@ -116,13 +116,16 @@
         enemy.nextTurnAt = scene.time.now + Phaser.Math.Between(CONFIG.enemy.directionChangeMs * FEEDBACK.turnIntervalMin, CONFIG.enemy.directionChangeMs * FEEDBACK.turnIntervalMax);
       }
 
+      enemy.visualScale = CONFIG.enemy.visualScale * enemy.enemySkin.scale * enemy.enemyRole.scale * (scene.enemyReadabilityScale || 1);
+      enemy.hitRadius = visualRadius(enemy.enemyRole, enemy.enemySkin, scene) + CONFIG.enemy.clickPadding * enemy.enemyRole.clickPaddingMultiplier;
+      enemy.shadow.setScale(CONFIG.enemy.visualScale * enemy.enemySkin.shadowScale * enemy.enemyRole.scale * (scene.enemyReadabilityScale || 1));
       var previousX = enemy.x;
       var previousY = enemy.y;
       var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
       var angle = enemy.driftAngle + wiggle * FEEDBACK.wiggleAngleMultiplier;
       var nextX = enemy.x + Math.cos(angle) * enemy.speed * deltaSeconds + enemy.knockbackX * deltaSeconds;
       var nextY = enemy.y + Math.sin(angle) * enemy.speed * deltaSeconds + enemy.knockbackY * deltaSeconds;
-      var inset = visualRadius(enemy.enemyRole, enemy.enemySkin) + FEEDBACK.visibleEdgePadding;
+      var inset = visualRadius(enemy.enemyRole, enemy.enemySkin, scene) + FEEDBACK.visibleEdgePadding;
       if (nextX < inset || nextX > CONFIG.canvas.width - inset) {
         enemy.driftAngle = Math.PI - enemy.driftAngle;
         enemy.knockbackX = 0;
@@ -172,7 +175,7 @@
   function drawIndicator(scene, enemy) {
     var marker = enemy.enemyRole.marker;
     var graphics = enemy.roleIndicator;
-    var radius = visualRadius(enemy.enemyRole, enemy.enemySkin) * FEEDBACK.markerRadiusMultiplier + FEEDBACK.markerPadding;
+    var radius = visualRadius(enemy.enemyRole, enemy.enemySkin, scene) * FEEDBACK.markerRadiusMultiplier + FEEDBACK.markerPadding;
     var pulseRadius = radius * getPulse(scene, enemy);
     graphics.x = enemy.x;
     graphics.y = enemy.y;
@@ -240,7 +243,7 @@
 
   function showSpawn(scene, x, y, role, skin) {
     var color = role.id === "standard" ? CONFIG.enemy.outlineColor : role.marker.color;
-    var ring = scene.add.circle(x, y, visualRadius(role, skin) * FEEDBACK.spawnRingRadiusMultiplier, color, FEEDBACK.spawnRingFillAlpha);
+    var ring = scene.add.circle(x, y, visualRadius(role, skin, scene) * FEEDBACK.spawnRingRadiusMultiplier, color, FEEDBACK.spawnRingFillAlpha);
     ring.setStrokeStyle(FEEDBACK.spawnRingLineWidth, color, FEEDBACK.spawnRingLineAlpha);
     scene.tweens.add({
       targets: ring,

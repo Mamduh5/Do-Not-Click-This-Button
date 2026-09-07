@@ -46,10 +46,10 @@
   function showHitText(scene, text, x, y, color) {
     var label = scene.add.text(x, y - 12, text, {
       fontFamily: "Consolas, monospace",
-      fontSize: "12px",
+      fontSize: "14px",
       color: "#" + color.toString(16).padStart(6, "0"),
       fontStyle: "bold"
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(40);
 
     scene.tweens.add({
       targets: label,
@@ -108,15 +108,6 @@
   function showKillBurst(scene, x, y, scale) {
     var ring = scene.add.circle(x, y, 16 * scale, 0xd82626, 0.08);
     mark(scene, "killBurst");
-    if (ARENA.ClickEffectSkins) {
-      ARENA.ClickEffectSkins.drawImpact(scene, x, y, {
-        hit: true,
-        kill: true,
-        scale: scale,
-        silent: true,
-        noDecal: true
-      });
-    }
     ring.setStrokeStyle(Math.max(2, 3 * scale), 0xd82626, 0.85);
     scene.tweens.add({
       targets: ring,
@@ -147,7 +138,7 @@
   }
 
   function showComboPopup(scene, combo, x, y) {
-    if (combo <= 1) {
+    if (combo !== 2 && CONFIG.feedback.comboMilestones.indexOf(combo) < 0) {
       return;
     }
 
@@ -156,7 +147,7 @@
     var label = scene.add.text(
       clamp(x, 80, CONFIG.canvas.width - 80),
       clamp(y - 44, 54, CONFIG.canvas.height - 54),
-      "COMBO x" + combo + (milestone ? "!" : ""),
+      combo + " CHAIN" + (milestone ? "!" : ""),
       {
         fontFamily: "Consolas, monospace",
         fontSize: milestone ? "22px" : "18px",

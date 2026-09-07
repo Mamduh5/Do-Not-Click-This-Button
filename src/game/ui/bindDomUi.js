@@ -125,6 +125,11 @@
     function bindEvents() {
       elements.mainBtn.addEventListener("click", handleClick);
       elements.guideAction.addEventListener("click", function () {
+        if (currentGuide === CONFIG.operatorGuide.firstUpgrade && DNC.Upgrades.canBuy(state, "powerTap")) {
+          sound.unlock();
+          buyUpgrade("powerTap");
+          return;
+        }
         tabs.activate(currentGuide.tab);
         var tabButton = root.querySelector('[data-tab="' + currentGuide.tab + '"]');
         tabButton.focus({ preventScroll: true });
@@ -556,7 +561,9 @@
       }
       elements.guideTitle.textContent = currentGuide.title;
       elements.guideText.textContent = currentGuide.text;
-      elements.guideAction.textContent = currentGuide.action;
+      var firstUpgradeReady = currentGuide === guide.firstUpgrade && DNC.Upgrades.canBuy(state, "powerTap");
+      elements.guideAction.textContent = firstUpgradeReady ? "INSTALL POWER TAP / " + DNC.Upgrades.getCost(state, "powerTap") + " POWER" : currentGuide.action;
+      elements.guideAction.classList.toggle("upgrade-ready", firstUpgradeReady);
       elements.forecastShards.textContent = "+" + DNC.formatNumber(forecast.shards) + (forecast.shards === 1 ? " SHARD" : " SHARDS");
       elements.forecastNext.textContent = guide.nextShardLabel + ": +" + DNC.formatNumber(forecast.nextShards);
       elements.forecastRemaining.textContent = DNC.formatNumber(Math.ceil(forecast.remainingPower)) + " Power away";
