@@ -71,7 +71,7 @@
   }
 
   function next(system, state) {
-    if (state.wavePhase !== "cleared" || (state.endless && state.endless.offers.length)) {
+    if (state.wavePhase !== "cleared") {
       return false;
     }
     state.wave = state.endless && state.endless.trainingBoss ? state.endless.trainingBoss : state.wave + 1;

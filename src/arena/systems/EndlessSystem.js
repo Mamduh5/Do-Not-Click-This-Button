@@ -77,13 +77,22 @@
   }
   function fail(scene) {
     scene.state.wavePhase = "failed";
-    scene.enemies.forEach(function (enemy) { enemy.destroy(); }); scene.enemies = [];
+    // Keep the enemies in place so the battlefield still explains the loss.
+    scene.defeatRevealAt = scene.time.now + ARENA.BALANCE_CONFIG.operations.defeatRevealDelayMs;
     scene.combo = 0;
-    scene.hud.log("DEFENSE LOST / RETRY OR TRAIN / PURCHASES RETAINED");
+    scene.hud.log(failureReason(scene.state));
     ARENA.Save.save(scene.state); scene.refreshUi();
+  }
+  function failureReason(state) {
+    return ensure(state).core <= 0 ? "CORE DESTROYED / GIGABOSS STRIKE" : "OVERRUN 100% / TOO MANY ENEMIES LEFT ALIVE";
   }
   function retry(scene, training) {
     if (scene.state.wavePhase !== "failed") { return; }
+    scene.enemies.forEach(function (enemy) {
+      if (enemy.shadow && enemy.shadow.active) { enemy.shadow.destroy(); }
+      enemy.destroy();
+    });
+    scene.enemies = []; scene.defeatRevealAt = 0; scene.coreHitUntil = 0;
     var target = scene.state.wave, e = ensure(scene.state);
     if (training && target % C.cycleLength === 0) { scene.state.wave = target - 1; }
     scene.state.waveKills = 0; scene.state.wavePhase = "active";
@@ -103,6 +112,7 @@
       if (e.attack >= C.bossAttackSeconds) {
         e.core = Math.max(0, e.core - C.bossDamage * (traits(state.wave).some(function (t) { return t.id === "siege"; }) ? C.siegeDamageMultiplier : 1)); e.attack = 0; e.stagger = 0;
         scene.hud.log("CORE HIT / " + Math.ceil(e.core) + "% INTEGRITY");
+        scene.coreHitUntil = scene.time.now + ARENA.BALANCE_CONFIG.operations.coreStrikeFeedbackMs;
         if (traits(state.wave).some(function (t) { return t.id === "swarm"; }) && active.length < C.summonActiveLimit) {
           for (var i = 0; i < C.summonCount; i++) { var add = ARENA.Enemies.spawn(scene, state.wave, "runner"); add.reward = 0; scene.enemies.push(add); }
         }
@@ -115,5 +125,5 @@
       if (e.pressure >= 100) { fail(scene); }
     }
   }
-  ARENA.Endless = { fresh: fresh, validate: validate, ensure: ensure, traits: traits, applyStats: applyStats, cleared: cleared, choose: choose, startWave: startWave, setupBoss: setupBoss, hit: hit, tick: tick, retry: retry };
+  ARENA.Endless = { fresh: fresh, validate: validate, ensure: ensure, traits: traits, applyStats: applyStats, cleared: cleared, choose: choose, startWave: startWave, setupBoss: setupBoss, hit: hit, tick: tick, retry: retry, failureReason: failureReason };
 })();

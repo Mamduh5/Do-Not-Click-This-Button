@@ -545,7 +545,7 @@
         }
       }
 
-      machineControls.hidden = state.runPowerEarned < CONFIG.machine.revealPower && state.breachCount === 0;
+      machineControls.hidden = state.instability === 0 && state.powerPerSecond === 0 && DNC.Instability.getShardReward(state) === 0 && state.breachCount === 0 && !state.machine.stabilizing;
       machinePanel.hidden = !state.machine.modules.length && !state.machine.offers.length;
       var f = DNC.Machine.factors(state), m = state.machine;
       getElement("machineStatus").textContent = "Output x" + DNC.Machine.multiplier(state, true).toFixed(2) + " / Unbanked +" + DNC.Machine.bonus(state) + " Shards (next " + Math.floor(100 * (m.risk - Math.pow(DNC.Machine.bonus(state), 2) * CONFIG.machine.riskDivisor) / ((2 * DNC.Machine.bonus(state) + 1) * CONFIG.machine.riskDivisor)) + "%)" +
@@ -563,7 +563,7 @@
         var offers = getElement("machineOffers"); offers.replaceChildren();
         if (m.offers.length) {
           var note = document.createElement("p");
-          note.textContent = "Choose a module for slot " + (m.round % CONFIG.machine.slots + 1) + (m.modules.length >= CONFIG.machine.slots ? " (replaces its current module)." : ". Two slots; choices last this run.");
+          note.textContent = "Optional: choose a module for slot " + (m.round % CONFIG.machine.slots + 1) + (m.modules.length >= CONFIG.machine.slots ? " (replaces its current module)." : ". Two slots; choices last this run.") + " You can keep clicking while you decide.";
           offers.appendChild(note);
           if (m.modules.length >= CONFIG.machine.slots) {
             var keep = document.createElement("button"); keep.type = "button"; keep.textContent = "KEEP CURRENT MACHINE";

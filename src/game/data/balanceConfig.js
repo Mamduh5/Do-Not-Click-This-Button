@@ -6,7 +6,7 @@
   DNC.BALANCE_CONFIG = {
     saveVersion: 3,
     machine: {
-      revealPower: 25, dangerOutputBonus: 2, purgeDanger: 55, purgePowerRetained: 0.5,
+      dangerOutputBonus: 2, purgeDanger: 55, purgePowerRetained: 0.5,
       redline: 75, surgeAt: 90, surgeWarningSeconds: 6, surgeHeat: 7,
       stabilizeCooling: 9, stabilizeOutput: 0.2, riskDivisor: 120,
       draftFirst: 120, draftStep: 240, slots: 2,

@@ -40,6 +40,8 @@
     this.paused = false;
     this.uiAccumulatorMs = 0;
     this.clearRevealAt = 0;
+    this.defeatRevealAt = 0;
+    this.coreHitUntil = 0;
     this.combo = 0;
     this.comboExpiresAt = 0;
     this.effectCounts = {};
@@ -67,6 +69,14 @@
     fieldResizeObserver.observe(this.game.canvas);
     this.pulsePreview.setVisible(false);
     this.bossTelegraph = this.add.graphics().setDepth(30);
+    this.defenseLabel = this.add.text(CONFIG.canvas.width / 2, 20, "", {
+      fontFamily: "Consolas, monospace", fontSize: "20px", color: "#ffffff",
+      backgroundColor: "#111c25", padding: { x: 12, y: 8 }, align: "center"
+    }).setOrigin(0.5, 0).setDepth(31);
+    this.coreLabel = this.add.text(this.core.x, this.core.y + CONFIG.core.radius + 12, "", {
+      fontFamily: "Consolas, monospace", fontSize: "18px", color: "#ffffff",
+      backgroundColor: "#111c25", padding: { x: 8, y: 5 }
+    }).setOrigin(0.5, 0).setDepth(31);
     this.input.on("pointerdown", this.handlePointerDown, this);
 
     this.hud = ARENA.createArenaHud({
@@ -125,7 +135,7 @@
     ARENA.DestructibleBackground.update(this.destructibleBackgroundSystem, time);
     ARENA.WaterSurface.update(this.waterSurfaceSystem, time);
     ARENA.Endless.tick(this, deltaMs / 1000);
-    ARENA.Enemies.update(this, this.enemies, deltaMs);
+    if (this.state.wavePhase === "active") { ARENA.Enemies.update(this, this.enemies, deltaMs); }
     this.enemies = this.enemies.filter(function (enemy) {
       return enemy.active;
     });
@@ -193,14 +203,13 @@
       this.stats = ARENA.Upgrades.computeStats(this.state);
       this.clearRevealAt = this.time.now + CONFIG.operations.clearRevealDelayMs;
       this.soundSystem.play("waveClear");
-      this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY / INSTALL UPGRADES");
+      this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY / RELEASE WHEN READY");
       this.refreshUi();
     }
     ARENA.Save.save(this.state);
   };
 
   ArenaScene.prototype.nextWave = function () {
-    if (this.state.endless.offers.length) { this.hud.log("CHOOSE A MODULE BEFORE RELEASE"); return; }
     if (this.paused || !ARENA.Waves.next(this.waveSystem, this.state)) { return; }
     this.clearRevealAt = 0;
     this.combo = 0;
@@ -365,6 +374,8 @@
   ArenaScene.prototype.resetPrototype = function () {
     if (this.paused) { this.togglePause(); }
     this.clearRevealAt = 0;
+    this.defeatRevealAt = 0;
+    this.coreHitUntil = 0;
     this.state = ARENA.Save.reset();
     this.waveSystem = ARENA.Waves.create(this.state);
     this.spawnAccumulatorMs = 0;
@@ -414,21 +425,17 @@
     var e = ARENA.Endless.ensure(this.state), c = CONFIG.endless;
     var boss = this.enemies.find(function (target) { return target.active && target.gigaboss; });
     var failed = this.state.wavePhase === "failed";
-    this.bossTelegraph.clear();
-    if (boss) {
-      var charging = e.attack >= c.bossAttackSeconds - c.bossWindupSeconds;
-      this.bossTelegraph.lineStyle(charging ? 5 : 2, charging ? 0xd82929 : 0x16899a, 0.9);
-      this.bossTelegraph.strokeCircle(this.core.x, this.core.y, CONFIG.core.radius);
-      if (charging) { this.bossTelegraph.lineBetween(boss.x, boss.y, this.core.x, this.core.y); }
-    }
-    document.getElementById("arenaEndless").hidden = this.state.wave < c.pressureFirstWave;
-    document.getElementById("arenaDefense").textContent = failed ? "DEFENSE LOST. Purchases and completed waves retained. Retry pays nothing; defeating enemies earns Energy." : boss ?
+    this.drawDefense(boss);
+    var resultReady = failed && this.time.now >= this.defeatRevealAt;
+    document.getElementById("arenaEndless").hidden = this.state.wave < c.pressureFirstWave && !e.offers.length && !e.modules.length && !failed;
+    document.getElementById("arenaDefense").textContent = failed ? (resultReady ? ARENA.Endless.failureReason(this.state) + ". Purchases and completed waves retained. Retry pays nothing; defeating enemies earns Energy." : ARENA.Endless.failureReason(this.state)) : boss ?
       "CORE " + Math.ceil(e.core) + "% / GIGABOSS " + Math.ceil(boss.health) + " HP / " +
       (e.attack >= c.bossAttackSeconds - c.bossWindupSeconds ? "STRIKE IN " + ((c.bossAttackSeconds - e.attack) / (1 + Math.max(0, this.enemies.filter(function (target) { return target.active; }).length - 1) * c.summonHaste)).toFixed(1) + "s / HIT TO INTERRUPT OR PULSE" : "Preparing strike") :
       "OVERRUN " + Math.ceil(e.pressure) + "% / Keep the field clear. Pressure weakens the next Core defense.";
     document.getElementById("arenaBossIntel").textContent = "Gigaboss at wave " + (Math.ceil(this.state.wave / c.cycleLength) * c.cycleLength) + ": " + ARENA.Endless.traits(this.state.wave).map(function (t) { return t.name + " / " + t.hint; }).join(" / ");
-    document.getElementById("arenaRetry").hidden = !failed;
-    document.getElementById("arenaTrain").hidden = !failed || this.state.wave % c.cycleLength !== 0;
+    document.getElementById("arenaBossIntel").hidden = failed;
+    document.getElementById("arenaRetry").hidden = !resultReady;
+    document.getElementById("arenaTrain").hidden = !resultReady || this.state.wave % c.cycleLength !== 0;
     var signature = e.offers.join(",") + ":" + e.round + ":" + this.state.wavePhase;
     if (signature !== this.draftSignature) {
       this.draftSignature = signature;
@@ -437,7 +444,7 @@
       label.textContent = e.modules.length ? "Build: " + e.modules.map(function (id) { return c.modules.find(function (m) { return m.id === id; }).name; }).join(" + ") : "";
       draft.appendChild(label);
       if (e.offers.length && this.state.wavePhase === "cleared") {
-        var note = document.createElement("p"); note.textContent = "Choose slot " + (e.round % c.slots + 1) + (e.modules.length >= c.slots ? " replacement. Only three modules stay active." : ". Three active slots; future choices replace a slot."); draft.appendChild(note);
+        var note = document.createElement("p"); note.textContent = "Optional: choose slot " + (e.round % c.slots + 1) + (e.modules.length >= c.slots ? " replacement. Only three modules stay active." : ". Three active slots; future choices replace a slot.") + " Release Wave anytime; these offers remain available between waves."; draft.appendChild(note);
         if (e.modules.length >= c.slots) {
           var keep = document.createElement("button"); keep.type = "button"; keep.textContent = "KEEP CURRENT BUILD";
           keep.onclick = function () { e.offers = []; e.round++; ARENA.Save.save(this.state); this.refreshUi(); }.bind(this); draft.appendChild(keep);
@@ -449,6 +456,48 @@
           draft.appendChild(button);
         }, this);
       }
+    }
+  };
+
+  ArenaScene.prototype.drawDefense = function (boss) {
+    var e = this.state.endless, c = CONFIG.endless, g = this.bossTelegraph;
+    var failed = this.state.wavePhase === "failed";
+    var bossWave = this.state.wave % c.cycleLength === 0;
+    var visible = this.state.wavePhase !== "cleared" && (bossWave || this.state.wave >= c.pressureFirstWave);
+    g.clear(); this.defenseLabel.setVisible(visible); this.coreLabel.setVisible(visible && bossWave);
+    if (!visible) { return; }
+    // Phaser can resize via CSS transforms without triggering ResizeObserver.
+    var textScale = Math.max(1, Math.min(2, CONFIG.canvas.width / Math.max(1, this.game.canvas.getBoundingClientRect().width)));
+    this.defenseLabel.setFontSize(20 * textScale).setWordWrapWidth(CONFIG.canvas.width - 100);
+    this.coreLabel.setFontSize(18 * textScale);
+    var active = this.enemies.filter(function (enemy) { return enemy.active; });
+    var crowded = active.length / ARENA.Waves.getDefinition(this.state.wave).maxActive >= c.pressureThreshold;
+    var danger = bossWave ? e.core / CONFIG.core.maxHealth : e.pressure / 100;
+    var color = failed || (bossWave ? danger < 0.4 : danger >= 0.65) ? 0xd82929 : 0x16899a;
+    this.defenseLabel.setText(failed ? ARENA.Endless.failureReason(this.state) : bossWave ?
+      "PROTECT THE CORE / INTERRUPT CHARGED STRIKES" : "OVERRUN " + Math.ceil(e.pressure) + "% / " + (crowded ? "FIELD CROWDED - CLEAR ENEMIES" : e.pressure > 0 ? "PRESSURE FALLING" : "KEEP THE FIELD CLEAR"));
+    // A field meter and outlines connect pressure to the surviving targets.
+    var meterY = this.defenseLabel.y + this.defenseLabel.height + 6;
+    g.fillStyle(0x111c25, 0.9); g.fillRect(240, meterY, 480, 9);
+    g.fillStyle(color, 1); g.fillRect(240, meterY, 480 * danger, 9);
+    if (!bossWave && (e.pressure > 0 || crowded)) {
+      g.lineStyle(failed ? 7 : 2 + danger * 4, color, 0.25 + danger * 0.65);
+      g.strokeRect(8, 8, CONFIG.canvas.width - 16, CONFIG.canvas.height - 16);
+      active.forEach(function (enemy) { g.strokeCircle(enemy.x, enemy.y, (enemy.radius || 16) + 8); });
+    }
+    if (bossWave) {
+      var charging = !failed && e.attack >= c.bossAttackSeconds - c.bossWindupSeconds;
+      var struck = this.time.now < this.coreHitUntil || failed;
+      g.fillStyle(struck ? 0xd82929 : 0x16899a, 0.3);
+      g.fillCircle(this.core.x, this.core.y, CONFIG.core.radius);
+      g.lineStyle(charging || struck ? 5 : 2, charging || struck ? 0xd82929 : color, 1);
+      g.strokeCircle(this.core.x, this.core.y, CONFIG.core.radius);
+      if (boss && (charging || struck)) { g.lineBetween(boss.x, boss.y, this.core.x, this.core.y); }
+      if (failed) {
+        g.lineBetween(this.core.x - 16, this.core.y - 16, this.core.x + 16, this.core.y + 16);
+        g.lineBetween(this.core.x + 16, this.core.y - 16, this.core.x - 16, this.core.y + 16);
+      }
+      this.coreLabel.setText(failed ? "CORE DESTROYED / 0%" : "CORE " + Math.ceil(e.core) + "%" + (struck ? " / HIT" : charging ? "\nSTRIKE IN " + ((c.bossAttackSeconds - e.attack) / (1 + Math.max(0, active.length - 1) * c.summonHaste)).toFixed(1) + "s" : ""));
     }
   };
 

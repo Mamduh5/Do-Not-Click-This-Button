@@ -13,6 +13,11 @@ Edit enemy skin labels, unlock defaults, procedural colors, hit/death colors, ou
 Systems and UI should consume these data files and avoid hardcoded balance values.
 
 The `endless` section configures cycle length, Overrun, Core strikes, boss traits,
-scaling, draft cadence, and module effects. `unlockWave` on an upgrade controls
-progressive disclosure and purchase eligibility. Existing movement and spawn
-caps remain readability limits, not progression endpoints.
+scaling, draft cadence, and module effects. Upgrades are available whenever the
+player can afford them. Random module offers are optional and stay available
+between waves if the player releases a wave without choosing. Existing movement
+and spawn caps remain readability limits, not progression endpoints.
+
+`operations.defeatRevealDelayMs` controls the beat before retry controls appear;
+`coreStrikeFeedbackMs` controls the visible Core hit. Defeat preserves the enemies
+on the battlefield until retry. Overrun and Core integrity provide the cause.

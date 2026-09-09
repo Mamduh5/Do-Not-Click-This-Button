@@ -334,6 +334,10 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding
 
 /* Operation feedback and the between-wave shopping path. */
 .arena-stage[data-phase="cleared"] .operation-dot { background: #92e8b8; }
+.arena-stage[data-phase="failed"] .operation-dot { background: #f06c6c; }
+.arena-stage[data-phase="failed"] .operation-heading,
+.arena-stage[data-phase="failed"] #arenaDefense { color: #f78b8b; }
+.arena-stage[data-phase="failed"] .arena-log { border-color: #d82929; color: #ffb8b8; }
 .arena-stage[data-phase="cleared"] .operation-heading { color: #92e8b8; }
 .arena-stage[data-phase="champion"] .operation-heading { color: #d6a2fa; }
 .arena-stage[data-phase="champion"] .operation-dot { background: #c084fc; box-shadow: 0 0 12px #c084fc88; }

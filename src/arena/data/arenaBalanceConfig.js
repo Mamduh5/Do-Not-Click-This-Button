@@ -118,6 +118,8 @@
         "Stop charged attacks to protect your Core."
       ],
       clearRevealDelayMs: 360,
+      defeatRevealDelayMs: 1200,
+      coreStrikeFeedbackMs: 650,
       uiRefreshMs: 100,
       maxFrameDeltaMs: 100,
       comboRewardPerKill: 0.05,

@@ -24,7 +24,7 @@
   function canBuy(state, id) {
     var upgrade = get(id);
     var level = getLevel(state, id);
-    return Boolean(upgrade) && state.wave >= (upgrade.unlockWave || 1) && (upgrade.maxLevel === null || level < upgrade.maxLevel) && state.energy >= getCost(state, id);
+    return Boolean(upgrade) && (upgrade.maxLevel === null || level < upgrade.maxLevel) && state.energy >= getCost(state, id);
   }
 
   function buy(state, id) {

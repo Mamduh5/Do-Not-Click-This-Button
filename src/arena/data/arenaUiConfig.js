@@ -9,7 +9,7 @@
       active: "CONTAINMENT IN PROGRESS",
       cleared: "ROOM SECURED",
       paused: "OPERATION PAUSED",
-      clearHint: "Energy secured. Install an upgrade, then release the next swarm.",
+      clearHint: "Energy secured. Upgrades are optional. Release the next swarm whenever you are ready.",
       pauseHint: "Take your time. Enemies, helpers, and wave progress are frozen.",
       nextWave: "RELEASE NEXT WAVE",
       championWave: "RELEASE CHAMPION WAVE",
