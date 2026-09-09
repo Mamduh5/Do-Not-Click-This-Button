@@ -32,7 +32,8 @@
       y = safe.y;
     }
     var scalingWave = Math.max(1, Math.min(wave, CONFIG.operations ? CONFIG.operations.scalingWaveCap : wave));
-    var health = CONFIG.enemy.baseHealth * (1 + (scalingWave - 1) * CONFIG.enemy.waveHealthScale) * role.healthMultiplier;
+    var cycleScale = Math.pow(CONFIG.endless.healthGrowth, Math.floor((wave - 1) / CONFIG.endless.cycleLength));
+    var health = CONFIG.enemy.baseHealth * (1 + (Math.min(wave, CONFIG.endless.cycleLength) - 1) * CONFIG.enemy.waveHealthScale) * role.healthMultiplier * cycleScale;
     var shadow = scene.add.circle(x + FEEDBACK.shadowOffsetX, y + FEEDBACK.shadowOffsetY, CONFIG.enemy.radius * CONFIG.enemy.visualScale * FEEDBACK.shadowRadiusMultiplier, CONFIG.enemy.shadowColor, CONFIG.enemy.shadowAlpha);
     var enemy = scene.add.container(x, y);
     var graphics = scene.add.graphics();
@@ -52,7 +53,7 @@
     enemy.maxHealth = forcedHealth === undefined ? health : forcedHealth;
     enemy.health = enemy.maxHealth;
     enemy.speed = CONFIG.enemy.baseSpeed * speedVariance * (1 + (scalingWave - 1) * CONFIG.enemy.waveSpeedScale) * role.speedMultiplier;
-    enemy.reward = CONFIG.enemy.baseReward * (1 + (scalingWave - 1) * CONFIG.enemy.waveRewardScale) * role.rewardMultiplier;
+    enemy.reward = CONFIG.enemy.baseReward * (1 + (scalingWave - 1) * CONFIG.enemy.waveRewardScale) * role.rewardMultiplier * Math.pow(CONFIG.endless.powerGrowth, Math.floor((wave - 1) / CONFIG.endless.cycleLength));
     enemy.hitFlashUntil = 0;
     enemy.hitRadius = visualRadius(role, skin, scene) + CONFIG.enemy.clickPadding * role.clickPaddingMultiplier;
     enemy.shadow = shadow;
@@ -123,8 +124,8 @@
       var previousY = enemy.y;
       var wiggle = Math.sin(scene.time.now * CONFIG.enemy.wiggleSpeed + enemy.spawnSeed) * CONFIG.enemy.wiggleAmplitude;
       var angle = enemy.driftAngle + wiggle * FEEDBACK.wiggleAngleMultiplier;
-      var nextX = enemy.x + Math.cos(angle) * enemy.speed * deltaSeconds + enemy.knockbackX * deltaSeconds;
-      var nextY = enemy.y + Math.sin(angle) * enemy.speed * deltaSeconds + enemy.knockbackY * deltaSeconds;
+      var nextX = enemy.x + Math.cos(angle) * enemy.speed * deltaSeconds + (enemy.gigaboss ? 0 : enemy.knockbackX) * deltaSeconds;
+      var nextY = enemy.y + Math.sin(angle) * enemy.speed * deltaSeconds + (enemy.gigaboss ? 0 : enemy.knockbackY) * deltaSeconds;
       var inset = visualRadius(enemy.enemyRole, enemy.enemySkin, scene) + FEEDBACK.visibleEdgePadding;
       if (nextX < inset || nextX > CONFIG.canvas.width - inset) {
         enemy.driftAngle = Math.PI - enemy.driftAngle;

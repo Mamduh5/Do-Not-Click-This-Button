@@ -4,7 +4,21 @@
   window.DNC = window.DNC || {};
 
   DNC.BALANCE_CONFIG = {
-    saveVersion: 2,
+    saveVersion: 3,
+    machine: {
+      revealPower: 25, dangerOutputBonus: 2, purgeDanger: 55, purgePowerRetained: 0.5,
+      redline: 75, surgeAt: 90, surgeWarningSeconds: 6, surgeHeat: 7,
+      stabilizeCooling: 9, stabilizeOutput: 0.2, riskDivisor: 120,
+      draftFirst: 120, draftStep: 240, slots: 2,
+      modules: [
+        { id: "contact", name: "Hot contact", text: "Manual output x1.6; click heat x1.2.", click: 1.6, heat: 1.2 },
+        { id: "governor", name: "Governor", text: "Auto output x1.5; passive heat x0.7.", auto: 1.5, passive: 0.7 },
+        { id: "capacitor", name: "Capacitor", text: "Output x1.25 below 75% Danger; stabilization cools x1.5 faster.", safe: 1.25, cooling: 1.5 },
+        { id: "redline", name: "Redline coil", text: "Risk earnings x1.7; surges arrive 1 second sooner.", risk: 1.7, warning: -1 },
+        { id: "recycler", name: "Heat recycler", text: "Redline output x1.4; stabilization retains 40% output.", hot: 1.4, retained: 0.4 },
+        { id: "buffer", name: "Surge buffer", text: "Surges add 40% less heat; manual output x1.15.", surge: 0.6, click: 1.15 }
+      ]
+    },
 
     initialState: {
       power: 0,
@@ -59,15 +73,15 @@
     },
 
     operatorGuide: {
-      firstContact: { title: "A little disobedience goes a long way.", text: "Click for Power. Install upgrades. At 100% instability, the system breaches and you keep permanent Shards.", tab: "power", action: "EXPLORE UPGRADES" },
+      firstContact: { title: "A little disobedience goes a long way.", text: "Click for Power. Install upgrades. Watch Danger as the machine grows.", tab: "power", action: "EXPLORE UPGRADES" },
       firstUpgrade: { title: "Make every forbidden click count.", text: "Power Tap improves your output without adding more instability per click. Install it as soon as you can afford it.", tab: "power", action: "VIEW POWER UPGRADES" },
       automation: { title: "Let the machine share the blame.", text: "Automation creates Power between clicks, but also heats the system. Containment can offset that pressure.", tab: "auto", action: "VIEW AUTOMATION" },
-      unstable: { title: "Contain it. Or let it break.", text: "Containment buys more time to earn Power. A breach resets run upgrades and converts your progress into permanent Shards.", tab: "contain", action: "VIEW CONTAINMENT" },
-      critical: { title: "The next breach is your decision.", text: "Keep pressing to harvest the forecast below, or install containment to extend the run and raise the reward.", tab: "contain", action: "VIEW CONTAINMENT" },
+      unstable: { title: "Contain it. Or let it break.", text: "Higher Danger boosts output. Stabilize to cool at reduced output, or cash out and keep your earned bonus.", tab: "contain", action: "VIEW CONTAINMENT" },
+      critical: { title: "The next breach is your decision.", text: "Production above 75% earns an unbanked bonus. Watch the surge warning. Cash out before control slips away.", tab: "contain", action: "VIEW CONTAINMENT" },
       permanent: { title: "The system forgot. Your Shards did not.", text: "Spend Shards on permanent upgrades, then build the next run. These effects survive every breach.", tab: "shard", action: "SPEND SHARDS" },
-      growing: { title: "Build Power. Bend the rules.", text: "Safe upgrades extend a run. Risk upgrades accelerate it. Every Power you earn improves future breach rewards.", tab: "risk", action: "EXPLORE RISK UPGRADES" },
-      forecastLabel: "IF YOU BREACH NOW",
-      forecastBasis: "Based on lifetime Power + previous breaches. Spending Power never lowers this reward.",
+      growing: { title: "Build Power. Bend the rules.", text: "Safe upgrades extend a run. Risk upgrades accelerate it. Power earned this run improves its guaranteed reward.", tab: "risk", action: "EXPLORE RISK UPGRADES" },
+      forecastLabel: "GUARANTEED IF YOU BREACH",
+      forecastBasis: "Base Shards come from this run. Cash out to keep the production-earned risk bonus too.",
       nextShardLabel: "NEXT SHARD",
       clicksLabel: "clicks to breach at current heat",
       coolingLabel: "cooling / sec",
@@ -102,8 +116,8 @@
 
     breachRewards: {
       totalPowerDivisor: 80,
-      breachCountBonus: 0.5,
-      minimumShards: 1
+      breachCountBonus: 0,
+      minimumShards: 0
     },
 
     feedback: {

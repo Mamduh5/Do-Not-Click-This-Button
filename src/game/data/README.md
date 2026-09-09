@@ -13,3 +13,11 @@ Permanent shard upgrades are applied during stat recomputation before current-ru
 Edit auto cursor timing, audio volumes/frequencies/durations, shard UI labels, system menu labels, and reset confirmation copy in `src/game/data/balanceConfig.js`.
 
 Future feel systems, including sound, animation cadence, and feedback timing, must remain config-driven. UI modules should read tuning from data/config and avoid embedding balance or feel constants directly.
+
+The `machine` section configures redline earnings, deterministic surges,
+stabilization, emergency purge, draft milestones, and module definitions.
+Breach rewards now use current-run Power, despite the legacy `totalPowerDivisor`
+field name. The zero minimum prevents empty-run reward farming. Machine Craft's
+`productionAdd` effect is applied to final manual/automatic output after run
+upgrades so that automation also benefits; the older permanent effects retain
+their existing application order.

@@ -66,6 +66,7 @@
     var fieldResizeObserver = new ResizeObserver(updateReadabilityScale);
     fieldResizeObserver.observe(this.game.canvas);
     this.pulsePreview.setVisible(false);
+    this.bossTelegraph = this.add.graphics().setDepth(30);
     this.input.on("pointerdown", this.handlePointerDown, this);
 
     this.hud = ARENA.createArenaHud({
@@ -100,6 +101,11 @@
       window.removeEventListener("pagehide", this.handlePageHide);
       document.removeEventListener("visibilitychange", this.handleVisibility);
     }, this);
+    var status = document.createElement("section"); status.id = "arenaEndless"; status.className = "arena-endless";
+    status.innerHTML = '<p id="arenaDefense" aria-live="polite"></p><p id="arenaBossIntel"></p><div id="arenaDraft"></div><button type="button" id="arenaRetry">RETRY WAVE</button><button type="button" id="arenaTrain">TRAIN ON PREVIOUS WAVE</button>';
+    document.querySelector(".operation-bar").appendChild(status);
+    document.getElementById("arenaRetry").onclick = function () { ARENA.Endless.retry(this, false); }.bind(this);
+    document.getElementById("arenaTrain").onclick = function () { ARENA.Endless.retry(this, true); }.bind(this);
     this.refreshUi();
     exposeDebugApi(this);
   };
@@ -118,6 +124,7 @@
     this.spawnEnemies();
     ARENA.DestructibleBackground.update(this.destructibleBackgroundSystem, time);
     ARENA.WaterSurface.update(this.waterSurfaceSystem, time);
+    ARENA.Endless.tick(this, deltaMs / 1000);
     ARENA.Enemies.update(this, this.enemies, deltaMs);
     this.enemies = this.enemies.filter(function (enemy) {
       return enemy.active;
@@ -147,6 +154,7 @@
     this.spawnAccumulatorMs = 0;
     var role = ARENA.Waves.nextRole(this.state, this.waveSystem.spawned);
     var enemy = ARENA.Enemies.spawn(this, this.state.wave, role);
+    if (role === "champion") { ARENA.Endless.setupBoss(this, enemy); }
     enemy.operationTarget = true;
     enemy.operationWave = this.state.wave;
     this.waveSystem.spawned += 1;
@@ -180,6 +188,9 @@
   ArenaScene.prototype.registerOperationKill = function (enemy) {
     var result = ARENA.Waves.registerKill(this.waveSystem, this.state, enemy);
     if (result.cleared) {
+      this.enemies.forEach(function (target) { if (target.active) { target.destroy(); } });
+      this.enemies = [];
+      this.stats = ARENA.Upgrades.computeStats(this.state);
       this.clearRevealAt = this.time.now + CONFIG.operations.clearRevealDelayMs;
       this.soundSystem.play("waveClear");
       this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY / INSTALL UPGRADES");
@@ -189,6 +200,7 @@
   };
 
   ArenaScene.prototype.nextWave = function () {
+    if (this.state.endless.offers.length) { this.hud.log("CHOOSE A MODULE BEFORE RELEASE"); return; }
     if (this.paused || !ARENA.Waves.next(this.waveSystem, this.state)) { return; }
     this.clearRevealAt = 0;
     this.combo = 0;
@@ -398,6 +410,46 @@
     this.pulsePreview.setVisible(!this.paused && this.state.wavePhase === "active" && this.state.pulseCharge >= CONFIG.operations.pulseMaxCharge);
     this.hud.update(this.state, this.combo, this);
     this.panel.update(this.state);
+    if (!document.getElementById("arenaEndless")) { return; }
+    var e = ARENA.Endless.ensure(this.state), c = CONFIG.endless;
+    var boss = this.enemies.find(function (target) { return target.active && target.gigaboss; });
+    var failed = this.state.wavePhase === "failed";
+    this.bossTelegraph.clear();
+    if (boss) {
+      var charging = e.attack >= c.bossAttackSeconds - c.bossWindupSeconds;
+      this.bossTelegraph.lineStyle(charging ? 5 : 2, charging ? 0xd82929 : 0x16899a, 0.9);
+      this.bossTelegraph.strokeCircle(this.core.x, this.core.y, CONFIG.core.radius);
+      if (charging) { this.bossTelegraph.lineBetween(boss.x, boss.y, this.core.x, this.core.y); }
+    }
+    document.getElementById("arenaEndless").hidden = this.state.wave < c.pressureFirstWave;
+    document.getElementById("arenaDefense").textContent = failed ? "DEFENSE LOST. Purchases and completed waves retained. Retry pays nothing; defeating enemies earns Energy." : boss ?
+      "CORE " + Math.ceil(e.core) + "% / GIGABOSS " + Math.ceil(boss.health) + " HP / " +
+      (e.attack >= c.bossAttackSeconds - c.bossWindupSeconds ? "STRIKE IN " + ((c.bossAttackSeconds - e.attack) / (1 + Math.max(0, this.enemies.filter(function (target) { return target.active; }).length - 1) * c.summonHaste)).toFixed(1) + "s / HIT TO INTERRUPT OR PULSE" : "Preparing strike") :
+      "OVERRUN " + Math.ceil(e.pressure) + "% / Keep the field clear. Pressure weakens the next Core defense.";
+    document.getElementById("arenaBossIntel").textContent = "Gigaboss at wave " + (Math.ceil(this.state.wave / c.cycleLength) * c.cycleLength) + ": " + ARENA.Endless.traits(this.state.wave).map(function (t) { return t.name + " / " + t.hint; }).join(" / ");
+    document.getElementById("arenaRetry").hidden = !failed;
+    document.getElementById("arenaTrain").hidden = !failed || this.state.wave % c.cycleLength !== 0;
+    var signature = e.offers.join(",") + ":" + e.round + ":" + this.state.wavePhase;
+    if (signature !== this.draftSignature) {
+      this.draftSignature = signature;
+      var draft = document.getElementById("arenaDraft"); draft.replaceChildren();
+      var label = document.createElement("p");
+      label.textContent = e.modules.length ? "Build: " + e.modules.map(function (id) { return c.modules.find(function (m) { return m.id === id; }).name; }).join(" + ") : "";
+      draft.appendChild(label);
+      if (e.offers.length && this.state.wavePhase === "cleared") {
+        var note = document.createElement("p"); note.textContent = "Choose slot " + (e.round % c.slots + 1) + (e.modules.length >= c.slots ? " replacement. Only three modules stay active." : ". Three active slots; future choices replace a slot."); draft.appendChild(note);
+        if (e.modules.length >= c.slots) {
+          var keep = document.createElement("button"); keep.type = "button"; keep.textContent = "KEEP CURRENT BUILD";
+          keep.onclick = function () { e.offers = []; e.round++; ARENA.Save.save(this.state); this.refreshUi(); }.bind(this); draft.appendChild(keep);
+        }
+        e.offers.forEach(function (id) {
+          var def = c.modules.find(function (m) { return m.id === id; });
+          var button = document.createElement("button"); button.type = "button"; button.textContent = def.name + " / " + def.text;
+          button.onclick = function () { if (ARENA.Endless.choose(this.state, id)) { this.stats = ARENA.Upgrades.computeStats(this.state); ARENA.Save.save(this.state); this.refreshUi(); } }.bind(this);
+          draft.appendChild(button);
+        }, this);
+      }
+    }
   };
 
   function drawRoom(scene) {

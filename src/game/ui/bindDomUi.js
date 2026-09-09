@@ -115,6 +115,23 @@
       continueButton: getElement("breachContinueBtn")
     }, closeBreach);
 
+    var machinePanel = document.createElement("section");
+    machinePanel.className = "machine-panel";
+    machinePanel.innerHTML = '<p id="machineStatus" aria-live="polite"></p><div class="machine-actions"><button id="stabilizeBtn" type="button">STABILIZE</button><button id="cashOutBtn" type="button">CASH OUT</button><button id="purgeBtn" type="button">EMERGENCY PURGE</button></div><p id="machineBuild"></p><div id="machineOffers"></div>';
+    elements.breachForecast.insertAdjacentElement("afterend", machinePanel);
+    var machineControls = document.createElement("div"); machineControls.className = "machine-controls";
+    machineControls.appendChild(getElement("machineStatus"));
+    machineControls.appendChild(machinePanel.querySelector(".machine-actions"));
+    elements.btnContainer.insertAdjacentElement("afterend", machineControls);
+    getElement("stabilizeBtn").onclick = function () { if (!awaitingBreach) { state.machine.stabilizing = !state.machine.stabilizing; save(); refresh(); } };
+    getElement("cashOutBtn").onclick = function () { if (DNC.Instability.getShardReward(state) > 0) { triggerBreach(true); } };
+    getElement("purgeBtn").onclick = function () {
+      if (!awaitingBreach && state.instability >= CONFIG.machine.surgeAt && !state.machine.rescued) {
+        state.machine.rescued = true; state.machine.risk = 0; state.machine.surge = 0; state.instability = CONFIG.machine.purgeDanger;
+        state.power *= CONFIG.machine.purgePowerRetained; state.machine.stabilizing = true; save(); refresh();
+      }
+    };
+    var offerSignature = "";
     renderUpgradeCards();
     renderShardUpgradeCards();
     applyMenuLabels();
@@ -241,12 +258,10 @@
       }
 
       sound.unlock();
-      state.power += state.powerPerClick;
-      state.totalPowerEarned += state.powerPerClick;
-      state.runPowerEarned += state.powerPerClick;
+      DNC.Machine.produce(state, state.powerPerClick, true);
       state.totalClicks += 1;
       state.runClicks += 1;
-      state.instability = DNC.clamp(state.instability + state.instabilityPerClick, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability);
+      state.instability = DNC.clamp(state.instability + state.instabilityPerClick * DNC.Machine.factors(state).heat, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability);
 
       if (!firstClickLogged) {
         firstClickLogged = true;
@@ -306,19 +321,8 @@
         return;
       }
 
-      var powerGain = state.powerPerSecond * deltaSeconds;
-      var instabilityGain = (state.instabilityPerSecond - state.containmentPerSecond) * deltaSeconds;
-
-      if (powerGain > 0) {
-        state.power += powerGain;
-        state.totalPowerEarned += powerGain;
-        state.runPowerEarned += powerGain;
-        updateAutoCursor(deltaSeconds);
-      }
-
-      if (instabilityGain !== 0) {
-        state.instability = DNC.clamp(state.instability + instabilityGain, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability);
-      }
+      DNC.Machine.tick(state, deltaSeconds);
+      if (state.powerPerSecond > 0) { updateAutoCursor(deltaSeconds); }
 
       if (state.instability >= CONFIG.instability.breachAt) {
         triggerBreach();
@@ -331,21 +335,28 @@
       DNC.Save.save(state);
     }
 
-    function triggerBreach() {
+    function triggerBreach(controlled) {
       if (awaitingBreach) {
         return;
       }
 
-      var shardsEarned = DNC.Instability.getShardReward(state);
+      var lostBonus = DNC.Machine.bonus(state);
+      var shardsEarned = DNC.Instability.getShardReward(state) + (controlled === true ? lostBonus : 0);
       var completedRun = { clicks: state.runClicks, power: state.runPowerEarned };
       awaitingBreach = true;
       closeMenu();
       DNC.resetRunAfterBreach(state, shardsEarned);
-      consoleLog.add("REALITY BREACH DETECTED. Containment failed.", "critical");
+      consoleLog.add(controlled === true ? "CONTROLLED SHUTDOWN. Base and risk bonus secured." : "REALITY BREACH DETECTED. Containment failed.", controlled === true ? "normal" : "critical");
       breachModal.show(shardsEarned, state.anomalyShards, completedRun.clicks, state.breachCount, completedRun.power);
-      sound.play("breach");
+      var resultTitle = getElement("breachTitle");
+      if (resultTitle) { resultTitle.textContent = controlled === true ? "CONTROLLED SHUTDOWN" : "CATASTROPHIC BREACH"; }
+      getElement("breachOverlay").querySelector(".breach-retained").textContent = controlled === true ? "Base and risk bonus banked. Build your next machine." : "Base Shards retained. Lost " + lostBonus + " unbanked bonus Shards.";
+      getElement("breachOverlay").classList.toggle("controlled", controlled === true);
+      getElement("breachOverlay").querySelector("h3").textContent = controlled === true ? "Rewards secured." : "Containment failed.";
+      getElement("breachOverlay").setAttribute("aria-label", controlled === true ? "Controlled shutdown. Rewards secured." : "Catastrophic breach. Base rewards retained.");
+      sound.play(controlled === true ? "shardUpgrade" : "breach");
 
-      if (!state.reducedMotion) {
+      if (!state.reducedMotion && controlled !== true) {
         root.classList.add("shake");
         window.setTimeout(function () {
           root.classList.remove("shake");
@@ -496,8 +507,8 @@
       elements.instabilityDisplay.textContent = Math.floor(state.instability) + "%";
       elements.instabilityFill.style.width = DNC.clamp(state.instability, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability) + "%";
       elements.instabilityFill.style.background = bandData.fill;
-      elements.perClickDisplay.textContent = DNC.formatNumber(state.powerPerClick);
-      elements.perSecDisplay.textContent = formatRate(state.powerPerSecond);
+      elements.perClickDisplay.textContent = DNC.formatNumber(state.powerPerClick * DNC.Machine.multiplier(state, true));
+      elements.perSecDisplay.textContent = formatRate(state.powerPerSecond * DNC.Machine.multiplier(state, false));
       elements.clickCount.textContent = "TOTAL INTERACTIONS: " + DNC.formatNumber(state.totalClicks);
       elements.stateBadge.className = "state-badge " + band;
       elements.stateBadge.textContent = bandData.badge;
@@ -534,6 +545,38 @@
         }
       }
 
+      machineControls.hidden = state.runPowerEarned < CONFIG.machine.revealPower && state.breachCount === 0;
+      machinePanel.hidden = !state.machine.modules.length && !state.machine.offers.length;
+      var f = DNC.Machine.factors(state), m = state.machine;
+      getElement("machineStatus").textContent = "Output x" + DNC.Machine.multiplier(state, true).toFixed(2) + " / Unbanked +" + DNC.Machine.bonus(state) + " Shards (next " + Math.floor(100 * (m.risk - Math.pow(DNC.Machine.bonus(state), 2) * CONFIG.machine.riskDivisor) / ((2 * DNC.Machine.bonus(state) + 1) * CONFIG.machine.riskDivisor)) + "%)" +
+        (state.instability >= CONFIG.machine.surgeAt ? " / SURGE +" + (CONFIG.machine.surgeHeat * f.surge).toFixed(1) + "% in " + Math.max(0, f.warning - m.surge).toFixed(1) + "s" : " / Produce above 75% to earn risk bonus.");
+      getElement("stabilizeBtn").textContent = m.stabilizing ? "KEEP PUSHING" : "STABILIZE / " + Math.round(f.retained * 100) + "% OUTPUT";
+      getElement("cashOutBtn").textContent = "CASH OUT +" + (DNC.Instability.getShardReward(state) + DNC.Machine.bonus(state));
+      getElement("cashOutBtn").disabled = awaitingBreach || DNC.Instability.getShardReward(state) < 1;
+      getElement("purgeBtn").hidden = state.instability < CONFIG.machine.surgeAt;
+      getElement("purgeBtn").disabled = awaitingBreach || m.rescued;
+      getElement("purgeBtn").textContent = m.rescued ? "PURGE SPENT THIS RUN" : "PURGE / LOSE BONUS + HALF POWER";
+      getElement("machineBuild").textContent = m.modules.length ? "Machine: " + m.modules.map(function (id) { return CONFIG.machine.modules.find(function (v) { return v.id === id; }).name; }).join(" + ") : "";
+      var signature = m.offers.join(",") + ":" + m.round;
+      if (signature !== offerSignature) {
+        offerSignature = signature;
+        var offers = getElement("machineOffers"); offers.replaceChildren();
+        if (m.offers.length) {
+          var note = document.createElement("p");
+          note.textContent = "Choose a module for slot " + (m.round % CONFIG.machine.slots + 1) + (m.modules.length >= CONFIG.machine.slots ? " (replaces its current module)." : ". Two slots; choices last this run.");
+          offers.appendChild(note);
+          if (m.modules.length >= CONFIG.machine.slots) {
+            var keep = document.createElement("button"); keep.type = "button"; keep.textContent = "KEEP CURRENT MACHINE";
+            keep.onclick = function () { m.offers = []; m.round++; m.nextDraft = state.runPowerEarned + CONFIG.machine.draftStep * m.round; save(); refresh(); }; offers.appendChild(keep);
+          }
+          m.offers.forEach(function (id) {
+            var def = CONFIG.machine.modules.find(function (v) { return v.id === id; });
+            var button = document.createElement("button"); button.type = "button"; button.textContent = def.name + " / " + def.text;
+            button.onclick = function () { if (!awaitingBreach && DNC.Machine.choose(state, id)) { save(); refresh(); } };
+            offers.appendChild(button);
+          });
+        }
+      }
       refreshRunProgress(band);
       refreshCards();
       refreshShardCards();
@@ -652,7 +695,8 @@
           "<div class=\"panel-label\">" + CONFIG.shardUi.summaryTitle + "</div>",
           "<div>Click Power: x" + summaryValues.powerPerClickMultiplier.toFixed(2) + "</div>",
           "<div>Instability Click: x" + summaryValues.instabilityPerClickMultiplier.toFixed(2) + "</div>",
-          "<div>Starting Power: +" + DNC.formatNumber(summaryValues.startingPowerBonus) + "</div>"
+          "<div>Starting Power: +" + DNC.formatNumber(summaryValues.startingPowerBonus) + "</div>",
+          summaryValues.outputMultiplier > 1 ? "<div>Final manual + auto output: x" + summaryValues.outputMultiplier.toFixed(2) + "</div>" : ""
         ].join("");
       }
 
@@ -668,7 +712,7 @@
         card.classList.toggle("unaffordable", !affordable && !maxed);
         card.classList.toggle("purchased", maxed);
         card.disabled = maxed || !affordable;
-        costEl.innerHTML = maxed ? "MAXED" : "LV " + level + " / " + upgrade.maxLevel + "<br>Cost: \u25c6 " + DNC.formatNumber(cost) + " Shards";
+        costEl.innerHTML = maxed ? "MAXED" : "LV " + level + " / " + (upgrade.maxLevel === null ? "ENDLESS" : upgrade.maxLevel) + "<br>Cost: \u25c6 " + DNC.formatNumber(cost) + " Shards";
 
         if (maxed && !existingOwnedTag) {
           var tag = document.createElement("span");
@@ -682,11 +726,11 @@
     }
 
     function showClickFeedback() {
-      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerClick), "");
+      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerClick * DNC.Machine.multiplier(state, true)), "");
     }
 
     function showAutoFeedback() {
-      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerSecond) + " AUTO", "auto");
+      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerSecond * DNC.Machine.multiplier(state, false)) + " AUTO", "auto");
     }
 
     function showFloatingFeedback(text, extraClass) {

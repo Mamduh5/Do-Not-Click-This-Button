@@ -21,6 +21,7 @@
       instabilityPerClick: BASE_STATS.instabilityPerClick,
       instabilityPerSecond: BASE_STATS.instabilityPerSecond,
       containmentPerSecond: BASE_STATS.containmentPerSecond,
+      machine: { risk: 0, surge: 0, stabilizing: false, rescued: false, round: 0, nextDraft: CONFIG.machine.draftFirst, modules: [], offers: [] },
       upgrades: {},
       shardUpgrades: {},
       totalClicks: BASE_STATS.totalClicks,
@@ -86,6 +87,7 @@
       }
     });
 
+    if (DNC.Machine) { state.machine = DNC.Machine.validate(source.machine); }
     DNC.recalculateStats(state);
     // Starting Power is a run-start grant, never a refund when a save is loaded.
     return state;
@@ -111,6 +113,12 @@
       });
     }
 
+    var craft = 1;
+    DNC.SHARD_UPGRADE_DEFS.forEach(function (upgrade) {
+      if (upgrade.effect.type === "productionAdd") { craft += (state.shardUpgrades[upgrade.id] || 0) * upgrade.effect.value; }
+    });
+    state.powerPerClick *= craft;
+    state.powerPerSecond *= craft;
     state.instabilityPerClick = clamp(state.instabilityPerClick, STAT_CAPS.minimumInstabilityPerClick, STAT_CAPS.maximumInstabilityPerClick);
     state.instability = clamp(state.instability, STAT_CAPS.minimumInstability, STAT_CAPS.maximumInstability);
   }
@@ -132,6 +140,7 @@
   }
 
   function resetCurrentRun(state) {
+    state.machine = createDefaultState().machine;
     state.power = BASE_STATS.power;
     state.instability = BASE_STATS.instability;
     state.upgrades = {};

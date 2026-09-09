@@ -31,6 +31,7 @@
         var maxed = upgrade.maxLevel !== null && level >= upgrade.maxLevel;
         var cost = ARENA.Upgrades.getCost(state, upgrade.id);
         var card = cards[upgrade.id];
+        card.hidden = state.wave < (upgrade.unlockWave || 1);
         var costElement = document.getElementById("arena-cost-" + upgrade.id);
 
         var nextState = Object.assign({}, state, { upgrades: Object.assign({}, state.upgrades) });

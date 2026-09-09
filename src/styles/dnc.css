@@ -1158,3 +1158,18 @@ button:focus-visible, a:focus-visible { outline: 2px solid #73ecf1; outline-offs
 }
 
 .guide-action.upgrade-ready { color: #bcf6dc; border: 1px solid #64cfa788; border-radius: 3px; background: #15342c; text-decoration: none; padding: 9px 14px; }
+
+.machine-panel { margin: 12px 0; padding: 12px; border: 1px solid #475569; font-size: 12px; line-height: 1.5; }
+.machine-actions, #machineOffers { display: flex; flex-wrap: wrap; gap: 8px; }
+.machine-panel button { min-height: 44px; padding: 10px; flex: 1 1 140px; background: #182331; color: #d5f7ec; border: 1px solid #607b82; cursor: pointer; }
+.machine-panel button:disabled { opacity: .45; }
+#machineOffers p { flex-basis: 100%; }
+.machine-panel [hidden], .machine-panel[hidden] { display: none; }
+
+.machine-controls { width: 100%; max-width: 520px; padding: 8px 0; font-size: 11px; line-height: 1.5; }
+.machine-controls button { min-height: 44px; padding: 9px; flex: 1 1 130px; background: #182331; color: #d5f7ec; border: 1px solid #607b82; cursor: pointer; }
+.machine-controls button:disabled { opacity: .45; }
+.machine-controls [hidden], .machine-controls[hidden] { display: none; }
+.breach-overlay.controlled .breach-text, .breach-overlay.controlled h3 { color: #72dfbd; }
+.breach-overlay.controlled .breach-modal { border-color: #72dfbd; }
+.breach-overlay.controlled .breach-btn { background: #21624f; }

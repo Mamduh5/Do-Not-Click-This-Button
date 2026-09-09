@@ -24,6 +24,7 @@
       unlockedEnemySkins: ARENA.EnemySkins.getDefaultUnlocked(),
       activeBackgroundSkin: ARENA.BackgroundSkins.getDefaultSkinId(),
       unlockedBackgroundSkins: ARENA.BackgroundSkins.getDefaultUnlocked(),
+      endless: null,
       upgrades: {}
     };
   }
@@ -49,6 +50,9 @@
       var target = ARENA.Waves.getDefinition(state.wave).target;
       state.waveKills = Math.min(target, safeInteger(source.waveKills, 0));
       state.wavePhase = state.waveKills >= target ? "cleared" : "active";
+      if (safeInteger(source.version, 0) === 2 && state.wave % CONFIG.endless.cycleLength === 0 && source.wavePhase !== "cleared") {
+        state.waveKills = 0; state.wavePhase = "active";
+      }
       state.highestWaveCleared = Math.min(state.wave, safeInteger(source.highestWaveCleared, 0));
       if (state.wavePhase === "cleared") {
         state.highestWaveCleared = Math.max(state.highestWaveCleared, state.wave);
@@ -94,6 +98,10 @@
       }
     });
 
+    if (ARENA.Endless) {
+      state.endless = ARENA.Endless.validate(source.endless);
+      if (source.wavePhase === "failed") { state.wavePhase = "failed"; }
+    }
     ARENA.ClickEffectSkins.ensureState(state);
     ARENA.EnemySkins.ensureState(state);
     ARENA.BackgroundSkins.ensureState(state);

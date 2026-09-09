@@ -21,7 +21,7 @@
       return Infinity;
     }
 
-    return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, level));
+    return id === "machineCraft" ? upgrade.baseCost * (level + 1) : Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, level));
   }
 
   function canBuyUpgrade(state, id) {
@@ -75,6 +75,7 @@
     var summary = {
       instabilityPerClickMultiplier: 1,
       powerPerClickMultiplier: 1,
+      outputMultiplier: 1,
       startingPowerBonus: 0
     };
 
@@ -90,6 +91,8 @@
         summary.instabilityPerClickMultiplier *= Math.pow(effect.value, level);
       } else if (effect.type === "powerPerClickMultiplier") {
         summary.powerPerClickMultiplier *= Math.pow(effect.value, level);
+      } else if (effect.type === "productionAdd") {
+        summary.outputMultiplier += effect.value * level;
       } else if (effect.type === "startingPowerAdd") {
         summary.startingPowerBonus += effect.value * level;
       }

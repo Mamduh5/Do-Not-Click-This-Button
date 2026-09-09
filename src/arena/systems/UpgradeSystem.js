@@ -18,13 +18,13 @@
   function getCost(state, id) {
     var upgrade = get(id);
     var level = getLevel(state, id);
-    return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, level));
+    return id === "fieldTraining" ? upgrade.baseCost * (level + 1) : Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, level));
   }
 
   function canBuy(state, id) {
     var upgrade = get(id);
     var level = getLevel(state, id);
-    return Boolean(upgrade) && (upgrade.maxLevel === null || level < upgrade.maxLevel) && state.energy >= getCost(state, id);
+    return Boolean(upgrade) && state.wave >= (upgrade.unlockWave || 1) && (upgrade.maxLevel === null || level < upgrade.maxLevel) && state.energy >= getCost(state, id);
   }
 
   function buy(state, id) {
@@ -72,6 +72,7 @@
       });
     });
 
+    if (ARENA.Endless) { ARENA.Endless.applyStats(state, stats); }
     stats.doubleTapChance = Math.min(0.9, Math.max(0, stats.doubleTapChance));
     stats.shockRadius = Math.max(0, stats.shockRadius);
     stats.helperCursors = Math.max(0, Math.floor(stats.helperCursors));
@@ -80,7 +81,9 @@
   }
 
   function applyEffect(stats, effect, level) {
-    if (effect.type === "clickDamageAdd") {
+    if (effect.type === "helperDamageAdd") {
+      stats.helperClickDamage += effect.value * level;
+    } else if (effect.type === "clickDamageAdd") {
       stats.clickDamage += effect.value * level;
     } else if (effect.type === "clickRadiusAdd") {
       stats.clickRadius += effect.value * level;

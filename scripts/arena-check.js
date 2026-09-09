@@ -44,6 +44,7 @@ global.localStorage = {
   "src/arena/data/arenaBalanceConfig.js",
   "src/arena/data/enemyRoles.js",
   "src/arena/systems/WaveSystem.js",
+  "src/arena/systems/EndlessSystem.js",
   "src/arena/data/arenaUpgrades.js",
   "src/arena/data/clickEffectSkins.js",
   "src/arena/data/enemySkins.js",
@@ -566,12 +567,45 @@ const restoredOperation = ARENA.Save.validateState(JSON.parse(JSON.stringify(ope
 assert(restoredOperation.wavePhase === "cleared" && restoredOperation.energy === operation.energy, "reload preserves the paid upgrade break");
 assert(!ARENA.Waves.canSpawn(waves, restoredOperation, 0), "cleared rooms stay empty");
 assert(ARENA.Waves.next(waves, restoredOperation) && restoredOperation.wave === 2, "next wave requires explicit release");
-const championState = Object.assign(ARENA.Save.createDefaultState(), { wave: 5 });
-const championWaves = { spawned: ARENA.Waves.getDefinition(5).target - 1 };
+const championState = Object.assign(ARENA.Save.createDefaultState(), { wave: 7 });
+const championWaves = { spawned: ARENA.Waves.getDefinition(7).target - 1 };
 assert(!ARENA.Waves.canSpawn(championWaves, championState, 1), "champion waits for the swarm");
 assert(ARENA.Waves.canSpawn(championWaves, championState, 0), "champion spawns in an empty room");
-assert(ARENA.Waves.nextRole(championState, championWaves.spawned) === "champion", "fifth wave ends with champion");
+assert(ARENA.Waves.nextRole(championState, championWaves.spawned) === "champion", "seventh wave is a Gigaboss");
 assert(ARENA.Waves.comboMultiplier(2) > 1 && ARENA.Waves.comboMultiplier(999) === 1.5, "chain rewards grow and cap");
 assert(ARENA.Save.validateState({ version: 1, wave: 99, energy: 42 }).wave === 1, "legacy timed waves migrate to operation one");
 assert(ARENA.Save.validateState({ version: 1, wave: 99, energy: 42 }).energy === 42, "migration preserves currency");
 console.log("Containment operation checks passed.");
+
+for (const wave of [7, 14, 21, 28, 700]) {
+  assert(ARENA.Waves.getDefinition(wave).champion && ARENA.Waves.getDefinition(wave).target === 1, "every seventh wave is a boss");
+  assert(ARENA.Endless.traits(wave).length <= 2, "boss traits stay bounded");
+}
+assert(ARENA.Waves.getDefinition(700).clearReward > ARENA.Waves.getDefinition(35).clearReward, "earned rewards continue past old cap");
+const legacyBoss = ARENA.Save.validateState({ version: 2, wave: 7, waveKills: 3, wavePhase: "active", energy: 90, upgrades: { heavierCursor: 2 } });
+assert(legacyBoss.wavePhase === "active" && legacyBoss.waveKills === 0 && legacyBoss.energy === 90, "legacy active boss wave cannot silently become cleared");
+const draft = ARENA.Save.createDefaultState(); draft.wave = 2; draft.wavePhase = "cleared";
+ARENA.Endless.cleared(draft, true);
+assert(!ARENA.Waves.next({ spawned: 0 }, draft), "must resolve earned draft before release");
+const savedOffers = ARENA.Save.validateState(JSON.parse(JSON.stringify(draft))).endless.offers;
+assert(JSON.stringify(savedOffers) === JSON.stringify(draft.endless.offers), "Arena offers persist");
+assert(ARENA.Endless.choose(draft, draft.endless.offers[0]), "offered module installs");
+assert(!ARENA.Endless.choose(draft, draft.endless.modules[0]), "draft cannot pay twice");
+const combat = ARENA.Save.createDefaultState(); combat.wave = 7; combat.energy = 50; combat.wavePhase = "failed";
+const mockScene = { state: combat, enemies: [], hud: { log() {} }, refreshUi() {}, combo: 0 };
+ARENA.Endless.retry(mockScene, true);
+assert(combat.wave === 6 && combat.endless.trainingBoss === 7 && combat.energy === 50, "training entry costs and awards no Energy");
+combat.wavePhase = "cleared"; combat.highestWaveCleared = 6;
+assert(ARENA.Waves.next(mockScene.waveSystem, combat) && combat.wave === 7, "training returns to the failed boss");
+const e = combat.endless; e.attack = 6; const boss = { gigaboss: true, maxHealth: 100 };
+ARENA.Endless.hit(mockScene, boss, 1, "pulse");
+assert(e.attack === 0, "Pulse interrupts charged attack regardless of build damage");
+e.attack = 6;
+ARENA.Endless.hit(mockScene, boss, 13, "manual");
+assert(e.attack === 0, "sufficient offense interrupts a strike");
+combat.wave = 3; e.pressure = 99;
+mockScene.enemies = Array.from({ length: 5 }, () => ({ active: true, destroy() { this.active = false; } }));
+ARENA.Endless.tick(mockScene, 1);
+assert(combat.wavePhase === "failed" && combat.energy === 50, "uncontrolled battlefield fails without deleting Energy");
+assert(ARENA.Save.validateState(JSON.parse(JSON.stringify(combat))).wavePhase === "failed", "reload retains failed state");
+console.log("Endless Arena checks passed.");

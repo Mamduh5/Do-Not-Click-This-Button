@@ -11,3 +11,8 @@ Edit click effect skin labels, unlock defaults, effect colors, particle counts, 
 Edit enemy skin labels, unlock defaults, procedural colors, hit/death colors, outlines, and visual scale in `enemySkins.js`.
 
 Systems and UI should consume these data files and avoid hardcoded balance values.
+
+The `endless` section configures cycle length, Overrun, Core strikes, boss traits,
+scaling, draft cadence, and module effects. `unlockWave` on an upgrade controls
+progressive disclosure and purchase eligibility. Existing movement and spawn
+caps remain readability limits, not progression endpoints.

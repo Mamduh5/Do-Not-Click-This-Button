@@ -59,11 +59,11 @@ module.exports = async function checkOperations(page) {
   await page.locator("#arenaPulseBtn").click();
   snapshot = await page.evaluate(() => window.__containmentArena.getSnapshot());
   assert(snapshot.pulseCharge === 0 && snapshot.enemySnapshots.length === 0, "charged pulse kills center target without recharging itself");
-  // Seed a fifth-wave finale through valid persisted state; existing skin stays cosmetic.
+  // Seed a seventh-wave Gigaboss through valid persisted state; existing skin stays cosmetic.
   await page.evaluate(() => {
     const scene = window.__containmentArena.scene;
-    scene.state.wave = 5;
-    scene.state.waveKills = ARENA.Waves.getDefinition(5).target - 1;
+    scene.state.wave = 7;
+    scene.state.waveKills = ARENA.Waves.getDefinition(7).target - 1;
     scene.state.wavePhase = "active";
     ARENA.Save.save(scene.state);
   });
@@ -76,7 +76,7 @@ module.exports = async function checkOperations(page) {
     const enemy = scene.enemies.find(e => e.active);
     for (let hit = 0; hit < 100 && enemy.active; hit += 1) { window.__containmentArena.clickAt(enemy.x, enemy.y); }
   });
-  assert((await page.evaluate(() => window.__containmentArena.getSnapshot())).wavePhase === "cleared", "champion kill clears fifth wave");
+  assert((await page.evaluate(() => window.__containmentArena.getSnapshot())).wavePhase === "cleared", "Gigaboss kill clears seventh wave");
   // Bound display-list lifetime after effects complete.
   await page.evaluate(() => {
     const scene = window.__containmentArena.scene;
@@ -111,7 +111,7 @@ module.exports = async function checkOperations(page) {
   // Show a representative active encounter in the responsive captures.
   await page.evaluate(() => {
     const scene = window.__containmentArena.scene;
-    scene.state.wave = 5;
+    scene.state.wave = 7;
     scene.state.waveKills = 0;
     scene.waveSystem = ARENA.Waves.create(scene.state);
     ["standard", "runner", "brute", "champion"].forEach((role, index) => {

@@ -4,7 +4,29 @@
   window.ARENA = window.ARENA || {};
 
   ARENA.BALANCE_CONFIG = {
-    saveVersion: 2,
+    saveVersion: 3,
+    endless: {
+      cycleLength: 7, pressureRate: 5,
+      slots: 3, draftFirstWave: 2, draftEveryWaves: 2, pressureFirstWave: 2,
+      armorDamageRetained: 0.7, bossRewardMultiplier: 5, bossOffsetY: 145,
+      summonActiveLimit: 8, summonCount: 2, multiTraitCycle: 4,
+      preparationCorePenalty: 0.5, capacitorHitCharge: 2, controlCoreRepair: 8, pressureRecovery: 3, pressureThreshold: 0.65,
+      bossHealth: 90, healthGrowth: 1.2, powerGrowth: 1.17, bossAttackSeconds: 9,
+      bossWindupSeconds: 3.5, bossDamage: 22, interruptFraction: 0.13, summonHaste: 0.08, siegeDamageMultiplier: 1.3,
+      bossTraits: [
+        { id: "siege", name: "Siege", hint: "Heavy Core strikes. Damage during the warning or Pulse interrupts them." },
+        { id: "swarm", name: "Brood", hint: "Summons runners after each strike. Each surviving runner speeds its next strike by 8%." },
+        { id: "armor", name: "Plated", hint: "Takes 30% less damage between strikes; armor opens while charging." }
+      ],
+      modules: [
+        { id: "precision", name: "Precision", text: "Click damage x1.5; click radius x0.8.", clickDamage: 1.5, clickRadius: 0.8 },
+        { id: "relay", name: "Relay", text: "Helper damage x2; helper interval x0.8.", helperClickDamage: 2, helperClickIntervalMs: 0.8 },
+        { id: "capacitor", name: "Pulse capacitor", text: "Pulse damage x1.7; manual hits add Pulse charge.", pulseDamageMultiplier: 1.7, hitCharge: 2 },
+        { id: "chain", name: "Chain conductor", text: "Shock damage x2; shock radius x1.3.", shockDamage: 2, shockRadius: 1.3 },
+        { id: "wide", name: "Wide field", text: "Click radius x1.5; helper radius x1.5.", clickRadius: 1.5, helperClickRadius: 1.5 },
+        { id: "control", name: "Control mesh", text: "Overrun rises 40% slower; Pulse interrupts restore 8 Core.", pressure: 0.6 }
+      ]
+    },
     saveKey: "containmentSwarmSave",
 
     initialState: {
@@ -75,7 +97,7 @@
       baseConcurrent: 4,
       concurrentEveryWaves: 2,
       maxConcurrent: 12,
-      championEveryWaves: 5,
+      championEveryWaves: 7,
       scalingWaveCap: 30,
       spawnIntervalScale: 0.96,
       clearRewardBase: 8,
@@ -85,13 +107,15 @@
         { role: "brute", fromWave: 3, everySpawns: 5 },
         { role: "runner", fromWave: 2, everySpawns: 4 }
       ],
-      titles: ["First contact", "Quick on the trigger", "Heavy resistance", "Chain reaction", "Containment breach"],
+      titles: ["First contact", "Quick on the trigger", "Heavy resistance", "Chain reaction", "Crossfire", "Final preparation", "Gigaboss"],
       hints: [
         "Clear every anomaly. Spend Energy between waves.",
         "Cyan runners move quickly. Catch them with a wide impact.",
         "Armored anomalies take more hits and pay more Energy.",
         "Keep kills close together for bonus Energy. Shock Click chains through groups.",
-        "Clear the swarm, then face the champion. Save a pulse for the final encounter."
+        "Control crowded groups before Overrun builds.",
+        "Last preparation wave. Save Pulse and check the Gigaboss intel.",
+        "Stop charged attacks to protect your Core."
       ],
       clearRevealDelayMs: 360,
       uiRefreshMs: 100,

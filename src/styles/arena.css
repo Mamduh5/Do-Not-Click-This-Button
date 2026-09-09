@@ -364,3 +364,15 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding
   .operation-result p { font-size: 11px; line-height: 1.5; }
   .review-upgrades { padding: 8px; margin-bottom: 8px; }
 }
+
+.arena-endless { padding: 8px 0; margin: 8px 0 0; border-top: 1px solid #31434e; background: #111c25; color: #c5dce3; font-size: 13px; line-height: 1.5; }
+.arena-endless button { min-height: 44px; margin: 4px; padding: 10px; max-width: 100%; cursor: pointer; border: 1px solid #527980; background: #1b2e37; color: #b8eee9; }
+.arena-endless [hidden], .arena-endless[hidden] { display: none; }
+#arenaDefense { font-weight: bold; }
+#arenaDraft { display: flex; flex-wrap: wrap; }
+#arenaDraft p { flex-basis: 100%; }
+#arenaDraft button { flex: 1 1 180px; }
+
+.arena-endless p { margin: 4px 0 8px; }
+#arenaDefense { color: #a3ece5; }
+.arena-upgrade-card[hidden] { display: none; }

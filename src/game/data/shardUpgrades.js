@@ -4,6 +4,7 @@
   window.DNC = window.DNC || {};
 
   DNC.SHARD_UPGRADE_DEFS = [
+    { id: "machineCraft", name: "Machine craft", description: "Permanent +10% base manual and automatic output per level.", baseCost: 4, costMultiplier: 1, maxLevel: null, effect: { type: "productionAdd", value: 0.1 } },
     {
       id: "containmentMemory",
       name: "Containment Memory",

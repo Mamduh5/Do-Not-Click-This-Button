@@ -4,7 +4,7 @@
   window.ARENA = window.ARENA || {};
 
   function attack(scene, x, y, stats, options) {
-    if (scene.paused) {
+    if (scene.paused || scene.state.wavePhase === "failed") {
       return { hit: false, killed: [] };
     }
     var radius = options && options.radius ? options.radius : stats.clickRadius;
@@ -53,6 +53,7 @@
   }
 
   function damageEnemy(scene, enemy, damage, x, y, stats, helper, source) {
+    if (ARENA.Endless) { damage = ARENA.Endless.hit(scene, enemy, damage, source); }
     if (!ARENA.Enemies.damage(scene, enemy, damage, x, y)) {
       ARENA.ImpactEffects.showHitText(scene, helper ? "tap" : String(Math.round(damage * 10) / 10), enemy.x, enemy.y, helper ? 0x646464 : 0x171717);
       ARENA.ImpactEffects.showHitParticles(scene, enemy.x, enemy.y, helper ? stats.helperClickEffectScale : stats.feedbackScale, enemy.enemySkin ? enemy.enemySkin.hitColor : 0x171717);

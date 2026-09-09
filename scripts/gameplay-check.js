@@ -68,9 +68,10 @@ near(unaffordable.powerPerClick, 1, "failed buy should not change stats");
 
 const breachState = DNC.createDefaultState();
 breachState.totalPowerEarned = 320;
+breachState.runPowerEarned = 320;
 assert(DNC.Instability.getShardReward(breachState) === 2, "breach reward should scale from earned power");
 breachState.breachCount = 4;
-assert(DNC.Instability.getShardReward(breachState) === 4, "breach reward should include repeat breach bonus");
+assert(DNC.Instability.getShardReward(breachState) === 2, "repeat breaches must not create free rewards");
 
 const motionState = DNC.validateState({ reducedMotion: true, instability: 82 });
 assert(motionState.reducedMotion === true, "reduced motion should survive save validation");
@@ -168,3 +169,31 @@ console.log("Gameplay checks passed.");
 
 const spentStartingPower = DNC.validateState({ power: 0, shardUpgrades: { residualCharge: 1 } });
 assert(spentStartingPower.power === 0, "loading spent starting Power must not refund the run-start grant");
+
+const machine = DNC.createDefaultState();
+assert(DNC.Instability.getShardReward(machine) === 0, "empty cash-out cannot mint Shards");
+machine.instability = 85;
+DNC.Machine.produce(machine, 500, true);
+assert(DNC.Machine.bonus(machine) > 0, "productive redline earns bonus");
+const bankable = DNC.Instability.getShardReward(machine), risk = machine.machine.risk;
+DNC.Machine.tick(machine, 1);
+assert(machine.machine.risk === risk, "idle redline earns no bonus");
+const draftSaved = DNC.validateState(JSON.parse(JSON.stringify(machine)));
+assert(JSON.stringify(draftSaved.machine.offers) === JSON.stringify(machine.machine.offers), "reload preserves offers");
+assert(!DNC.Machine.choose(machine, "not-an-offer"), "cannot choose an unoffered module");
+assert(DNC.Machine.choose(machine, machine.machine.offers[0]), "earned choice installs module");
+assert(!DNC.Machine.choose(machine, machine.machine.modules[0]), "choice cannot be claimed twice");
+machine.machine.stabilizing = true;
+const beforeCooling = machine.instability;
+DNC.Machine.tick(machine, 1);
+assert(machine.instability < beforeCooling && machine.machine.risk === risk, "stabilizing cools and cannot farm bonus");
+DNC.resetRunAfterBreach(machine, bankable);
+assert(machine.anomalyShards === bankable && machine.machine.risk === 0 && machine.machine.modules.length === 0, "catastrophe retains base but loses risk and run build");
+assert(DNC.Instability.getShardReward(machine) === 0, "prior runs cannot be repeatedly harvested");
+const surge = DNC.createDefaultState(); surge.instability = 94;
+DNC.Machine.tick(surge, 5);
+assert(surge.instability === 94 && surge.machine.surge === 5, "surge gives a readable warning");
+DNC.Machine.tick(surge, 1);
+assert(surge.instability === 100, "ignoring full warning reaches catastrophe");
+assert(DNC.validateState({ anomalyShards: 9, shardUpgrades: { residualCharge: 2 } }).anomalyShards === 9, "legacy permanent progress retained");
+console.log("Breach risk and draft checks passed.");

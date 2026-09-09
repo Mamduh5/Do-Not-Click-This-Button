@@ -70,5 +70,6 @@
       maxLevel: 5,
       effects: [{ type: "feedbackScaleAdd", value: 0.14 }, { type: "pulseDamageMultiplierAdd", value: 0.4 }]
     }
+    ,{ id: "fieldTraining", unlockWave: 4, name: "Field training", description: "Repeatable +1 manual and helper damage. Earn Energy by fighting, including retries.", baseCost: 35, costMultiplier: 1, maxLevel: null, effects: [{ type: "clickDamageAdd", value: 1 }, { type: "helperDamageAdd", value: 1 }] }
   ];
 })();
