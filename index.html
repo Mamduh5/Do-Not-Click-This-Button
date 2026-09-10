@@ -1,169 +1,101 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Do Not Click This Button</title>
-    <link rel="stylesheet" href="src/styles/dnc.css">
-  </head>
-  <body>
-    <div class="dnc-root" id="gameRoot">
-      <div id="phaser-root" aria-hidden="true"></div>
-      <div class="scanlines"></div>
-      <div class="overlay-warning" id="overlayWarning"></div>
-
-      <div class="dnc-header">
-        <div class="state-indicator" id="stateDot"></div>
-        <div class="dnc-title" id="headlineText">&#9888; CONTAINMENT SYSTEM ARMED &#9888;</div>
-        <div class="header-right">
-          <div class="dnc-sys"><span class="sys-flavor">SYS-CTRL v0.9.4 // UNIT-07</span> <span class="sys-metric">SHARDS: <span id="shardsDisplay">0</span></span> <span class="sys-metric">BREACHES: <span id="breachesDisplay">0</span></span></div>
-          <a class="mode-link" href="arena.html">ENTER ARENA <span aria-hidden="true">&#8599;</span></a>
-          <button class="settings-btn menu-toggle" type="button" id="menuBtn" aria-expanded="false" aria-controls="systemMenu">MENU</button>
-        </div>
-      </div>
-
-      <div class="status-bar">
-        <div class="stat-block">
-          <div class="stat-label">Power</div>
-          <div class="stat-value cyan" id="powerDisplay">0</div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-label">Instability</div>
-          <div class="stat-value danger" id="instabilityDisplay">0%</div>
-          <div class="instability-bar"><div class="instability-fill" id="instabilityFill" style="width:0%"></div></div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-label">Per Click</div>
-          <div class="stat-value" id="perClickDisplay">1</div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-label">Per Second</div>
-          <div class="stat-value amber" id="perSecDisplay">0</div>
-        </div>
-      </div>
-
-      <div class="main-area">
-        <div class="center-panel">
-          <div class="operator-guide">
-            <span class="guide-kicker">OPERATOR BRIEFING</span>
-            <h1 id="guideTitle"></h1>
-            <p id="guideText"></p>
-            <button class="guide-action" id="guideAction" type="button"></button>
-          </div>
-          <div class="warning-headline" id="warnHeadline">DO NOT CLICK THIS BUTTON</div>
-
-          <div class="button-container" id="btnContainer">
-            <div class="hazard-stripe"></div>
-            <div class="containment-ring"></div>
-            <div class="containment-ring-2"></div>
-            <button class="forbidden-btn" id="mainBtn" type="button" aria-label="The forbidden button. Do not click.">
-              DO NOT<br>CLICK
-            </button>
-          </div>
-
-          <div class="click-count" id="clickCount">TOTAL INTERACTIONS: 0</div>
-          <div class="state-badge stable" id="stateBadge">&#9632; STABLE</div>
-          <div class="breach-forecast" id="breachForecast">
-            <div class="forecast-topline"><span id="forecastLabel"></span><strong id="forecastShards">+1 <small>SHARD</small></strong></div>
-            <div class="forecast-next"><span id="forecastNext"></span><span id="forecastRemaining"></span></div>
-            <div class="forecast-meter" id="forecastMeter" role="progressbar" aria-label="Power progress toward next breach Shard" aria-valuemin="0" aria-valuemax="100"><div id="forecastFill"></div></div>
-            <p class="forecast-basis" id="forecastBasis"></p>
-            <div class="heat-telemetry"><span id="heatClicks"></span><span id="heatRate"></span></div>
-          </div>
-        </div>
-
-        <div class="side-panel">
-          <div class="tab-row">
-            <button class="tab-btn active" type="button" data-tab="power">PWR</button>
-            <button class="tab-btn" type="button" data-tab="auto">AUTO</button>
-            <button class="tab-btn" type="button" data-tab="contain">CTN</button>
-            <button class="tab-btn" type="button" data-tab="risk">RISK</button>
-            <button class="tab-btn" type="button" data-tab="shard">SHARD</button>
-          </div>
-
-          <div class="tab-panel" id="tab-power" data-tab-panel="power">
-            <div class="panel-label">Power Upgrades</div>
-            <div class="upgrade-list" id="list-power"></div>
-          </div>
-
-          <div class="tab-panel" id="tab-auto" data-tab-panel="auto" hidden>
-            <div class="panel-label">Automation</div>
-            <div class="upgrade-list" id="list-auto"></div>
-          </div>
-
-          <div class="tab-panel" id="tab-contain" data-tab-panel="contain" hidden>
-            <div class="panel-label">Containment</div>
-            <div class="upgrade-list" id="list-contain"></div>
-          </div>
-
-          <div class="tab-panel" id="tab-risk" data-tab-panel="risk" hidden>
-            <div class="panel-label">Risk Upgrades</div>
-            <div class="upgrade-list" id="list-risk"></div>
-          </div>
-
-          <div class="tab-panel" id="tab-shard" data-tab-panel="shard" hidden>
-            <div class="panel-label">Shard Upgrades</div>
-            <div class="upgrade-list" id="list-shard"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="instability-warning" id="instabWarn">&#9888; CONTAINMENT DEGRADING &mdash; BREACH IMMINENT</div>
-
-      <div class="bottom-area">
-        <div class="console-label">// SYSTEM LOG &mdash; UNIT-07 CONTAINMENT CONSOLE</div>
-        <div id="consoleLog"></div>
-      </div>
-
-      <div class="system-menu" id="systemMenu" hidden>
-        <div class="system-menu-title" id="systemMenuTitle">SYSTEM MENU</div>
-        <button class="menu-action" type="button" id="soundBtn">Sound: ON</button>
-        <button class="menu-action" type="button" id="motionBtn">Motion: ON</button>
-        <div class="menu-divider"></div>
-        <button class="menu-action" type="button" id="resetRunBtn">Reset Current Run</button>
-        <button class="menu-action danger" type="button" id="deleteSaveBtn">Delete All Save Data</button>
-        <div class="menu-confirm" id="menuConfirm" hidden>
-          <div id="menuConfirmText"></div>
-          <div class="menu-confirm-actions">
-            <button class="menu-action confirm" type="button" id="menuConfirmBtn">Confirm</button>
-            <button class="menu-action" type="button" id="menuCancelBtn">Cancel</button>
-          </div>
-        </div>
-        <button class="menu-action close" type="button" id="menuCloseBtn">Close</button>
-      </div>
-
-      <div class="breach-overlay" id="breachOverlay" role="dialog" aria-modal="true" aria-labelledby="breachTitle">
-        <div class="breach-text" id="breachTitle">REALITY BREACH DETECTED</div>
-        <div class="breach-modal">
-          <h3>Containment failed.</h3>
-          <div class="shard-count" id="shardCount">+0</div>
-          <div class="shard-label">Anomaly Shards Gained</div>
-          <p>Anomaly Shards gained: <span id="shardLine">0</span></p>
-          <p>Total shards: <span id="totalShardLine">0</span> // Breaches: <span id="breachCountLine">0</span></p>
-          <p>Interactions this run: <span id="breachClicks">0</span></p>
-          <p>Power earned this run: <span id="breachPower">0</span></p>
-          <p class="breach-retained">Shards and permanent upgrades retained. Run upgrades reset.</p>
-          <button class="breach-btn" type="button" id="breachContinueBtn">REINITIALIZE SYSTEM</button>
-        </div>
-      </div>
-    </div>
-
-    <script src="node_modules/phaser/dist/phaser.min.js"></script>
-    <script src="src/game/systems/NumberFormat.js"></script>
-    <script src="src/game/data/balanceConfig.js"></script>
-    <script src="src/game/data/shardUpgrades.js"></script>
-    <script src="src/game/systems/ShardUpgradeSystem.js"></script>
-    <script src="src/game/systems/SoundSystem.js"></script>
-    <script src="src/game/systems/GameState.js"></script>
-    <script src="src/game/data/upgrades.js"></script>
-    <script src="src/game/systems/UpgradeSystem.js"></script>
-    <script src="src/game/systems/InstabilitySystem.js"></script>
-    <script src="src/game/systems/SaveSystem.js"></script>
-    <script src="src/game/ui/consoleLog.js"></script>
-    <script src="src/game/ui/tabs.js"></script>
-    <script src="src/game/ui/autoCursor.js"></script>
-    <script src="src/game/ui/breachModal.js"></script>
-    <script src="src/game/ui/bindDomUi.js"></script>
-    <script src="src/main.js"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Containment · Lobby</title>
+<link rel="stylesheet" href="src/styles/lobby.css">
+</head>
+<body>
+<div class="lobby-shell">
+<header class="lobby-header">
+<a class="brand" href="index.html" aria-label="Containment lobby">
+<span class="brand-mark" aria-hidden="true">◈</span> CONTAINMENT</a>
+<span class="location">LOBBY</span>
+</header>
+<main>
+<div class="library-heading">
+<div>
+<p class="eyebrow">THE EXPERIMENT IS YOURS</p>
+<h1>Pick your pressure.</h1>
+</div>
+<p>One home. Independent experiments.</p>
+</div>
+<section class="game-library" aria-label="Available games">
+<a class="game-card arena-card" href="arena.html">
+<div class="game-art" aria-hidden="true">
+<svg viewBox="0 0 600 340" fill="none">
+<defs>
+<pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+<path d="M30 0H0V30" stroke="#30444b" stroke-width="1"/>
+</pattern>
+<radialGradient id="coreGlow">
+<stop stop-color="#76e4dc" stop-opacity=".25"/>
+<stop offset="1" stop-color="#76e4dc" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<path fill="#101d25" d="M0 0h600v340H0z"/>
+<path fill="url(#grid)" d="M0 0h600v340H0z"/>
+<path d="M32 30h536v280H32z" stroke="#66818c"/>
+<circle cx="300" cy="190" r="130" fill="url(#coreGlow)"/>
+<path d="m300 146 38 22v44l-38 22-38-22v-44Z" fill="#173c42" stroke="#8af1e0" stroke-width="3"/>
+<path d="m300 171 17 10v20l-17 10-17-10v-20Z" stroke="#d0fff5" stroke-width="2"/>
+<path d="M300 78v61" stroke="#f48a75" stroke-width="3" stroke-dasharray="7 7"/>
+<path d="m274 52 26-17 26 17-7 30h-38Z" fill="#572f38" stroke="#ee929a" stroke-width="3"/>
+<path d="m172 132 11 10-11 10-11-10Zm248-12 11 10-11 10-11-10ZM132 238l11 10-11 10-11-10Zm327-9 11 10-11 10-11-10Z" fill="#d87b62"/>
+<path d="m175 152 33 21m200-26-25 21m-232 77 67-20m226 7-54-9" stroke="#bc7061" stroke-dasharray="4 8"/>
+<path d="M53 53h48m-48 0v35m494 165v34h-46" stroke="#b2d2d4" stroke-width="3"/>
+</svg>
+<span class="art-tag">UNIT-12 / DEFENSE</span>
+</div>
+<div class="game-info">
+<p class="eyebrow">COMBAT · SWARM DEFENSE</p>
+<h2>Arena</h2>
+<p class="game-description">Break the swarm. Protect the Core.</p>
+<span class="play-link">Enter Arena <span aria-hidden="true">↗</span>
+</span>
+</div>
+</a>
+<a class="game-card breach-card" href="breach.html">
+<div class="game-art" aria-hidden="true">
+<svg viewBox="0 0 600 340" fill="none">
+<defs>
+<radialGradient id="button">
+<stop stop-color="#de4540"/>
+<stop offset=".7" stop-color="#90211f"/>
+<stop offset="1" stop-color="#360e16"/>
+</radialGradient>
+<radialGradient id="heat">
+<stop stop-color="#ed493b" stop-opacity=".22"/>
+<stop offset="1" stop-color="#ed493b" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<path fill="#15151d" d="M0 0h600v340H0z"/>
+<circle cx="300" cy="174" r="170" fill="url(#heat)"/>
+<path d="M75 93h77v155h-40m413-155h-77v155h40" stroke="#56413d" stroke-width="3"/>
+<circle cx="300" cy="174" r="119" stroke="#e68d55" stroke-width="8" stroke-dasharray="3 13" opacity=".5"/>
+<circle cx="300" cy="174" r="100" fill="#25131b" stroke="#7a4741" stroke-width="3"/>
+<circle cx="300" cy="174" r="84" fill="url(#button)" stroke="#f06757" stroke-width="4"/>
+<path d="M240 143a68 68 0 0 1 96-30" stroke="#ffada0" stroke-opacity=".5" stroke-width="3"/>
+<text x="300" y="169" text-anchor="middle" fill="#fff0e8" font-family="monospace" font-size="18" font-weight="bold">DO NOT</text>
+<text x="300" y="193" text-anchor="middle" fill="#fff0e8" font-family="monospace" font-size="18" font-weight="bold">CLICK</text>
+<path d="M91 113h42m-42 15h42m-42 15h42m334-30h42m-42 15h42m-42 15h42" stroke="#e98958" stroke-width="5"/>
+<path d="m430 239 8-7m-2 27 14-2m-19 20 6 9" stroke="#f2ba73" stroke-width="2"/>
+</svg>
+<span class="art-tag">UNIT-07 / MACHINE</span>
+</div>
+<div class="game-info">
+<p class="eyebrow">PRODUCTION · RISK</p>
+<h2>Breach</h2>
+<p class="game-description">Push the machine. Know when to stop.</p>
+<span class="play-link">Enter Breach <span aria-hidden="true">↗</span>
+</span>
+</div>
+</a>
+</section>
+</main>
+<footer>PROGRESS SAVED ON THIS DEVICE <span>Each game keeps its own build and progress.</span>
+</footer>
+</div>
+</body>
 </html>

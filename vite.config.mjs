@@ -3,7 +3,7 @@ import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
-const entryPoints = ["index.html", "arena.html"];
+const entryPoints = ["index.html", "arena.html", "breach.html"];
 const fromRoot = (path) => fileURLToPath(new URL(path, import.meta.url));
 const classicScript = /<script\s+src="([^"]+)"\s*><\/script>/g;
 

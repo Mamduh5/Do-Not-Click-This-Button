@@ -42,7 +42,7 @@
     });
 
     if (source === "manual" && targets[0] && targets[0].active && Math.random() < stats.doubleTapChance) {
-      ARENA.ImpactEffects.showHitText(scene, "DOUBLE", targets[0].x, targets[0].y, 0x171717);
+
       if (damageEnemy(scene, targets[0], damage, x, y, stats, helper, source)) {
         killed.push(targets[0]);
       }
@@ -55,7 +55,7 @@
   function damageEnemy(scene, enemy, damage, x, y, stats, helper, source) {
     if (ARENA.Endless) { damage = ARENA.Endless.hit(scene, enemy, damage, source); }
     if (!ARENA.Enemies.damage(scene, enemy, damage, x, y)) {
-      ARENA.ImpactEffects.showHitText(scene, helper ? "tap" : String(Math.round(damage * 10) / 10), enemy.x, enemy.y, helper ? 0x646464 : 0x171717);
+
       ARENA.ImpactEffects.showHitParticles(scene, enemy.x, enemy.y, helper ? stats.helperClickEffectScale : stats.feedbackScale, enemy.enemySkin ? enemy.enemySkin.hitColor : 0x171717);
       return false;
     }
@@ -83,7 +83,7 @@
       scene.registerOperationKill(enemy);
     }
     scene.soundSystem.play("kill");
-    ARENA.ImpactEffects.showHitText(scene, "+" + String(Math.round(reward * 100) / 100), x, y, 0xd82626);
+
     ARENA.ImpactEffects.showKillBurst(scene, x, y, stats.feedbackScale * ARENA.BALANCE_CONFIG.feedback.killImpactScale);
     ARENA.ImpactEffects.showSplatter(scene, x, y, stats.feedbackScale, enemy.enemySkin ? enemy.enemySkin.deathColor : 0xd82626);
 

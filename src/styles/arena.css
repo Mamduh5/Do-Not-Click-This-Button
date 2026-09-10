@@ -380,3 +380,133 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding
 .arena-endless p { margin: 4px 0 8px; }
 #arenaDefense { color: #a3ece5; }
 .arena-upgrade-card[hidden] { display: none; }
+
+/* Keep live combat centered;
+explanations are deliberately opened. */ .arena-header h1 small{
+  font:normal 12px Consolas,monospace;
+  color:#8fa7b3;
+  margin-left:10px
+}
+.arena-header{
+  padding-top:14px;
+  padding-bottom:14px
+}
+.arena-kicker{
+  font-size:9px
+}
+.operation-bar p:empty,#arenaDefense:empty{
+  display:none
+}
+.operation-bar{
+  padding-top:13px
+}
+.operation-title{
+  margin-bottom:10px
+}
+.arena-log[hidden]{
+  display:none
+}
+.arena-endless{
+  font-size:12px;
+  background:transparent;
+  border:0;
+  padding:4px 0;
+  margin:0
+}
+.arena-endless details{
+  font-size:11px;
+  color:#9bb0bc
+}
+.arena-endless summary,.field-guide summary{
+  cursor:pointer;
+  padding:10px 0;
+  color:#a7c0ca
+}
+.field-guide p{
+  display:block;
+  line-height:1.6
+}
+.field-guide strong{
+  margin-right:8px
+}
+.arena-stage[data-phase="active"]+.arena-shop,.arena-stage[data-phase="champion"]+.arena-shop{
+  background:#0d171e
+}
+.arena-upgrade-card{
+  background:#101c25;
+  border-color:#293c48
+}
+.arena-stage[data-phase="failed"] #arenaDefense{
+  border-left:3px solid #e8887c;
+  padding:8px 12px
+}
+.arena-endless #arenaDraft p:empty{
+  display:none
+}
+.arena-endless #arenaDraft p{
+  color:#99aeba
+}
+.arena-header .mode-link{
+  display:inline-block;
+  min-height:32px;
+  align-content:center
+}
+.arena-endless[hidden]{
+  display:none
+}
+#arenaWaveHint:empty{
+  display:none
+}
+@media(max-width:560px){
+  .arena-header h1{
+    margin:3px 0;
+    font-size:24px
+  }
+  .arena-header h1 small{
+    font-size:10px
+  }
+  .arena-header .arena-kicker{
+    display:none
+  }
+  .arena-status{
+    margin-top:0
+  }
+  .operation-bar{
+    padding-top:10px
+  }
+  .operation-title{
+    margin-bottom:4px
+  }
+  .arena-stage{
+    grid-template-rows:auto min(40vh,330px) auto
+  }
+  .combat-bar{
+    padding:10px 16px;
+    gap:8px
+  }
+  .pulse-control{
+    flex:1 1 60%
+  }
+  .chain-control{
+    flex:1 1 45%
+  }
+  .arena-endless{
+    line-height:1.4
+  }
+  .control-hint{
+    font-size:10px
+  }
+  .arena-log{
+    font-size:11px
+  }
+  .field-guide p{
+    font-size:12px
+  }
+}
+.arena-header .mode-link{
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  min-width:70px;
+  font-size:11px
+}

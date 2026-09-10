@@ -119,9 +119,7 @@
       }
     });
 
-    if (CONFIG.feedback.screenFlashEnabled) {
-      showScreenFlash(scene);
-    }
+
   }
 
   function showScreenFlash(scene) {
@@ -138,10 +136,11 @@
   }
 
   function showComboPopup(scene, combo, x, y) {
-    if (combo !== 2 && CONFIG.feedback.comboMilestones.indexOf(combo) < 0) {
+    if (CONFIG.feedback.comboMilestones.indexOf(combo) < 0 || combo <= (scene.presentedCombo || 0)) {
       return;
     }
 
+    scene.presentedCombo = combo;
     var color = getComboColor(combo);
     var milestone = CONFIG.feedback.comboMilestones.indexOf(combo) >= 0;
     var label = scene.add.text(
@@ -174,7 +173,7 @@
 
     if (milestone && CONFIG.feedback.comboPulseEnabled) {
       mark(scene, "comboMilestone");
-      showComboPulse(scene, color, combo);
+
     }
   }
 

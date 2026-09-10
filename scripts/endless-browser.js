@@ -76,7 +76,7 @@ mkdirSync(output, { recursive: true });
  writeFileSync(output + "/arena-report.json", JSON.stringify(report, null, 2));
  }
  await page.setViewportSize({ width: 390, height: 844 });
- await page.goto(base + "/");
+ await page.goto(base + "/breach.html");
  await page.waitForSelector("#machineStatus", { state: "attached" });
  for (let i = 0; i < 130; i++) {
   await page.locator("#mainBtn").click();

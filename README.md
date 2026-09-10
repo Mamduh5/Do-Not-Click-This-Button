@@ -13,8 +13,9 @@ Use Node.js 22.12+ (Node.js 22 LTS recommended).
 | Cloudflare local preview | `npm run preview:cloudflare` |
 | Cloudflare deployment | `npm run deploy:cloudflare` |
 
-The build produces `dist/index.html` and `dist/arena.html`. Open `/` and
-`/arena.html` on the preview server; the existing links connect both games.
+The build produces the shared lobby at `dist/index.html`, Arena at `dist/arena.html`,
+and Breach at `dist/breach.html`. Open `/` on the preview server to choose a game.
+Both games return to the lobby and retain their independent local saves.
 Vite emits the ordered classic scripts (including Phaser), processes CSS, and
 copies `public/` assets. The existing Google Fonts stylesheet requires internet access.
 

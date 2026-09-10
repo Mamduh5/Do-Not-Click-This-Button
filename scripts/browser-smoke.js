@@ -2,7 +2,7 @@
 
 const { chromium } = require("@playwright/test");
 
-const url = process.argv[2] || process.env.DNC_SMOKE_URL || "http://127.0.0.1:5173/";
+const url = process.argv[2] || process.env.DNC_SMOKE_URL || "http://127.0.0.1:5173/breach.html";
 const SAVE_KEY = "doNotClickThisButtonSave";
 
 function assert(condition, message) {

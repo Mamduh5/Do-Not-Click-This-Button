@@ -1173,3 +1173,381 @@ button:focus-visible, a:focus-visible { outline: 2px solid #73ecf1; outline-offs
 .breach-overlay.controlled .breach-text, .breach-overlay.controlled h3 { color: #72dfbd; }
 .breach-overlay.controlled .breach-modal { border-color: #72dfbd; }
 .breach-overlay.controlled .breach-btn { background: #21624f; }
+
+/* Quiet telemetry;
+the machine carries immediate danger and output. */ .dnc-root{
+  grid-template-rows:auto auto minmax(540px,1fr) auto;
+  min-height:100dvh
+}
+.center-panel{
+  padding:26px 24px;
+  min-height:540px
+}
+.operator-guide{
+  order:8;
+  margin:18px 0 0;
+  text-align:left;
+  max-width:460px
+}
+.operator-guide summary,.reward-help summary,.bottom-area summary{
+  cursor:pointer;
+  color:#91a9b5;
+  font-size:11px;
+  padding:10px 0
+}
+.operator-guide h1{
+  font-size:20px
+}
+.operator-guide .guide-kicker{
+  display:none
+}
+.warning-headline,.click-count{
+  display:none
+}
+.bottom-area{
+  padding:8px 24px;
+  min-height:0
+}
+.bottom-area:not([open]) #consoleLog{
+  display:none
+}
+.bottom-area .console-label{
+  display:none
+}
+.breach-forecast{
+  background:#111820;
+  border-color:#354050;
+  padding:12px 16px 0;
+  margin-top:14px
+}
+.forecast-topline strong{
+  font-size:23px
+}
+.state-badge{
+  margin-top:8px
+}
+.machine-panel{
+  order:7;
+  width:min(100%,520px);
+  box-sizing:border-box;
+  border-color:#354653
+}
+.machine-panel button{
+  text-align:left
+}
+#machineStatus{
+  font-size:12px;
+  text-align:center;
+  min-height:18px;
+  margin:8px 0 12px;
+  color:#b7d7d6;
+  font-variant-numeric:tabular-nums
+}
+.button-container{
+  width:220px;
+  height:220px;
+  margin:30px 0 20px;
+  --heat:0;
+  --danger-angle:0deg;
+  --output-speed:2.4s
+}
+.forbidden-btn{
+  width:174px;
+  height:174px;
+  font-size:16px;
+  box-shadow:0 0 calc(12px + 35px * var(--heat)) #e8404050,inset 0 3px 5px #ffffff20
+}
+.containment-ring{
+  inset:0;
+  border:0;
+  background:conic-gradient(from 180deg,#f59358 var(--danger-angle),#25313b 0);
+  mask:radial-gradient(transparent 65%,#000 66%);
+  animation:none
+}
+.containment-ring-2{
+  inset:14px;
+  animation:none;
+  border:2px dashed #9c635750
+}
+.hazard-stripe{
+  inset:-12px;
+  animation:none;
+  opacity:calc(.25 + var(--heat)*.75)
+}
+.machine-vents{
+  position:absolute;
+  inset:40px -22px;
+  display:flex;
+  justify-content:space-between;
+  flex-direction:column;
+  pointer-events:none
+}
+.machine-vents i{
+  height:4px;
+  border-left:10px solid #41545a;
+  border-right:10px solid #41545a
+}
+.machine-output{
+  position:absolute;
+  bottom:-18px;
+  left:calc(50% - 26px);
+  display:flex;
+  gap:9px;
+  pointer-events:none
+}
+.machine-output i{
+  width:7px;
+  height:7px;
+  background:#77d9cb;
+  transform:rotate(45deg);
+  opacity:.35
+}
+.dnc-root[data-danger="disturbed"] .machine-vents i:nth-child(4),.dnc-root[data-danger="unstable"] .machine-vents i:nth-child(n+2),.dnc-root[data-danger="critical"] .machine-vents i{
+  border-color:#f19559
+}
+.dnc-root[data-danger="unstable"] .containment-ring-2{
+  border-style:solid;
+  border-width:3px
+}
+.dnc-root[data-redline="true"] .machine-vents{
+  animation:vent-alarm 1.4s ease-in-out infinite
+}
+.dnc-root[data-redline="true"] .containment-ring-2{
+  border:4px dashed #ff6b50
+}
+.dnc-root[data-redline="true"] .button-container{
+  animation:machine-tension 2s ease-in-out infinite
+}
+.dnc-root[data-danger]:not([data-danger="stable"]) .machine-output i{
+  animation:output-flow var(--output-speed) linear infinite
+}
+.machine-output i:nth-child(2){
+  animation-delay:-.35s!important
+}
+.machine-output i:nth-child(3){
+  animation-delay:-.7s!important
+}
+.dnc-root[data-cooling="true"] .containment-ring{
+  background:conic-gradient(from 180deg,#86e9e2 var(--danger-angle),#25313b 0)
+}
+.dnc-root[data-cooling="true"] .machine-vents i{
+  border-color:#86e9e2
+}
+.dnc-root[data-cooling="true"] .containment-ring-2{
+  border:2px solid #86e9e2;
+  animation:cooling-flow 1.8s ease-out infinite
+}
+.dnc-root[data-cooling="true"] .machine-output{
+  opacity:.2
+}
+.dnc-root[data-cooling="true"] .forbidden-btn{
+  box-shadow:0 0 18px #70e5d52b
+}
+.dnc-root[data-cooling="true"] #stabilizeBtn{
+  border-color:#86e9e2;
+  background:#193c40
+}
+.forbidden-btn.critical{
+  animation:none
+}
+.producing{
+  animation:production-readout .35s ease-out
+}
+.dnc-root[data-outcome="banked"] .machine-output{
+  animation:bank-output .7s ease-in forwards
+}
+.dnc-root[data-outcome="banked"] .containment-ring{
+  background:#8ce6cf
+}
+.dnc-root[data-outcome="banked"] .forbidden-btn{
+  filter:saturate(.2);
+  transform:scale(.94)
+}
+.dnc-root[data-outcome="ruptured"] .containment-ring-2{
+  animation:rupture .65s ease-out forwards
+}
+.dnc-root[data-outcome="ruptured"] .forbidden-btn{
+  background:#21191d;
+  border-color:#775956;
+  box-shadow:none
+}
+.dnc-root[data-outcome="ruptured"] .machine-output{
+  animation:lost-output .65s ease-out forwards
+}
+.dnc-root[data-outcome] .button-container{
+  animation:none
+}
+.breach-overlay .shard-count::before{
+  content:"◇";
+  display:block;
+  font-size:36px;
+  color:#b3a0eb
+}
+.breach-overlay.controlled .shard-count::before{
+  content:"▣";
+  color:#8ce6cf
+}
+.breach-modal p:has(#shardLine){
+  display:none
+}
+@keyframes vent-alarm{
+  50%{
+    opacity:.45
+  }
+}
+@keyframes machine-tension{
+  0%,85%,100%{
+    transform:translateX(0)
+  }
+  90%{
+    transform:translateX(-1px)
+  }
+  95%{
+    transform:translateX(1px)
+  }
+}
+@keyframes cooling-flow{
+  to{
+    transform:scale(1.18);
+    opacity:.15
+  }
+}
+@keyframes output-flow{
+  50%{
+    opacity:1;
+    transform:translateY(5px) rotate(45deg)
+  }
+}
+@keyframes production-readout{
+  50%{
+    color:#effffb;
+    text-shadow:0 0 8px #72e0d4
+  }
+}
+@keyframes bank-output{
+  to{
+    transform:translateY(90px);
+    opacity:0
+  }
+}
+@keyframes lost-output{
+  to{
+    transform:translateX(75px) rotate(70deg);
+    opacity:0
+  }
+}
+@keyframes rupture{
+  to{
+    transform:scale(1.45);
+    opacity:0
+  }
+}
+@media(max-width:760px){
+  .dnc-root{
+    grid-template-rows:auto auto auto auto
+  }
+  .status-bar{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:5px;
+    padding:9px
+  }
+  .stat-label{
+    font-size:9px;
+    letter-spacing:.3px
+  }
+  .stat-value{
+    font-size:22px
+  }
+  .center-panel{
+    min-height:0;
+    padding:20px 18px
+  }
+  .button-container{
+    margin:12px 0 18px;
+    width:190px;
+    height:190px
+  }
+  .forbidden-btn{
+    width:154px;
+    height:154px
+  }
+  .machine-controls{
+    padding:2px 0
+  }
+  .machine-controls button{
+    font-size:11px
+  }
+  .state-badge{
+    font-size:10px
+  }
+  .machine-panel{
+    margin-top:18px
+  }
+  .operator-guide{
+    margin-top:12px
+  }
+  .dnc-title{
+    flex-basis:100%;
+    font-size:14px
+  }
+  .system-menu{
+    top:88px
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation:none!important;
+    transition:none!important
+  }
+}
+.mode-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  min-width:70px;
+  box-sizing:border-box;
+  font-size:11px
+}
+.menu-toggle{
+  min-height:44px;
+  min-width:44px
+}
+.outcome-ledger{
+  font-size:12px;
+  line-height:1.6;
+  padding:12px 0;
+  color:#b4a9d1
+}
+.controlled .outcome-ledger{
+  color:#8ce6cf
+}
+.machine-risk{
+  height:3px;
+  background:#222435;
+  margin:-4px auto 12px;
+  max-width:180px
+}
+.machine-risk i{
+  display:block;
+  height:100%;
+  background:#b7a1e5
+}
+.dnc-root[data-redline="true"]:not([data-surge="true"]) .machine-vents,.dnc-root[data-redline="true"]:not([data-surge="true"]) .button-container{
+  animation:none
+}
+.dnc-root[data-cooling="true"] .machine-risk{
+  opacity:.4
+}
+.dnc-root[data-outcome="banked"] .machine-risk i{
+  background:#8ce6cf
+}
+.dnc-root[data-outcome="ruptured"] .machine-risk i{
+  opacity:0;
+  transition:opacity .4s
+}
+
+.dnc-root[data-outcome="banked"] .breach-forecast {
+  border-color: #8ce6cf;
+  box-shadow: 0 0 18px #8ce6cf25;
+}

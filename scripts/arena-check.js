@@ -42,6 +42,7 @@ global.localStorage = {
 
 [
   "src/arena/data/arenaBalanceConfig.js",
+  "src/arena/data/arenaUiConfig.js",
   "src/arena/data/enemyRoles.js",
   "src/arena/systems/WaveSystem.js",
   "src/arena/systems/EndlessSystem.js",

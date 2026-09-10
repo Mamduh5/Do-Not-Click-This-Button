@@ -64,13 +64,15 @@
     if (!enemy.gigaboss) { return amount; }
     var windup = e.attack >= C.bossAttackSeconds - C.bossWindupSeconds;
     var armored = traits(scene.state.wave).some(function (t) { return t.id === "armor"; });
-    if (armored && !windup) { amount *= C.armorDamageRetained; }
+    if (armored && !windup) { amount *= C.armorDamageRetained; enemy.armorHitUntil = scene.time.now + ARENA.UI_CONFIG.defense.armorHitMs; }
     if (windup) {
       e.stagger += amount;
       if (source === "pulse" || e.stagger >= enemy.maxHealth * C.interruptFraction) {
         e.attack = 0; e.stagger = 0;
         if (has(scene.state, "control")) { e.core = Math.min(100, e.core + C.controlCoreRepair); }
-        scene.hud.log("GIGABOSS STRIKE INTERRUPTED");
+        scene.bossBreakUntil = scene.time.now + ARENA.UI_CONFIG.defense.breakMs;
+        if (scene.soundSystem) { scene.soundSystem.play("hit"); }
+        scene.hud.log("BREAK");
       }
     }
     return amount;
@@ -111,10 +113,12 @@
       e.attack += seconds * (1 + Math.max(0, active.length - 1) * C.summonHaste);
       if (e.attack >= C.bossAttackSeconds) {
         e.core = Math.max(0, e.core - C.bossDamage * (traits(state.wave).some(function (t) { return t.id === "siege"; }) ? C.siegeDamageMultiplier : 1)); e.attack = 0; e.stagger = 0;
-        scene.hud.log("CORE HIT / " + Math.ceil(e.core) + "% INTEGRITY");
+
         scene.coreHitUntil = scene.time.now + ARENA.BALANCE_CONFIG.operations.coreStrikeFeedbackMs;
         if (traits(state.wave).some(function (t) { return t.id === "swarm"; }) && active.length < C.summonActiveLimit) {
-          for (var i = 0; i < C.summonCount; i++) { var add = ARENA.Enemies.spawn(scene, state.wave, "runner"); add.reward = 0; scene.enemies.push(add); }
+          scene.summonUntil = scene.time.now + ARENA.UI_CONFIG.defense.summonMs;
+          scene.summonTargets = [];
+          for (var i = 0; i < C.summonCount; i++) { var add = ARENA.Enemies.spawn(scene, state.wave, "runner"); add.reward = 0; scene.enemies.push(add); scene.summonTargets.push({ x: add.x, y: add.y }); }
         }
       }
       if (e.core <= 0) { fail(scene); }

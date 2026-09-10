@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Breach · Containment</title>
+    <link rel="stylesheet" href="src/styles/dnc.css">
+  </head>
+  <body>
+    <div class="dnc-root" id="gameRoot">
+      <div id="phaser-root" aria-hidden="true"></div>
+      <div class="scanlines"></div>
+      <div class="overlay-warning" id="overlayWarning"></div>
+
+      <div class="dnc-header">
+        <div class="state-indicator" id="stateDot"></div>
+        <div class="dnc-title" id="headlineText">BREACH / UNIT-07</div>
+        <div class="header-right">
+          <div class="dnc-sys"><span class="sys-flavor">SYS-CTRL v0.9.4 // UNIT-07</span> <span class="sys-metric">SHARDS: <span id="shardsDisplay">0</span></span> <span class="sys-metric">BREACHES: <span id="breachesDisplay">0</span></span></div>
+          <a class="mode-link" href="index.html">&#8592; LOBBY</a>
+          <button class="settings-btn menu-toggle" type="button" id="menuBtn" aria-expanded="false" aria-controls="systemMenu">MENU</button>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="stat-block">
+          <div class="stat-label">Power</div>
+          <div class="stat-value cyan" id="powerDisplay">0</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Danger</div>
+          <div class="stat-value danger" id="instabilityDisplay">0%</div>
+          <div class="instability-bar"><div class="instability-fill" id="instabilityFill" style="width:0%"></div></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Per Click</div>
+          <div class="stat-value" id="perClickDisplay">1</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Per Second</div>
+          <div class="stat-value amber" id="perSecDisplay">0</div>
+        </div>
+      </div>
+
+      <div class="main-area">
+        <div class="center-panel">
+          <details class="operator-guide"><summary>Machine guide</summary>
+            <span class="guide-kicker">OPERATOR BRIEFING</span>
+            <h1 id="guideTitle"></h1>
+            <p id="guideText"></p>
+            <button class="guide-action" id="guideAction" type="button"></button>
+          </details>
+          <div class="warning-headline" id="warnHeadline">DO NOT CLICK THIS BUTTON</div>
+
+          <div class="button-container" id="btnContainer">
+            <div class="hazard-stripe"></div>
+            <div class="containment-ring"></div><div class="machine-vents" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="machine-output" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div class="containment-ring-2"></div>
+            <button class="forbidden-btn" id="mainBtn" type="button" aria-label="The forbidden button. Do not click.">
+              DO NOT<br>CLICK
+            </button>
+          </div>
+
+          <div class="click-count" id="clickCount">TOTAL INTERACTIONS: 0</div>
+          <div class="state-badge stable" id="stateBadge">&#9632; STABLE</div>
+          <div class="breach-forecast" id="breachForecast">
+            <div class="forecast-topline"><span id="forecastLabel"></span><strong id="forecastShards">+1 <small>SHARD</small></strong></div>
+            <div class="forecast-next"><span id="forecastNext"></span><span id="forecastRemaining"></span></div>
+            <div class="forecast-meter" id="forecastMeter" role="progressbar" aria-label="Power progress toward next breach Shard" aria-valuemin="0" aria-valuemax="100"><div id="forecastFill"></div></div>
+            <details class="reward-help"><summary>Reward details</summary><p class="forecast-basis" id="forecastBasis"></p>
+            <div class="heat-telemetry"><span id="heatClicks"></span><span id="heatRate"></span></div></details>
+          </div>
+        </div>
+
+        <div class="side-panel">
+          <div class="tab-row">
+            <button class="tab-btn active" type="button" data-tab="power">PWR</button>
+            <button class="tab-btn" type="button" data-tab="auto">AUTO</button>
+            <button class="tab-btn" type="button" data-tab="contain">CTN</button>
+            <button class="tab-btn" type="button" data-tab="risk">RISK</button>
+            <button class="tab-btn" type="button" data-tab="shard">SHARD</button>
+          </div>
+
+          <div class="tab-panel" id="tab-power" data-tab-panel="power">
+            <div class="panel-label">Power Upgrades</div>
+            <div class="upgrade-list" id="list-power"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-auto" data-tab-panel="auto" hidden>
+            <div class="panel-label">Automation</div>
+            <div class="upgrade-list" id="list-auto"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-contain" data-tab-panel="contain" hidden>
+            <div class="panel-label">Containment</div>
+            <div class="upgrade-list" id="list-contain"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-risk" data-tab-panel="risk" hidden>
+            <div class="panel-label">Risk Upgrades</div>
+            <div class="upgrade-list" id="list-risk"></div>
+          </div>
+
+          <div class="tab-panel" id="tab-shard" data-tab-panel="shard" hidden>
+            <div class="panel-label">Shard Upgrades</div>
+            <div class="upgrade-list" id="list-shard"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="instability-warning" id="instabWarn">&#9888; CONTAINMENT DEGRADING &mdash; BREACH IMMINENT</div>
+
+      <details class="bottom-area"><summary>System log</summary>
+        <div class="console-label">// SYSTEM LOG &mdash; UNIT-07 CONTAINMENT CONSOLE</div>
+        <div id="consoleLog"></div>
+      </details>
+
+      <div class="system-menu" id="systemMenu" hidden>
+        <div class="system-menu-title" id="systemMenuTitle">SYSTEM MENU</div>
+        <button class="menu-action" type="button" id="soundBtn">Sound: ON</button>
+        <button class="menu-action" type="button" id="motionBtn">Motion: ON</button>
+        <div class="menu-divider"></div>
+        <button class="menu-action" type="button" id="resetRunBtn">Reset Current Run</button>
+        <button class="menu-action danger" type="button" id="deleteSaveBtn">Delete All Save Data</button>
+        <div class="menu-confirm" id="menuConfirm" hidden>
+          <div id="menuConfirmText"></div>
+          <div class="menu-confirm-actions">
+            <button class="menu-action confirm" type="button" id="menuConfirmBtn">Confirm</button>
+            <button class="menu-action" type="button" id="menuCancelBtn">Cancel</button>
+          </div>
+        </div>
+        <button class="menu-action close" type="button" id="menuCloseBtn">Close</button>
+      </div>
+
+      <div class="breach-overlay" id="breachOverlay" role="dialog" aria-modal="true" aria-labelledby="breachTitle">
+        <div class="breach-text" id="breachTitle">REALITY BREACH DETECTED</div>
+        <div class="breach-modal">
+          <h3>Containment failed.</h3>
+          <div class="shard-count" id="shardCount">+0</div>
+          <div class="shard-label">Anomaly Shards Gained</div><div class="outcome-ledger" id="breachBreakdown"></div>
+          <p>Anomaly Shards gained: <span id="shardLine">0</span></p>
+          <p>Total shards: <span id="totalShardLine">0</span> // Breaches: <span id="breachCountLine">0</span></p>
+          <p>Interactions this run: <span id="breachClicks">0</span></p>
+          <p>Power earned this run: <span id="breachPower">0</span></p>
+          <p class="breach-retained">Shards and permanent upgrades retained. Run upgrades reset.</p>
+          <button class="breach-btn" type="button" id="breachContinueBtn">REINITIALIZE SYSTEM</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script src="src/game/systems/NumberFormat.js"></script>
+    <script src="src/game/data/balanceConfig.js"></script>
+    <script src="src/game/data/shardUpgrades.js"></script>
+    <script src="src/game/systems/ShardUpgradeSystem.js"></script>
+    <script src="src/game/systems/SoundSystem.js"></script>
+    <script src="src/game/systems/GameState.js"></script>
+    <script src="src/game/data/upgrades.js"></script>
+    <script src="src/game/systems/UpgradeSystem.js"></script>
+    <script src="src/game/systems/InstabilitySystem.js"></script>
+    <script src="src/game/systems/SaveSystem.js"></script>
+    <script src="src/game/ui/consoleLog.js"></script>
+    <script src="src/game/ui/tabs.js"></script>
+    <script src="src/game/ui/autoCursor.js"></script>
+    <script src="src/game/ui/breachModal.js"></script>
+    <script src="src/game/ui/bindDomUi.js"></script>
+    <script src="src/main.js"></script>
+  </body>
+</html>

@@ -35,7 +35,7 @@
     }
   };
 
-  var CRITICAL_BUTTON_LABELS = ["CLICK AGAIN", "IT WANTS POWER", "JUST ONCE MORE", "DO NOT STOP"];
+
 
   function getElement(id) {
     return document.getElementById(id);
@@ -52,7 +52,7 @@
     var lastConsoleAt = 0;
     var menuActionPending = "";
     var menuConfirmTimeoutId = null;
-    var criticalLabelIndex = 0;
+
     var firstClickLogged = state.totalClicks > 0;
     var autoCursorAccumulatorMs = 0;
 
@@ -117,10 +117,11 @@
 
     var machinePanel = document.createElement("section");
     machinePanel.className = "machine-panel";
-    machinePanel.innerHTML = '<p id="machineStatus" aria-live="polite"></p><div class="machine-actions"><button id="stabilizeBtn" type="button">STABILIZE</button><button id="cashOutBtn" type="button">CASH OUT</button><button id="purgeBtn" type="button">EMERGENCY PURGE</button></div><p id="machineBuild"></p><div id="machineOffers"></div>';
+    machinePanel.innerHTML = '<p id="machineStatus"></p><div class="machine-risk" id="machineRisk" role="progressbar" aria-label="Production toward next risk Shard" aria-valuemin="0" aria-valuemax="100"><i id="machineRiskFill"></i></div><div class="machine-actions"><button id="stabilizeBtn" type="button">STABILIZE</button><button id="cashOutBtn" type="button">CASH OUT</button><button id="purgeBtn" type="button">EMERGENCY PURGE</button></div><p id="machineBuild"></p><div id="machineOffers"></div>';
     elements.breachForecast.insertAdjacentElement("afterend", machinePanel);
     var machineControls = document.createElement("div"); machineControls.className = "machine-controls";
     machineControls.appendChild(getElement("machineStatus"));
+    machineControls.appendChild(getElement("machineRisk"));
     machineControls.appendChild(machinePanel.querySelector(".machine-actions"));
     elements.btnContainer.insertAdjacentElement("afterend", machineControls);
     getElement("stabilizeBtn").onclick = function () { if (!awaitingBreach) { state.machine.stabilizing = !state.machine.stabilizing; save(); refresh(); } };
@@ -275,6 +276,7 @@
 
       if (state.instability >= CONFIG.instability.breachAt) {
         triggerBreach();
+        return;
       }
 
       refresh();
@@ -326,6 +328,7 @@
 
       if (state.instability >= CONFIG.instability.breachAt) {
         triggerBreach();
+        return;
       }
 
       refresh();
@@ -341,13 +344,20 @@
       }
 
       var lostBonus = DNC.Machine.bonus(state);
-      var shardsEarned = DNC.Instability.getShardReward(state) + (controlled === true ? lostBonus : 0);
+      var baseShards = DNC.Instability.getShardReward(state);
+      var shardsEarned = baseShards + (controlled === true ? lostBonus : 0);
       var completedRun = { clicks: state.runClicks, power: state.runPowerEarned };
       awaitingBreach = true;
+      root.dataset.outcome = controlled === true ? "banked" : "ruptured";
+      elements.mainBtn.disabled = true;
       closeMenu();
       DNC.resetRunAfterBreach(state, shardsEarned);
       consoleLog.add(controlled === true ? "CONTROLLED SHUTDOWN. Base and risk bonus secured." : "REALITY BREACH DETECTED. Containment failed.", controlled === true ? "normal" : "critical");
-      breachModal.show(shardsEarned, state.anomalyShards, completedRun.clicks, state.breachCount, completedRun.power);
+      window.setTimeout(function () {
+        breachModal.show(shardsEarned, state.anomalyShards, completedRun.clicks, state.breachCount, completedRun.power);
+        refresh();
+      }, state.reducedMotion ? 0 : 700);
+      getElement("breachBreakdown").textContent = "▣ " + baseShards + " guaranteed  /  " + (controlled === true ? "▣ " + lostBonus + " risk banked" : "◇ " + lostBonus + " risk lost");
       var resultTitle = getElement("breachTitle");
       if (resultTitle) { resultTitle.textContent = controlled === true ? "CONTROLLED SHUTDOWN" : "CATASTROPHIC BREACH"; }
       getElement("breachOverlay").querySelector(".breach-retained").textContent = controlled === true ? "Base and risk bonus banked. Build your next machine." : "Base Shards retained. Lost " + lostBonus + " unbanked bonus Shards.";
@@ -364,10 +374,11 @@
       }
 
       save();
-      refresh();
     }
 
     function closeBreach() {
+      delete root.dataset.outcome;
+      elements.mainBtn.disabled = false;
       awaitingBreach = false;
       breachModal.hide();
       consoleLog.add("System reinitialized. Shards retained.", "normal");
@@ -462,7 +473,7 @@
 
     function applyMenuLabels() {
       getElement("forecastLabel").textContent = CONFIG.operatorGuide.forecastLabel;
-      getElement("forecastBasis").textContent = CONFIG.operatorGuide.forecastBasis;
+      getElement("forecastBasis").textContent = CONFIG.operatorGuide.forecastBasis + " Produce above " + CONFIG.machine.redline + "% Danger to earn risk. Stabilize reduces output while cooling. Surges start at " + CONFIG.machine.surgeAt + "% Danger.";
       getElement("breachContinueBtn").textContent = CONFIG.operatorGuide.breachContinueLabel;
       root.style.setProperty("--reward-feedback-ms", CONFIG.timing.rewardFeedbackMs + "ms");
       root.style.setProperty("--meter-transition-ms", CONFIG.timing.meterTransitionMs + "ms");
@@ -507,7 +518,7 @@
       elements.instabilityDisplay.textContent = Math.floor(state.instability) + "%";
       elements.instabilityFill.style.width = DNC.clamp(state.instability, CONFIG.statCaps.minimumInstability, CONFIG.statCaps.maximumInstability) + "%";
       elements.instabilityFill.style.background = bandData.fill;
-      elements.perClickDisplay.textContent = DNC.formatNumber(state.powerPerClick * DNC.Machine.multiplier(state, true));
+      elements.perClickDisplay.textContent = formatRate(state.powerPerClick * DNC.Machine.multiplier(state, true));
       elements.perSecDisplay.textContent = formatRate(state.powerPerSecond * DNC.Machine.multiplier(state, false));
       elements.clickCount.textContent = "TOTAL INTERACTIONS: " + DNC.formatNumber(state.totalClicks);
       elements.stateBadge.className = "state-badge " + band;
@@ -519,17 +530,18 @@
       elements.motionBtn.textContent = CONFIG.menu.motionLabel + ": " + (state.reducedMotion ? "OFF" : "ON");
       elements.root.classList.toggle("reduced-motion", state.reducedMotion);
 
-      elements.overlayWarning.style.display = band === "critical" ? "block" : "none";
-      elements.instabWarn.style.display = band === "critical" ? "block" : "none";
+      elements.overlayWarning.style.display = "none";
+      elements.instabWarn.style.display = "none";
       elements.mainBtn.classList.toggle("critical", band === "critical" && !state.reducedMotion);
-      elements.root.classList.toggle("wiggle", band === "unstable" && !state.reducedMotion);
+      elements.root.dataset.danger = band;
+      elements.root.dataset.cooling = String(state.machine.stabilizing);
+      elements.root.dataset.redline = String(state.instability >= CONFIG.machine.redline);
+      elements.root.dataset.surge = String(state.instability >= CONFIG.machine.surgeAt);
+      elements.btnContainer.style.setProperty("--danger-angle", (state.instability * 3.6) + "deg");
+      elements.btnContainer.style.setProperty("--heat", state.instability / 100);
+      elements.btnContainer.style.setProperty("--output-speed", (2.4 / Math.max(1, DNC.Machine.multiplier(state, true))) + "s");
 
-      if (band === "critical") {
-        criticalLabelIndex += 1;
-        elements.mainBtn.innerHTML = CRITICAL_BUTTON_LABELS[Math.floor(criticalLabelIndex / CONFIG.feedback.criticalLabelStepFrames) % CRITICAL_BUTTON_LABELS.length];
-      } else {
-        elements.mainBtn.innerHTML = "DO NOT<br>CLICK";
-      }
+      elements.mainBtn.innerHTML = "DO NOT<br>CLICK";
 
       if (band !== lastBand) {
         lastBand = band;
@@ -545,12 +557,20 @@
         }
       }
 
+      getElement("stabilizeBtn").disabled = awaitingBreach;
       machineControls.hidden = state.instability === 0 && state.powerPerSecond === 0 && DNC.Instability.getShardReward(state) === 0 && state.breachCount === 0 && !state.machine.stabilizing;
       machinePanel.hidden = !state.machine.modules.length && !state.machine.offers.length;
       var f = DNC.Machine.factors(state), m = state.machine;
-      getElement("machineStatus").textContent = "Output x" + DNC.Machine.multiplier(state, true).toFixed(2) + " / Unbanked +" + DNC.Machine.bonus(state) + " Shards (next " + Math.floor(100 * (m.risk - Math.pow(DNC.Machine.bonus(state), 2) * CONFIG.machine.riskDivisor) / ((2 * DNC.Machine.bonus(state) + 1) * CONFIG.machine.riskDivisor)) + "%)" +
-        (state.instability >= CONFIG.machine.surgeAt ? " / SURGE +" + (CONFIG.machine.surgeHeat * f.surge).toFixed(1) + "% in " + Math.max(0, f.warning - m.surge).toFixed(1) + "s" : " / Produce above 75% to earn risk bonus.");
-      getElement("stabilizeBtn").textContent = m.stabilizing ? "KEEP PUSHING" : "STABILIZE / " + Math.round(f.retained * 100) + "% OUTPUT";
+      var bonus = DNC.Machine.bonus(state);
+      var riskProgress = Math.max(0, Math.min(100, 100 * (m.risk - bonus * bonus * CONFIG.machine.riskDivisor) / ((2 * bonus + 1) * CONFIG.machine.riskDivisor)));
+      getElement("machineRisk").hidden = !m.risk && state.instability < CONFIG.machine.redline;
+      getElement("machineRisk").setAttribute("aria-valuenow", Math.floor(riskProgress));
+      getElement("machineRiskFill").style.width = riskProgress + "%";
+      getElement("machineStatus").textContent = "OUTPUT ×" + DNC.Machine.multiplier(state, true).toFixed(2) + "  /  RISK +" + bonus +
+        (state.instability >= CONFIG.machine.surgeAt ? "  /  SURGE +" + (CONFIG.machine.surgeHeat * f.surge).toFixed(1) + "% · " + Math.max(0, f.warning - m.surge).toFixed(1) + "s" : "");
+      elements.stateBadge.textContent = m.stabilizing ? "❄ COOLING" : state.instability >= CONFIG.machine.redline ? "▲ REDLINE" : bandData.badge;
+      getElement("stabilizeBtn").setAttribute("aria-pressed", String(m.stabilizing));
+      getElement("stabilizeBtn").textContent = m.stabilizing ? "RESUME OUTPUT" : "STABILIZE / " + Math.round(f.retained * 100) + "% OUTPUT";
       getElement("cashOutBtn").textContent = "CASH OUT +" + (DNC.Instability.getShardReward(state) + DNC.Machine.bonus(state));
       getElement("cashOutBtn").disabled = awaitingBreach || DNC.Instability.getShardReward(state) < 1;
       getElement("purgeBtn").hidden = state.instability < CONFIG.machine.surgeAt;
@@ -563,7 +583,7 @@
         var offers = getElement("machineOffers"); offers.replaceChildren();
         if (m.offers.length) {
           var note = document.createElement("p");
-          note.textContent = "Optional: choose a module for slot " + (m.round % CONFIG.machine.slots + 1) + (m.modules.length >= CONFIG.machine.slots ? " (replaces its current module)." : ". Two slots; choices last this run.") + " You can keep clicking while you decide.";
+          note.textContent = "Optional: choose a module for slot " + (m.round % CONFIG.machine.slots + 1) + (m.modules.length >= CONFIG.machine.slots ? " (replaces its current module)." : ". Two slots; choices last this run.");
           offers.appendChild(note);
           if (m.modules.length >= CONFIG.machine.slots) {
             var keep = document.createElement("button"); keep.type = "button"; keep.textContent = "KEEP CURRENT MACHINE";
@@ -726,22 +746,13 @@
     }
 
     function showClickFeedback() {
-      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerClick * DNC.Machine.multiplier(state, true)), "");
+      elements.powerDisplay.classList.remove("producing");
+      void elements.powerDisplay.offsetWidth;
+      elements.powerDisplay.classList.add("producing");
     }
 
     function showAutoFeedback() {
-      showFloatingFeedback("+" + DNC.formatNumber(state.powerPerSecond * DNC.Machine.multiplier(state, false)) + " AUTO", "auto");
-    }
-
-    function showFloatingFeedback(text, extraClass) {
-      var feedback = document.createElement("div");
-      var band = DNC.Instability.getBand(state.instability);
-      feedback.className = "click-feedback " + band + (extraClass ? " " + extraClass : "");
-      feedback.textContent = text;
-      elements.btnContainer.appendChild(feedback);
-      window.setTimeout(function () {
-        feedback.remove();
-      }, state.reducedMotion ? CONFIG.timing.reducedMotionFloatingTextMs : CONFIG.timing.floatingTextMs);
+      elements.powerDisplay.classList.add("producing");
     }
 
     function pulseButton() {
@@ -750,13 +761,7 @@
         elements.mainBtn.classList.remove("pressed");
       }, CONFIG.timing.clickFeedbackMs);
 
-      var band = DNC.Instability.getBand(state.instability);
-      if (!state.reducedMotion && CONFIG.feedback[band] && CONFIG.feedback[band].shake) {
-        root.classList.add("shake");
-        window.setTimeout(function () {
-          root.classList.remove("shake");
-        }, CONFIG.timing.clickShakeMs);
-      }
+
     }
 
     function updateAutoCursor(deltaSeconds) {

@@ -3,16 +3,17 @@
   window.ARENA = window.ARENA || {};
 
   ARENA.UI_CONFIG = {
+    defense: { breakMs: 750, summonMs: 900, armorHitMs: 150, cueRadius: 54, meterWidth: 360 },
     resetConfirmMs: 5000,
     transitionMs: 160,
     copy: {
       active: "CONTAINMENT IN PROGRESS",
       cleared: "ROOM SECURED",
       paused: "OPERATION PAUSED",
-      clearHint: "Energy secured. Upgrades are optional. Release the next swarm whenever you are ready.",
-      pauseHint: "Take your time. Enemies, helpers, and wave progress are frozen.",
+      clearHint: "Upgrades optional. Release when ready.",
+      pauseHint: "Battlefield paused.",
       nextWave: "RELEASE NEXT WAVE",
-      championWave: "RELEASE CHAMPION WAVE",
+      championWave: "RELEASE GIGABOSS WAVE",
       resume: "RESUME OPERATION",
       pulseReady: "DISCHARGE PULSE",
       pulseCharging: "CHARGING PULSE",

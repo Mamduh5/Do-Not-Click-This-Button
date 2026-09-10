@@ -19,6 +19,7 @@
 
     var copy = ARENA.UI_CONFIG.copy;
     var resetUntil = 0;
+    var logUntil = 0;
     document.documentElement.style.setProperty("--ui-transition", ARENA.UI_CONFIG.transitionMs + "ms");
     function element(id) { return document.getElementById("arena" + id); }
     element("NextWaveBtn").addEventListener("click", options.onNextWave);
@@ -68,6 +69,7 @@
     });
 
     function update(state, combo, scene) {
+      elements.log.hidden = Date.now() >= logUntil;
       elements.energy.textContent = ARENA.formatNumber(state.energy);
       elements.wave.textContent = ARENA.formatNumber(state.wave);
       elements.defeated.textContent = ARENA.formatNumber(state.totalDefeated);
@@ -86,7 +88,7 @@
       element("Phase").textContent = failed ? "DEFENSE LOST" : paused ? copy.paused : cleared ? copy.cleared : champion ? "GIGABOSS ENCOUNTER" : copy.active;
       element("WaveProgress").textContent = state.waveKills + " / " + definition.target;
       element("WaveTitle").textContent = definition.title;
-      element("WaveHint").textContent = failed ? ARENA.Endless.failureReason(state) : cleared ? "Next: " + next.title + " / " + next.target + " targets" + (next.champion ? " / Champion finale" : "") : champion ? "Interrupt the charged strike to protect your Core." : definition.hint;
+      element("WaveHint").textContent = cleared ? "Next: " + next.title + " / " + next.target + " targets" + (next.champion ? " / Champion finale" : "") : "";
       element("RewardPreview").textContent = failed ? "CLEAR BONUS NOT EARNED" : "+" + ARENA.formatNumber(clearReward) + (cleared ? " ENERGY SECURED" : " ENERGY ON CLEAR");
       element("WaveFill").style.width = (state.waveKills / definition.target * 100) + "%";
       element("OperationOverlay").hidden = !paused && (!cleared || scene.time.now < scene.clearRevealAt);
@@ -108,8 +110,8 @@
       element("PulseBtn").classList.toggle("pulse-ready", pulseReady && !failed && !cleared && !paused && activeEnemies.length > 0);
       element("PulseLabel").textContent = failed || cleared ? "CHARGE SAVED" : pulseReady ? (activeEnemies.length ? copy.pulseReady : "AWAITING TARGETS") : copy.pulseCharging;
       element("PulseFill").style.width = (state.pulseCharge / ARENA.BALANCE_CONFIG.operations.pulseMaxCharge * 100) + "%";
-      element("PulseHint").textContent = failed ? "Defense lost. Your charge is saved for retry." : cleared ? "Your charge carries into the next wave." : pulseReady ? "Room-wide burst. Hits every target; tougher enemies may survive." : Math.ceil((ARENA.BALANCE_CONFIG.operations.pulseMaxCharge - state.pulseCharge) / ARENA.BALANCE_CONFIG.operations.manualKillCharge) + " manual kills to a room-wide burst.";
-      element("ChainBonus").textContent = combo > 1 ? "+" + Math.round((ARENA.Waves.comboMultiplier(combo) - 1) * 100) + "% KILL ENERGY" : "CHAIN KILLS FOR BONUS ENERGY";
+      element("PulseHint").textContent = failed ? "Charge retained" : cleared ? "Charge retained" : pulseReady ? "All targets" : Math.ceil((ARENA.BALANCE_CONFIG.operations.pulseMaxCharge - state.pulseCharge) / ARENA.BALANCE_CONFIG.operations.manualKillCharge) + " kills to ready";
+      element("ChainBonus").textContent = combo > 1 ? "+" + Math.round((ARENA.Waves.comboMultiplier(combo) - 1) * 100) + "% KILL ENERGY" : "CHAIN ×1.00";
       element("ChainFill").style.width = (combo ? Math.max(0, Math.min(1, (scene.comboExpiresAt - scene.time.now) / ARENA.BALANCE_CONFIG.cursor.comboWindowMs)) * 100 : 0) + "%";
       element("BestCombo").textContent = "BEST CHAIN " + state.bestCombo;
       element("Loadout").textContent = "DMG " + ARENA.formatNumber(scene.stats.clickDamage) + " / REACH " + scene.stats.clickRadius + " / HELPERS " + scene.stats.helperCursors;
@@ -130,6 +132,9 @@
     }
 
     function log(message) {
+      if (/CORE HIT|CORE DESTROYED|OVERRUN|DISCHARGED|RELEASED|ROOM SECURED/.test(message)) { return; }
+      logUntil = Date.now() + 1800;
+      elements.log.hidden = false;
       elements.log.textContent = message;
     }
 

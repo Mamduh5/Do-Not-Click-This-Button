@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Containment Swarm · Do Not Click This Button</title>
+    <title>Arena · Containment</title>
     <link rel="stylesheet" href="src/styles/arena.css">
   </head>
   <body>
     <div class="arena-shell">
       <header class="arena-header">
         <div>
-          <a class="mode-link" href="index.html">&#8592; THE FORBIDDEN BUTTON</a>
+          <a class="mode-link" href="index.html">&#8592; LOBBY</a>
           <div class="arena-kicker">UNIT-12 / CONTAINMENT OPERATIONS</div>
-          <h1>Containment Swarm</h1>
+          <h1>Arena <small>Containment Swarm</small></h1>
         </div>
         <div class="arena-status">
           <div><span>Energy</span><strong id="arenaEnergy">0</strong></div>
@@ -32,7 +32,7 @@
           </div>
           <div class="arena-field">
           <div id="arenaMount" class="arena-mount"></div>
-          <div class="arena-log" id="arenaLog" role="status">CLICK ANOMALIES. MAKE EVERY CHAIN COUNT.</div>
+          <div class="arena-log" id="arenaLog" role="status"></div>
           <div class="operation-overlay" id="arenaOperationOverlay" hidden>
             <div class="operation-result">
               <div class="result-icon" aria-hidden="true">&#9671;</div>
@@ -67,7 +67,7 @@
           <div class="shop-break" id="arenaShopBreak" hidden><span id="arenaShopBudget"></span><button class="primary-action" id="arenaShopNextWaveBtn" type="button">RELEASE NEXT WAVE</button></div>
           <div class="loadout-summary" id="arenaLoadout">DMG 2 / REACH 24 / HELPERS 0</div>
           <div id="arenaUpgradeList" class="arena-upgrade-list"></div>
-          <div class="field-guide"><div class="arena-kicker">KNOW YOUR TARGETS</div><p><span class="role-mark runner"></span><strong>Runner</strong> Fast &amp; fragile</p><p><span class="role-mark brute"></span><strong>Brute</strong> Tough &amp; valuable</p><p><span class="role-mark champion"></span><strong>Gigaboss</strong> Every seventh wave</p></div>
+          <details class="field-guide"><summary>Field guide</summary><div class="arena-kicker">KNOW YOUR TARGETS</div><p><span class="role-mark runner"></span><strong>Runner</strong> Fast &amp; fragile</p><p><span class="role-mark brute"></span><strong>Brute</strong> Tough &amp; valuable</p><p><span class="role-mark champion"></span><strong>Gigaboss</strong> Every seventh wave</p><p>Pulse hits the whole field. During a boss charge, Pulse or enough damage breaks the strike.</p><p>Plated armor reduces damage between charges. Brood spawns runners; Siege strikes harder.</p><p>Crowded fields raise Overrun and weaken the next Core defense.</p></details>
           <details class="arena-settings" id="arenaSettings"><summary>Appearance &amp; sound</summary>
             <div class="shop-actions">
               <label class="skin-select-label" for="arenaSkinSelect">Click Skin</label>

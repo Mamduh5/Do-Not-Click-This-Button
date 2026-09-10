@@ -112,7 +112,7 @@
       document.removeEventListener("visibilitychange", this.handleVisibility);
     }, this);
     var status = document.createElement("section"); status.id = "arenaEndless"; status.className = "arena-endless";
-    status.innerHTML = '<p id="arenaDefense" aria-live="polite"></p><p id="arenaBossIntel"></p><div id="arenaDraft"></div><button type="button" id="arenaRetry">RETRY WAVE</button><button type="button" id="arenaTrain">TRAIN ON PREVIOUS WAVE</button>';
+    status.innerHTML = '<p id="arenaDefense" aria-live="polite"></p><details id="arenaBossHelp"><summary>Encounter details</summary><p id="arenaBossIntel"></p></details><div id="arenaDraft"></div><button type="button" id="arenaRetry">RETRY WAVE</button><button type="button" id="arenaTrain">TRAIN ON PREVIOUS WAVE</button>';
     document.querySelector(".operation-bar").appendChild(status);
     document.getElementById("arenaRetry").onclick = function () { ARENA.Endless.retry(this, false); }.bind(this);
     document.getElementById("arenaTrain").onclick = function () { ARENA.Endless.retry(this, true); }.bind(this);
@@ -428,12 +428,9 @@
     this.drawDefense(boss);
     var resultReady = failed && this.time.now >= this.defeatRevealAt;
     document.getElementById("arenaEndless").hidden = this.state.wave < c.pressureFirstWave && !e.offers.length && !e.modules.length && !failed;
-    document.getElementById("arenaDefense").textContent = failed ? (resultReady ? ARENA.Endless.failureReason(this.state) + ". Purchases and completed waves retained. Retry pays nothing; defeating enemies earns Energy." : ARENA.Endless.failureReason(this.state)) : boss ?
-      "CORE " + Math.ceil(e.core) + "% / GIGABOSS " + Math.ceil(boss.health) + " HP / " +
-      (e.attack >= c.bossAttackSeconds - c.bossWindupSeconds ? "STRIKE IN " + ((c.bossAttackSeconds - e.attack) / (1 + Math.max(0, this.enemies.filter(function (target) { return target.active; }).length - 1) * c.summonHaste)).toFixed(1) + "s / HIT TO INTERRUPT OR PULSE" : "Preparing strike") :
-      "OVERRUN " + Math.ceil(e.pressure) + "% / Keep the field clear. Pressure weakens the next Core defense.";
-    document.getElementById("arenaBossIntel").textContent = "Gigaboss at wave " + (Math.ceil(this.state.wave / c.cycleLength) * c.cycleLength) + ": " + ARENA.Endless.traits(this.state.wave).map(function (t) { return t.name + " / " + t.hint; }).join(" / ");
-    document.getElementById("arenaBossIntel").hidden = failed;
+    document.getElementById("arenaDefense").textContent = failed ? (resultReady ? ARENA.Endless.failureReason(this.state) + ". Purchases and completed waves retained. No retry bonus." : "") : "";
+    document.getElementById("arenaBossIntel").textContent = "Wave " + (Math.ceil(this.state.wave / c.cycleLength) * c.cycleLength) + ": " + ARENA.Endless.traits(this.state.wave).map(function (t) { return t.name + " / " + t.hint; }).join(" / ");
+    document.getElementById("arenaBossHelp").hidden = failed;
     document.getElementById("arenaRetry").hidden = !resultReady;
     document.getElementById("arenaTrain").hidden = !resultReady || this.state.wave % c.cycleLength !== 0;
     var signature = e.offers.join(",") + ":" + e.round + ":" + this.state.wavePhase;
@@ -444,7 +441,7 @@
       label.textContent = e.modules.length ? "Build: " + e.modules.map(function (id) { return c.modules.find(function (m) { return m.id === id; }).name; }).join(" + ") : "";
       draft.appendChild(label);
       if (e.offers.length && this.state.wavePhase === "cleared") {
-        var note = document.createElement("p"); note.textContent = "Optional: choose slot " + (e.round % c.slots + 1) + (e.modules.length >= c.slots ? " replacement. Only three modules stay active." : ". Three active slots; future choices replace a slot.") + " Release Wave anytime; these offers remain available between waves."; draft.appendChild(note);
+        var note = document.createElement("p"); note.textContent = "Optional: choose slot " + (e.round % c.slots + 1) + (e.modules.length >= c.slots ? " replacement. Only three modules stay active." : ". Three active slots; future choices replace a slot."); draft.appendChild(note);
         if (e.modules.length >= c.slots) {
           var keep = document.createElement("button"); keep.type = "button"; keep.textContent = "KEEP CURRENT BUILD";
           keep.onclick = function () { e.offers = []; e.round++; ARENA.Save.save(this.state); this.refreshUi(); }.bind(this); draft.appendChild(keep);
@@ -460,44 +457,96 @@
   };
 
   ArenaScene.prototype.drawDefense = function (boss) {
-    var e = this.state.endless, c = CONFIG.endless, g = this.bossTelegraph;
-    var failed = this.state.wavePhase === "failed";
-    var bossWave = this.state.wave % c.cycleLength === 0;
+    var e = this.state.endless, c = CONFIG.endless, g = this.bossTelegraph, ui = ARENA.UI_CONFIG.defense;
+    var failed = this.state.wavePhase === "failed", bossWave = this.state.wave % c.cycleLength === 0;
     var visible = this.state.wavePhase !== "cleared" && (bossWave || this.state.wave >= c.pressureFirstWave);
     g.clear(); this.defenseLabel.setVisible(visible); this.coreLabel.setVisible(visible && bossWave);
     if (!visible) { return; }
-    // Phaser can resize via CSS transforms without triggering ResizeObserver.
     var textScale = Math.max(1, Math.min(2, CONFIG.canvas.width / Math.max(1, this.game.canvas.getBoundingClientRect().width)));
-    this.defenseLabel.setFontSize(20 * textScale).setWordWrapWidth(CONFIG.canvas.width - 100);
-    this.coreLabel.setFontSize(18 * textScale);
-    var active = this.enemies.filter(function (enemy) { return enemy.active; });
-    var crowded = active.length / ARENA.Waves.getDefinition(this.state.wave).maxActive >= c.pressureThreshold;
+    this.defenseLabel.setFontSize(18 * textScale).setWordWrapWidth(CONFIG.canvas.width - 100);
+    this.coreLabel.setFontSize(16 * textScale);
     var danger = bossWave ? e.core / CONFIG.core.maxHealth : e.pressure / 100;
     var color = failed || (bossWave ? danger < 0.4 : danger >= 0.65) ? 0xd82929 : 0x16899a;
-    this.defenseLabel.setText(failed ? ARENA.Endless.failureReason(this.state) : bossWave ?
-      "PROTECT THE CORE / INTERRUPT CHARGED STRIKES" : "OVERRUN " + Math.ceil(e.pressure) + "% / " + (crowded ? "FIELD CROWDED - CLEAR ENEMIES" : e.pressure > 0 ? "PRESSURE FALLING" : "KEEP THE FIELD CLEAR"));
-    // A field meter and outlines connect pressure to the surviving targets.
-    var meterY = this.defenseLabel.y + this.defenseLabel.height + 6;
-    g.fillStyle(0x111c25, 0.9); g.fillRect(240, meterY, 480, 9);
-    g.fillStyle(color, 1); g.fillRect(240, meterY, 480 * danger, 9);
-    if (!bossWave && (e.pressure > 0 || crowded)) {
-      g.lineStyle(failed ? 7 : 2 + danger * 4, color, 0.25 + danger * 0.65);
-      g.strokeRect(8, 8, CONFIG.canvas.width - 16, CONFIG.canvas.height - 16);
-      active.forEach(function (enemy) { g.strokeCircle(enemy.x, enemy.y, (enemy.radius || 16) + 8); });
-    }
-    if (bossWave) {
-      var charging = !failed && e.attack >= c.bossAttackSeconds - c.bossWindupSeconds;
-      var struck = this.time.now < this.coreHitUntil || failed;
-      g.fillStyle(struck ? 0xd82929 : 0x16899a, 0.3);
-      g.fillCircle(this.core.x, this.core.y, CONFIG.core.radius);
-      g.lineStyle(charging || struck ? 5 : 2, charging || struck ? 0xd82929 : color, 1);
-      g.strokeCircle(this.core.x, this.core.y, CONFIG.core.radius);
-      if (boss && (charging || struck)) { g.lineBetween(boss.x, boss.y, this.core.x, this.core.y); }
-      if (failed) {
-        g.lineBetween(this.core.x - 16, this.core.y - 16, this.core.x + 16, this.core.y + 16);
-        g.lineBetween(this.core.x + 16, this.core.y - 16, this.core.x - 16, this.core.y + 16);
+    this.defenseLabel.setText(bossWave ? "GIGABOSS" + (boss ? "  " + Math.ceil(boss.health) + " HP" : "") : "OVERRUN " + Math.ceil(e.pressure) + "%");
+    var meterY = this.defenseLabel.y + this.defenseLabel.height + 6, meterX = (CONFIG.canvas.width - ui.meterWidth) / 2;
+    if (!bossWave) {
+      g.fillStyle(0x111c25, 0.95); g.fillRect(meterX, meterY, ui.meterWidth, 12);
+      g.fillStyle(color, 1); g.fillRect(meterX, meterY, ui.meterWidth * danger, 12);
+      // Fixed threshold ticks remain legible without color or animation.
+      g.lineStyle(2, 0xffffff, 0.8);
+      [0.65, 0.85].forEach(function (n) { g.lineBetween(meterX + ui.meterWidth * n, meterY, meterX + ui.meterWidth * n, meterY + 12); });
+      if (danger > 0) {
+        g.lineStyle(2 + danger * 5, color, 0.25 + danger * 0.65);
+        g.strokeRect(9, 9, CONFIG.canvas.width - 18, CONFIG.canvas.height - 18);
+        // Corner chevrons close inward as pressure rises; targets stay unobscured.
+        var inset = 18 + danger * 30;
+        [[inset,inset,1,1],[CONFIG.canvas.width-inset,inset,-1,1],[inset,CONFIG.canvas.height-inset,1,-1],[CONFIG.canvas.width-inset,CONFIG.canvas.height-inset,-1,-1]].forEach(function (p) {
+          g.lineBetween(p[0], p[1]+p[3]*26, p[0], p[1]); g.lineBetween(p[0], p[1], p[0]+p[2]*26, p[1]);
+        });
       }
-      this.coreLabel.setText(failed ? "CORE DESTROYED / 0%" : "CORE " + Math.ceil(e.core) + "%" + (struck ? " / HIT" : charging ? "\nSTRIKE IN " + ((c.bossAttackSeconds - e.attack) / (1 + Math.max(0, active.length - 1) * c.summonHaste)).toFixed(1) + "s" : ""));
+      return;
+    }
+    var charging = !failed && e.attack >= c.bossAttackSeconds - c.bossWindupSeconds;
+    var charge = charging ? Math.min(1, (e.attack - c.bossAttackSeconds + c.bossWindupSeconds) / c.bossWindupSeconds) : 0;
+    var struck = this.time.now < this.coreHitUntil, broken = this.time.now < this.bossBreakUntil;
+    var x = this.core.x, y = this.core.y, r = CONFIG.core.radius * Math.min(1.6, textScale);
+    this.coreLabel.setY(y + r + 12);
+    g.fillStyle(failed ? 0x292e36 : struck ? 0xd82929 : 0x16899a, failed ? 0.9 : 0.25);
+    g.fillCircle(x, y, r);
+    g.lineStyle(struck ? 6 : 3, struck ? 0xd82929 : color, 1);
+    if (!failed) { g.strokeCircle(x, y, r); }
+    // A six-sided housing progressively loses panels as integrity falls.
+    for (var i = 0; i < 6; i++) {
+      var a = i * Math.PI / 3, b = a + Math.PI / 3 - 0.09, damaged = i >= Math.ceil(danger * 6);
+      var offset = failed ? 12 : damaged ? 5 : 0;
+      g.lineStyle(damaged ? 2 : 5, damaged ? 0x795b59 : color, 1);
+      g.lineBetween(x + Math.cos(a) * (r+offset), y + Math.sin(a) * (r+offset), x + Math.cos(b) * (r+offset), y + Math.sin(b) * (r+offset));
+    }
+    if (danger < 0.75) { g.lineStyle(3, 0x3a242b, 1); g.lineBetween(x-r*.6,y-r*.5,x+4,y+3); g.lineBetween(x+4,y+3,x-8,y+r*.7); }
+    if (danger < 0.4) { g.lineBetween(x+4,y+3,x+r*.7,y-r*.4); }
+    if (failed) { g.lineStyle(5,0xc46b61,1); g.lineBetween(x-13,y-13,x+13,y+13); g.lineBetween(x+13,y-13,x-13,y+13); }
+    this.coreLabel.setText(failed ? "CORE DESTROYED / 0%" : "CORE " + Math.ceil(e.core) + "%");
+    if (!boss) { return; }
+    var bx = boss.x, by = boss.y, radius = ui.cueRadius;
+    var traitIds = ARENA.Endless.traits(this.state.wave).map(function (t) { return t.id; });
+    if (charging && traitIds.indexOf("swarm") >= 0) {
+      g.lineStyle(3, 0x7b48a5, 0.8);
+      [-1, 1].forEach(function (side) { g.strokeTriangle(bx+side*70,by-12,bx+side*88,by+12,bx+side*52,by+12); });
+    }
+    if (charging || struck) {
+      // A narrow lane, advancing chevron and contracting target show source and destination.
+      g.lineStyle(struck ? 9 : 2, 0xd82929, struck ? 0.95 : 0.45 + charge * 0.4);
+      g.lineBetween(bx, by + radius, x, y - r);
+      if (traitIds.indexOf("siege") >= 0) {
+        g.lineBetween(bx-9,by+radius,x-9,y-r); g.lineBetween(bx+9,by+radius,x+9,y-r);
+      }
+      g.strokeCircle(x, y, r + (1-charge)*25);
+      var arrowY = by + radius + (y-r-by-radius) * charge;
+      g.lineStyle(4,0xd82929,1); g.lineBetween(x-9,arrowY-9,x,arrowY); g.lineBetween(x+9,arrowY-9,x,arrowY);
+      g.beginPath(); g.arc(bx,by,radius+7,-Math.PI/2,-Math.PI/2+charge*Math.PI*2); g.strokePath();
+      var stagger = Math.min(1,e.stagger / (boss.maxHealth*c.interruptFraction));
+      if (stagger > 0) {
+        g.lineStyle(5,0x157e89,1);
+        for (var j=0;j<Math.ceil(stagger*6);j++) { var angle=j*Math.PI/3; g.lineBetween(bx+Math.cos(angle)*radius,by+Math.sin(angle)*radius,bx+Math.cos(angle)*(radius+10),by+Math.sin(angle)*(radius+10)); }
+      }
+    }
+    var armor = ARENA.Endless.traits(this.state.wave).some(function(t){return t.id === "armor";});
+    if (armor) {
+      var open = charging || broken, plateRadius = radius + (open ? 15 : 0);
+      g.lineStyle(open ? 2 : 6, this.time.now < boss.armorHitUntil ? 0xffffff : 0x566878, 1);
+      for (var k=0;k<6;k++) { var angle1=k*Math.PI/3+.12, angle2=(k+1)*Math.PI/3-.12;
+        g.beginPath();g.arc(bx,by,plateRadius,angle1,angle2);g.strokePath();
+      }
+    }
+    if (broken) {
+      var expansion = 1 - (this.bossBreakUntil - this.time.now) / ui.breakMs;
+      g.lineStyle(4,0x16899a,1-expansion*.6);
+      for (var n=0;n<4;n++) { g.beginPath(); g.arc(bx,by,radius+expansion*22,n*Math.PI/2+.18,n*Math.PI/2+1.15);g.strokePath(); }
+      this.defenseLabel.setText("BREAK");
+    }
+    if (this.time.now < this.summonUntil) {
+      g.lineStyle(3,0x7b48a5,0.75); g.strokeCircle(bx,by,radius+12);
+      (this.summonTargets || []).forEach(function (target) { g.lineBetween(bx,by,target.x,target.y); g.strokeCircle(target.x,target.y,24); });
     }
   };
 

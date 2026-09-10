@@ -7,7 +7,7 @@
     {
       id: "heavierCursor",
       name: "Heavier Cursor",
-      description: "Adds click damage. Anomalies squash in fewer hits.",
+      description: "Manual hit damage.",
       baseCost: 12,
       costMultiplier: 1.55,
       maxLevel: 12,
@@ -16,7 +16,7 @@
     {
       id: "widerImpact",
       name: "Wider Impact",
-      description: "Increases click radius. Near misses still crush anomalies.",
+      description: "Manual hit radius.",
       baseCost: 18,
       costMultiplier: 1.62,
       maxLevel: 10,
@@ -70,6 +70,6 @@
       maxLevel: 5,
       effects: [{ type: "feedbackScaleAdd", value: 0.14 }, { type: "pulseDamageMultiplierAdd", value: 0.4 }]
     }
-    ,{ id: "fieldTraining", name: "Field training", description: "Repeatable +1 manual and helper damage. Earn Energy by fighting, including retries.", baseCost: 35, costMultiplier: 1, maxLevel: null, effects: [{ type: "clickDamageAdd", value: 1 }, { type: "helperDamageAdd", value: 1 }] }
+    ,{ id: "fieldTraining", name: "Field training", description: "+1 manual and helper damage per level.", baseCost: 35, costMultiplier: 1, maxLevel: null, effects: [{ type: "clickDamageAdd", value: 1 }, { type: "helperDamageAdd", value: 1 }] }
   ];
 })();
