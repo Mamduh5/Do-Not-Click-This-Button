@@ -22,15 +22,29 @@
     var logUntil = 0;
     document.documentElement.style.setProperty("--ui-transition", ARENA.UI_CONFIG.transitionMs + "ms");
     function element(id) { return document.getElementById("arena" + id); }
-    element("NextWaveBtn").addEventListener("click", options.onNextWave);
-    element("ShopNextWaveBtn").addEventListener("click", options.onNextWave);
-    element("ReviewUpgradesBtn").addEventListener("click", function () {
+    function bindCombatButton(id, action) {
+      var button = element(id);
+      var touchHandled = false;
+      button.addEventListener("pointerdown", function (event) {
+        touchHandled = event.pointerType !== "mouse";
+        if (!touchHandled || button.disabled || event.button !== 0) { return; }
+        // Browser clicks may disappear for a secondary finger during gameplay.
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        action();
+      });
+      button.addEventListener("click", function (event) {
+        if (!touchHandled || event.detail === 0) { action(); }
+      });
+    }
+    bindCombatButton("ShopResumeBtn", options.onPause);
+    bindCombatButton("ReviewUpgradesBtn", function () {
+      options.onReviewUpgrades();
       element("Shop").scrollIntoView({ block: "start" });
       element("ShopTitle").focus({ preventScroll: true });
     });
-    element("PauseBtn").addEventListener("click", options.onPause);
-    element("ResumeBtn").addEventListener("click", options.onPause);
-    element("PulseBtn").addEventListener("click", options.onPulse);
+    bindCombatButton("PauseBtn", options.onPause);
+    bindCombatButton("PulseBtn", options.onPulse);
     elements.mute.addEventListener("click", options.onToggleMute);
     elements.reset.addEventListener("click", function () {
       if (Date.now() < resetUntil) { resetUntil = 0; options.onReset(); }
@@ -80,30 +94,29 @@
       var failed = state.wavePhase === "failed";
       var clearReward = cleared && state.endless ? state.endless.lastClearReward : state.wave <= state.highestWaveCleared ? 0 : definition.clearReward;
       var paused = scene.paused;
-      var next = ARENA.Waves.getDefinition(state.wave + 1);
+      var next = ARENA.Waves.getDefinition(state.endless.trainingBoss || state.wave + 1);
+      var countdown = (scene.waveSystem.transitionRemainingMs / 1000).toFixed(1);
+      var transitionHint = (next.champion ? "Gigaboss arriving in " : "Next wave in ") + countdown + "s";
       var activeEnemies = scene.enemies.filter(function (enemy) { return enemy.active; });
       var champion = activeEnemies.find(function (enemy) { return enemy.roleId === "champion"; });
       var pulseReady = state.pulseCharge >= ARENA.BALANCE_CONFIG.operations.pulseMaxCharge;
       document.querySelector(".arena-stage").dataset.phase = failed ? "failed" : paused ? "paused" : cleared ? "cleared" : champion ? "champion" : "active";
+      document.querySelector(".arena-stage").dataset.incomingBoss = String(cleared && next.champion);
       element("Phase").textContent = failed ? "DEFENSE LOST" : paused ? copy.paused : cleared ? copy.cleared : champion ? "GIGABOSS ENCOUNTER" : copy.active;
       element("WaveProgress").textContent = state.waveKills + " / " + definition.target;
       element("WaveTitle").textContent = definition.title;
-      element("WaveHint").textContent = cleared ? "Next: " + next.title + " / " + next.target + " targets" + (next.champion ? " / Champion finale" : "") : "";
+      element("WaveHint").textContent = cleared ? "Next: " + next.title + " / " + (paused ? "Countdown paused" : transitionHint) : "";
       element("RewardPreview").textContent = failed ? "CLEAR BONUS NOT EARNED" : "+" + ARENA.formatNumber(clearReward) + (cleared ? " ENERGY SECURED" : " ENERGY ON CLEAR");
       element("WaveFill").style.width = (state.waveKills / definition.target * 100) + "%";
       element("OperationOverlay").hidden = !paused && (!cleared || scene.time.now < scene.clearRevealAt);
-      element("ResultKicker").textContent = paused ? copy.paused : copy.cleared;
+      element("ResultKicker").textContent = paused ? copy.paused : cleared && next.champion ? "GIGABOSS INCOMING" : copy.cleared;
       element("ResultTitle").textContent = paused ? "Take a breather." : "Wave " + state.wave + " secured.";
-      element("ResultHint").textContent = paused ? copy.pauseHint : copy.clearHint;
+      element("ResultHint").textContent = paused ? copy.pauseHint : transitionHint + ". " + copy.clearHint;
       element("ResultReward").textContent = paused ? "" : "+" + ARENA.formatNumber(clearReward) + " CLEAR BONUS";
       element("ReviewUpgradesBtn").hidden = !cleared;
-      element("ShopBreak").hidden = !cleared;
+      element("ShopBreak").hidden = !paused;
       element("ShopBudget").textContent = ARENA.formatNumber(state.energy) + " ENERGY AVAILABLE";
-      element("ShopNextWaveBtn").textContent = "RELEASE WAVE " + next.wave;
-      element("NextWaveBtn").hidden = !cleared;
-      element("NextWaveBtn").textContent = ARENA.Waves.getDefinition(state.wave + 1).champion ? copy.championWave : copy.nextWave;
-      element("ResumeBtn").hidden = !paused;
-      element("PauseBtn").disabled = cleared || failed;
+      element("PauseBtn").disabled = failed;
       element("PauseBtn").textContent = paused ? "RESUME [P]" : "PAUSE [P]";
       element("PauseBtn").setAttribute("aria-pressed", String(paused));
       element("PulseBtn").disabled = failed || paused || cleared || !activeEnemies.length || !pulseReady;

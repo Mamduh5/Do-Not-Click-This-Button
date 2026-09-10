@@ -55,6 +55,7 @@
 
     var firstClickLogged = state.totalClicks > 0;
     var autoCursorAccumulatorMs = 0;
+    var buttonFeedbackTimeoutId = null;
 
     var elements = {
       root: root,
@@ -141,7 +142,20 @@
     refresh();
 
     function bindEvents() {
-      elements.mainBtn.addEventListener("click", handleClick);
+      // Every contact presses immediately, including non-primary touch pointers.
+      elements.mainBtn.addEventListener("pointerdown", function (event) {
+        if (event.button !== 0) { return; }
+        event.preventDefault();
+        elements.mainBtn.setPointerCapture(event.pointerId);
+        handleClick();
+      });
+      elements.mainBtn.addEventListener("click", function (event) {
+        // Keep keyboard / assistive activation without counting a pointer twice.
+        if (event.detail === 0 && !event.pointerType) { handleClick(); }
+      });
+      ["contextmenu", "selectstart", "dragstart"].forEach(function (type) {
+        elements.mainBtn.parentElement.addEventListener(type, function (event) { event.preventDefault(); });
+      });
       elements.guideAction.addEventListener("click", function () {
         if (currentGuide === CONFIG.operatorGuide.firstUpgrade && DNC.Upgrades.canBuy(state, "powerTap")) {
           sound.unlock();
@@ -755,11 +769,12 @@
       elements.powerDisplay.classList.add("producing");
     }
 
-    function pulseButton() {
+    function pulseButton(duration) {
+      window.clearTimeout(buttonFeedbackTimeoutId);
       elements.mainBtn.classList.add("pressed");
-      window.setTimeout(function () {
+      buttonFeedbackTimeoutId = window.setTimeout(function () {
         elements.mainBtn.classList.remove("pressed");
-      }, CONFIG.timing.clickFeedbackMs);
+      }, duration || CONFIG.timing.clickFeedbackMs);
 
 
     }
@@ -774,10 +789,7 @@
       autoCursorAccumulatorMs %= CONFIG.autoCursor.clickIntervalMs;
       autoCursor.playCycle();
       showAutoFeedback();
-      elements.mainBtn.classList.add("pressed");
-      window.setTimeout(function () {
-        elements.mainBtn.classList.remove("pressed");
-      }, CONFIG.autoCursor.pressMs);
+      pulseButton(CONFIG.autoCursor.pressMs);
       sound.play("autoClick");
 
       if (autoCursor.canLog(Date.now())) {

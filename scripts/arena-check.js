@@ -567,7 +567,16 @@ assert(operation.energy === ARENA.Waves.getDefinition(1).clearReward, "clear pay
 const restoredOperation = ARENA.Save.validateState(JSON.parse(JSON.stringify(operation)));
 assert(restoredOperation.wavePhase === "cleared" && restoredOperation.energy === operation.energy, "reload preserves the paid upgrade break");
 assert(!ARENA.Waves.canSpawn(waves, restoredOperation, 0), "cleared rooms stay empty");
-assert(ARENA.Waves.next(waves, restoredOperation) && restoredOperation.wave === 2, "next wave requires explicit release");
+assert(!ARENA.Waves.updateTransition(waves, restoredOperation, 1000), "clear has a readable transition");
+assert(ARENA.Waves.updateTransition(waves, restoredOperation, 1200), "ordinary wave is ready after 2.2 seconds");
+assert(ARENA.Waves.next(waves, restoredOperation) && restoredOperation.wave === 2, "completed transition starts the next wave");
+assert(!ARENA.Waves.updateTransition(waves, restoredOperation, 99999), "active waves never auto-skip");
+const bossTransitionState = Object.assign(ARENA.Save.createDefaultState(), { wave: 6, wavePhase: "cleared" });
+const bossTransition = ARENA.Waves.create(bossTransitionState);
+assert(!ARENA.Waves.updateTransition(bossTransition, bossTransitionState, 2200), "Gigaboss entrance lasts longer than ordinary transitions");
+assert(ARENA.Waves.updateTransition(bossTransition, bossTransitionState, 1200), "Gigaboss entrance finishes automatically");
+bossTransitionState.wavePhase = "failed";
+assert(!ARENA.Waves.updateTransition(bossTransition, bossTransitionState, 99999), "failed waves never advance automatically");
 const championState = Object.assign(ARENA.Save.createDefaultState(), { wave: 7 });
 const championWaves = { spawned: ARENA.Waves.getDefinition(7).target - 1 };
 assert(!ARENA.Waves.canSpawn(championWaves, championState, 1), "champion waits for the swarm");
@@ -588,6 +597,8 @@ assert(legacyBoss.wavePhase === "active" && legacyBoss.waveKills === 0 && legacy
 const draft = ARENA.Save.createDefaultState(); draft.wave = 2; draft.wavePhase = "cleared";
 ARENA.Endless.cleared(draft, true);
 const savedOffers = ARENA.Save.validateState(JSON.parse(JSON.stringify(draft))).endless.offers;
+const draftTransition = ARENA.Waves.create(draft);
+assert(ARENA.Waves.updateTransition(draftTransition, draft, 2200), "optional module offers do not block automatic progression");
 assert(JSON.stringify(savedOffers) === JSON.stringify(draft.endless.offers), "Arena offers persist");
 const deferredDraft = ARENA.Save.validateState(JSON.parse(JSON.stringify(draft)));
 deferredDraft.wavePhase = "cleared";

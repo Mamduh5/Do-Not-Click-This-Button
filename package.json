@@ -8,6 +8,7 @@
     "check": "node scripts/check.js && node scripts/gameplay-check.js && node scripts/arena-check.js",
     "smoke:browser": "node scripts/browser-smoke.js",
     "smoke:arena": "node scripts/arena-smoke.js",
+    "smoke:multitouch": "node scripts/multitouch-smoke.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "deploy:cloudflare": "npm run build && wrangler deploy",

@@ -15,8 +15,14 @@ Systems and UI should consume these data files and avoid hardcoded balance value
 The `endless` section configures cycle length, Overrun, Core strikes, boss traits,
 scaling, draft cadence, and module effects. Upgrades are available whenever the
 player can afford them. Random module offers are optional and stay available
-between waves if the player releases a wave without choosing. Existing movement
+between waves if the next wave starts without a choice. Existing movement
 and spawn caps remain readability limits, not progression endpoints.
+
+`operations.nextWaveDelayMs` controls the automatic break after a clear;
+`gigabossTransitionMs` gives incoming Gigaboss waves a longer entrance.
+The existing `clearRevealDelayMs` leaves the initial victory beat visible before
+the countdown overlay appears. Pause freezes the countdown for shopping or module
+choices. Reloading a cleared wave restarts the short countdown without paying again.
 
 `operations.defeatRevealDelayMs` controls the beat before retry controls appear;
 `coreStrikeFeedbackMs` controls the visible Core hit. Defeat preserves the enemies

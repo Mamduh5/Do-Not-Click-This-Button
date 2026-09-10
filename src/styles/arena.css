@@ -274,7 +274,14 @@ button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visib
 .operation-progress { height: 3px; margin: 0 -24px; background: #24333d; }
 .operation-progress > div { width: 0; height: 100%; background: var(--cyan); transition: width var(--ui-transition) ease-out; }
 .arena-field { position: relative; min-height: 0; min-width: 0; overflow: hidden; background: #dee7ea; }
-.arena-mount { touch-action: manipulation; }
+.arena-mount, .arena-mount canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-drag: none;
+}
 .arena-mount canvas { width: auto; height: auto; }
 .arena-log { bottom: 14px; left: 18px; max-width: calc(100% - 36px); padding: 7px 10px; border: 0; border-left: 2px solid var(--cyan); color: #c3e4e4; background: #0d1a24e8; font-size: 10px; line-height: 1.5; letter-spacing: .5px; pointer-events: none; }
 .combat-bar { display: flex; align-items: center; gap: 24px; padding: 16px 24px; background: #101a23; border-top: 1px solid var(--line); }
@@ -343,6 +350,11 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding
 .arena-stage[data-phase="champion"] .operation-dot { background: #c084fc; box-shadow: 0 0 12px #c084fc88; }
 .operation-result { box-sizing: border-box; }
 .operation-overlay { overflow-y: auto; }
+.operation-overlay { pointer-events: none; }
+.arena-stage[data-incoming-boss="true"] .operation-result { border-color: #c084fc; }
+.arena-stage[data-incoming-boss="true"] .result-icon,
+.arena-stage[data-incoming-boss="true"] #arenaResultKicker { color: #d6a2fa; }
+.combat-bar .review-upgrades { width: auto; margin: 0; }
 .review-upgrades { display: block; width: 100%; margin: 0 0 10px; padding: 9px; border: 1px solid #527980; background: transparent; color: #a3ece5; font-size: 11px; cursor: pointer; }
 .review-upgrades:hover { background: #203841; }
 .shop-break { position: sticky; top: -1px; z-index: 6; background: #0e171f; padding: 10px 0 14px; border-bottom: 1px solid #42636a; }
@@ -370,14 +382,15 @@ kbd { font-family: inherit; font-size: 9px; border: 1px solid #71878e66; padding
 }
 
 .arena-endless { padding: 8px 0; margin: 8px 0 0; border-top: 1px solid #31434e; background: #111c25; color: #c5dce3; font-size: 13px; line-height: 1.5; }
-.arena-endless button { min-height: 44px; margin: 4px; padding: 10px; max-width: 100%; cursor: pointer; border: 1px solid #527980; background: #1b2e37; color: #b8eee9; }
+.arena-endless button, .arena-draft button { min-height: 44px; margin: 4px; padding: 10px; max-width: 100%; cursor: pointer; border: 1px solid #527980; background: #1b2e37; color: #b8eee9; }
+.arena-draft { font-size: 12px; }
 .arena-endless [hidden], .arena-endless[hidden] { display: none; }
 #arenaDefense { font-weight: bold; }
 #arenaDraft { display: flex; flex-wrap: wrap; }
 #arenaDraft p { flex-basis: 100%; }
 #arenaDraft button { flex: 1 1 180px; }
 
-.arena-endless p { margin: 4px 0 8px; }
+.arena-endless p, .arena-draft p { margin: 4px 0 8px; }
 #arenaDefense { color: #a3ece5; }
 .arena-upgrade-card[hidden] { display: none; }
 
@@ -440,10 +453,10 @@ explanations are deliberately opened. */ .arena-header h1 small{
   border-left:3px solid #e8887c;
   padding:8px 12px
 }
-.arena-endless #arenaDraft p:empty{
+#arenaDraft p:empty{
   display:none
 }
-.arena-endless #arenaDraft p{
+#arenaDraft p{
   color:#99aeba
 }
 .arena-header .mode-link{

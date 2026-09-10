@@ -33,6 +33,7 @@ mkdirSync(output, { recursive: true });
   const snap = await page.evaluate(() => window.__containmentArena.getSnapshot());
   assert.equal(snap.wavePhase, "cleared");
   report.arenaWaves.push({ wave, seconds: (Date.now() - started) / 1000, energy: snap.energy, stats: snap.stats });
+  await page.locator("#arenaReviewUpgradesBtn").click();
   await page.waitForTimeout(450);
   const offer = page.locator("#arenaDraft button").first();
   if (await offer.count()) await offer.click();
@@ -44,7 +45,9 @@ mkdirSync(output, { recursive: true });
   if (wave === 7) {
    await page.screenshot({ path: output + "/arena-cycle-one.png", fullPage: true });
   }
-  await page.locator("#arenaNextWaveBtn").click();
+  await page.locator("#arenaShopResumeBtn").click();
+  await page.waitForFunction(expected => window.__containmentArena.scene.state.wave === expected, wave + 1);
+  await page.locator("#arenaMount").scrollIntoViewIfNeeded();
  }
  assert.equal((await page.evaluate(() => window.__containmentArena.getSnapshot())).wave, 8);
  // Later encounter fixtures retain the real spawner, clock, damage and UI paths.
@@ -90,6 +93,7 @@ mkdirSync(output, { recursive: true });
  await page.waitForTimeout(1200);
  assert(parseInt(await page.locator("#instabilityDisplay").textContent()) < parseInt(heat));
  await page.locator("#cashOutBtn").click();
+ await page.locator("#breachOverlay.is-open").waitFor();
  assert(await page.locator("#breachOverlay").getAttribute("class").then(s => s.includes("is-open")));
  report.breachOpening = "real clicks, upgrade purchase, draft, stabilization and cash-out passed";
  await context.close();
@@ -97,9 +101,10 @@ mkdirSync(output, { recursive: true });
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
   await ctx.addInitScript(() => localStorage.setItem("doNotClickThisButtonSave", JSON.stringify({ version: 3, power: 320, totalPowerEarned: 320, runPowerEarned: 320, instability: 94, totalClicks: 120, runClicks: 120, anomalyShards: 7, machine: { risk: 1080, modules: [], offers: [] } })));
   const p = await ctx.newPage(); p.on("pageerror", e => errors.push(String(e)));
-  await p.goto(base + "/"); await p.waitForSelector("#cashOutBtn");
+  await p.goto(base + "/breach.html"); await p.waitForSelector("#cashOutBtn");
   if (controlled) await p.locator("#cashOutBtn").click();
   else await p.waitForSelector("#breachOverlay.is-open", { timeout: 10000 });
+  await p.locator("#breachOverlay.is-open").waitFor();
   assert.equal(await p.locator("#totalShardLine").textContent(), controlled ? "12" : "9");
   await p.screenshot({ path: output + (controlled ? "/cash-out.png" : "/catastrophe.png"), fullPage: true });
   await ctx.close();

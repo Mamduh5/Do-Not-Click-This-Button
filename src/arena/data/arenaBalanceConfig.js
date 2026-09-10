@@ -118,6 +118,8 @@
         "Stop charged attacks to protect your Core."
       ],
       clearRevealDelayMs: 360,
+      nextWaveDelayMs: 2200,
+      gigabossTransitionMs: 3400,
       defeatRevealDelayMs: 1200,
       coreStrikeFeedbackMs: 650,
       uiRefreshMs: 100,

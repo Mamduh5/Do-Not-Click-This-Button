@@ -80,7 +80,7 @@
     this.input.on("pointerdown", this.handlePointerDown, this);
 
     this.hud = ARENA.createArenaHud({
-      onNextWave: this.nextWave.bind(this),
+      onReviewUpgrades: function () { if (!this.paused) { this.togglePause(); } }.bind(this),
       onPause: this.togglePause.bind(this),
       onPulse: this.dischargePulse.bind(this),
       onToggleMute: this.toggleMute.bind(this),
@@ -100,7 +100,7 @@
     }.bind(this);
     this.handlePageHide = function () { ARENA.Save.save(this.state); }.bind(this);
     this.handleVisibility = function () {
-      if (document.hidden && !this.paused && this.state.wavePhase === "active") { this.togglePause(); }
+      if (document.hidden && !this.paused && this.state.wavePhase !== "failed") { this.togglePause(); }
     }.bind(this);
     window.addEventListener("keydown", this.handleKey);
     window.addEventListener("pagehide", this.handlePageHide);
@@ -112,7 +112,7 @@
       document.removeEventListener("visibilitychange", this.handleVisibility);
     }, this);
     var status = document.createElement("section"); status.id = "arenaEndless"; status.className = "arena-endless";
-    status.innerHTML = '<p id="arenaDefense" aria-live="polite"></p><details id="arenaBossHelp"><summary>Encounter details</summary><p id="arenaBossIntel"></p></details><div id="arenaDraft"></div><button type="button" id="arenaRetry">RETRY WAVE</button><button type="button" id="arenaTrain">TRAIN ON PREVIOUS WAVE</button>';
+    status.innerHTML = '<p id="arenaDefense" aria-live="polite"></p><details id="arenaBossHelp"><summary>Encounter details</summary><p id="arenaBossIntel"></p></details><button type="button" id="arenaRetry">RETRY WAVE</button><button type="button" id="arenaTrain">TRAIN ON PREVIOUS WAVE</button>';
     document.querySelector(".operation-bar").appendChild(status);
     document.getElementById("arenaRetry").onclick = function () { ARENA.Endless.retry(this, false); }.bind(this);
     document.getElementById("arenaTrain").onclick = function () { ARENA.Endless.retry(this, true); }.bind(this);
@@ -121,8 +121,9 @@
   };
 
   ArenaScene.prototype.update = function (time, deltaMs) {
-    if (this.paused) { return; }
+    if (this.paused || document.hidden) { return; }
     deltaMs = Math.min(deltaMs, CONFIG.operations.maxFrameDeltaMs);
+    if (ARENA.Waves.updateTransition(this.waveSystem, this.state, deltaMs)) { this.nextWave(); }
     this.state.elapsedSeconds += deltaMs / 1000;
     this.spawnAccumulatorMs += deltaMs;
     this.autosaveAccumulatorMs += deltaMs;
@@ -174,6 +175,8 @@
 
   ArenaScene.prototype.handlePointerDown = function (pointer) {
     if (this.paused || this.state.wavePhase !== "active") { return; }
+    if (pointer.downElement !== this.game.canvas) { return; }
+    if (!pointer.wasTouch && pointer.button !== 0) { return; }
     var point = pointer.positionToCamera(this.cameras.main);
     this.soundSystem.unlock();
     ARENA.CursorAttack.attack(this, point.x, point.y, this.stats);
@@ -203,18 +206,17 @@
       this.stats = ARENA.Upgrades.computeStats(this.state);
       this.clearRevealAt = this.time.now + CONFIG.operations.clearRevealDelayMs;
       this.soundSystem.play("waveClear");
-      this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY / RELEASE WHEN READY");
+      this.hud.log("ROOM SECURED / +" + result.reward + " ENERGY");
       this.refreshUi();
     }
     ARENA.Save.save(this.state);
   };
 
   ArenaScene.prototype.nextWave = function () {
-    if (this.paused || !ARENA.Waves.next(this.waveSystem, this.state)) { return; }
+    if (this.paused || document.hidden || !ARENA.Waves.next(this.waveSystem, this.state)) { return; }
     this.clearRevealAt = 0;
     this.combo = 0;
     this.comboExpiresAt = 0;
-    document.querySelector(".arena-stage").scrollIntoView({ block: "start" });
     this.spawnAccumulatorMs = ARENA.Waves.getDefinition(this.state.wave).spawnIntervalMs;
     this.soundSystem.unlock();
     this.soundSystem.play("wave");
@@ -224,7 +226,7 @@
   };
 
   ArenaScene.prototype.togglePause = function () {
-    if (this.state.wavePhase !== "active") { return; }
+    if (this.state.wavePhase === "failed") { return; }
     this.paused = !this.paused;
     if (this.paused) {
       this.pausedAt = this.time.now;
@@ -233,6 +235,7 @@
     } else {
       // Phaser's clock now follows the game timestamp even while its timers are paused.
       var shift = this.time.now - this.pausedAt;
+      if (this.clearRevealAt) { this.clearRevealAt += shift; }
       this.comboExpiresAt += shift;
       this.enemies.forEach(function (enemy) { enemy.nextTurnAt += shift; });
       this.helperCursorSystem.cursors.forEach(function (cursor) {

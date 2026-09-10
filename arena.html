@@ -40,9 +40,6 @@
               <h2 id="arenaResultTitle">Room secured.</h2>
               <p id="arenaResultHint"></p>
               <div class="result-reward" id="arenaResultReward"></div>
-              <button class="review-upgrades" id="arenaReviewUpgradesBtn" type="button">REVIEW UPGRADES</button>
-              <button class="primary-action" id="arenaNextWaveBtn" type="button">RELEASE NEXT WAVE</button>
-              <button class="primary-action" id="arenaResumeBtn" type="button" hidden>RESUME OPERATION</button>
             </div>
           </div>
           </div>
@@ -54,6 +51,7 @@
             </div>
             <div class="chain-control"><span id="arenaChainBonus">CHAIN BONUS x1.00</span><div class="chain-meter"><div id="arenaChainFill"></div></div><span class="control-hint" id="arenaBestCombo">BEST CHAIN 0</span></div>
             <button class="secondary-action" type="button" id="arenaPauseBtn" aria-pressed="false">PAUSE <kbd>P</kbd></button>
+            <button class="review-upgrades" id="arenaReviewUpgradesBtn" type="button" hidden>PAUSE FOR UPGRADES</button>
           </div>
         </section>
 
@@ -64,7 +62,8 @@
               <h2 id="arenaShopTitle" tabindex="-1">Field upgrades</h2>
             </div>
           </div>
-          <div class="shop-break" id="arenaShopBreak" hidden><span id="arenaShopBudget"></span><button class="primary-action" id="arenaShopNextWaveBtn" type="button">RELEASE NEXT WAVE</button></div>
+          <div class="shop-break" id="arenaShopBreak" hidden><span id="arenaShopBudget"></span><button class="primary-action" id="arenaShopResumeBtn" type="button">RESUME OPERATION</button></div>
+          <div id="arenaDraft" class="arena-draft"></div>
           <div class="loadout-summary" id="arenaLoadout">DMG 2 / REACH 24 / HELPERS 0</div>
           <div id="arenaUpgradeList" class="arena-upgrade-list"></div>
           <details class="field-guide"><summary>Field guide</summary><div class="arena-kicker">KNOW YOUR TARGETS</div><p><span class="role-mark runner"></span><strong>Runner</strong> Fast &amp; fragile</p><p><span class="role-mark brute"></span><strong>Brute</strong> Tough &amp; valuable</p><p><span class="role-mark champion"></span><strong>Gigaboss</strong> Every seventh wave</p><p>Pulse hits the whole field. During a boss charge, Pulse or enough damage breaks the strike.</p><p>Plated armor reduces damage between charges. Brood spawns runners; Siege strikes harder.</p><p>Crowded fields raise Overrun and weaken the next Core defense.</p></details>

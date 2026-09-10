@@ -24,7 +24,18 @@
   }
 
   function create(state) {
-    return { spawned: state.waveKills };
+    return { spawned: state.waveKills, transitionRemainingMs: transitionDuration(state) };
+  }
+
+  function transitionDuration(state) {
+    var nextWave = state.endless && state.endless.trainingBoss ? state.endless.trainingBoss : state.wave + 1;
+    return getDefinition(nextWave).champion ? OPERATIONS.gigabossTransitionMs : OPERATIONS.nextWaveDelayMs;
+  }
+
+  function updateTransition(system, state, deltaMs) {
+    if (state.wavePhase !== "cleared") { return false; }
+    system.transitionRemainingMs = Math.max(0, system.transitionRemainingMs - deltaMs);
+    return system.transitionRemainingMs === 0;
   }
 
   function nextRole(state, spawned) {
@@ -62,6 +73,7 @@
     }
     // Phase and reward are persisted together. Reloading a cleared wave never pays twice.
     state.wavePhase = "cleared";
+    system.transitionRemainingMs = transitionDuration(state);
     var firstClear = state.wave > state.highestWaveCleared;
     state.highestWaveCleared = Math.max(state.highestWaveCleared, state.wave);
     if (ARENA.Endless) { ARENA.Endless.cleared(state, firstClear); }
@@ -93,6 +105,7 @@
     canSpawn: canSpawn,
     registerKill: registerKill,
     next: next,
-    comboMultiplier: comboMultiplier
+    comboMultiplier: comboMultiplier,
+    updateTransition: updateTransition
   };
 })();

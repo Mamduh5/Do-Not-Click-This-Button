@@ -22,7 +22,7 @@ const { writeFileSync } = require("node:fs");
   const attack = await page.evaluate(() => window.__containmentArena.scene.state.endless.attack);
   await page.waitForTimeout(300);
   assert.equal(await page.evaluate(() => window.__containmentArena.scene.state.endless.attack), attack);
-  await page.locator("#arenaResumeBtn").click();
+  await page.locator("#arenaPauseBtn").click();
   await page.locator("#arenaPulseBtn").tap();
   assert((await page.evaluate(() => window.__containmentArena.scene.state.endless.attack)) < 3);
   await page.evaluate(() => { const s = window.__containmentArena.scene; s.state.endless.attack = 6; s.refreshUi(); window.scrollTo(0, 0); });

@@ -15,6 +15,11 @@
       width: config.width,
       height: config.height,
       backgroundColor: config.background,
+      input: {
+        activePointers: 10,
+        touch: { capture: true }
+      },
+      disableContextMenu: true,
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
