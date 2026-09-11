@@ -94,7 +94,8 @@
       var now = options.at === undefined ? ctx.currentTime + (options.delay || 0) : options.at;
       var clock = options.at === undefined ? ctx.currentTime : now;
       voices = voices.filter(function (v) { return v.end > clock; });
-      if (now < quietUntil && name !== "bank") { stats.limited++; return false; }
+      // Defeat quiet suppresses gameplay; leaving the screen still gets navigation feedback.
+      if (now < quietUntil && name !== "bank" && name !== "navigation") { stats.limited++; return false; }
       var key = /^(press|strained|unstable|redPress)$/.test(name) ? "button" : name;
       if (last[key] !== undefined && now - last[key] < (def.gap || 0)) { stats.limited++; return false; }
       var sameGroup = voices.filter(function (v) { return v.group === def.group && !v.retiring; });
@@ -186,25 +187,23 @@
       return false;
     };
   }
-  var enteringGame = false, entryNavigationTimer = null, entryLinksBound = false;
-  function bindGameEntry() {
-    if (entryLinksBound) { return; }
-    entryLinksBound = true;
-    document.querySelectorAll('.game-card[href="arena.html"], .game-card[href="breach.html"]').forEach(function (link) {
+  var navigating = false, navigationLinksBound = false;
+  function bindNavigation() {
+    if (navigationLinksBound) { return; }
+    navigationLinksBound = true;
+    document.querySelectorAll('.game-card[href], .mode-link[href]').forEach(function (link) {
       link.addEventListener("click", function (event) {
-        // Preserve modified/new-tab navigation and ignore internal synthetic activation.
-        if (!event.isTrusted || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || (link.target && link.target !== "_self")) { return; }
+        // Keep native modified/new-tab behavior; only actual page navigation gets a cue.
+        if (!event.isTrusted || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || link.hasAttribute("download") || (link.target && link.target !== "_self")) { return; }
+        if (link.href.split("#")[0] === window.location.href.split("#")[0]) { return; }
         event.preventDefault();
-        if (enteringGame) { return; }
-        enteringGame = true;
+        if (navigating) { return; }
+        navigating = true;
         unlock();
-        // The next page has a new audio context: finish this gesture-unlocked cue
-        // here rather than queueing a second cue behind destination autoplay rules.
-        if (play("enterGame")) {
-          entryNavigationTimer = window.setTimeout(function () { window.location.assign(link.href); }, C.enterGameNavigationMs);
-        } else {
-          window.location.assign(link.href);
-        }
+        play("navigation");
+        // Start in the gesture-unlocked source context, with no navigation timer
+        // and no second playback on the destination page.
+        window.location.assign(link.href);
       });
     });
   }
@@ -221,11 +220,11 @@
   });
   window.addEventListener("pagehide", function () { if (engine) { engine.stop(); } });
   window.addEventListener("pageshow", function () {
-    window.clearTimeout(entryNavigationTimer); entryNavigationTimer = null; enteringGame = false;
+    navigating = false;
   });
   window.addEventListener("storage", function (event) { if (event.key === C.storageKey || event.key === null) { settings = readSettings(); notify(); } });
   window.addEventListener("DOMContentLoaded", function () {
-    bindGameEntry();
+    bindNavigation();
     bindControls("arenaMuteBtn", "arenaSfxVolume"); bindControls("soundBtn", "breachSfxVolume"); bindControls("lobbyMuteBtn", "lobbySfxVolume");
     var button = document.getElementById("lobbyMuteBtn");
     if (button) { button.addEventListener("click", function () { change({ muted: !settings.muted }); if (!settings.muted) { play("ui"); } }); }

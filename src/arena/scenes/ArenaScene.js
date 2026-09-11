@@ -220,7 +220,8 @@
     this.comboExpiresAt = 0;
     this.spawnAccumulatorMs = ARENA.Waves.getDefinition(this.state.wave).spawnIntervalMs;
     this.soundSystem.unlock();
-    this.soundSystem.play("wave");
+    // The Gigaboss arrival already announces that encounter.
+    if (!ARENA.Waves.getDefinition(this.state.wave).champion) { this.soundSystem.play("wave"); }
     this.hud.log("WAVE " + this.state.wave + " RELEASED");
     ARENA.Save.save(this.state);
     this.refreshUi();

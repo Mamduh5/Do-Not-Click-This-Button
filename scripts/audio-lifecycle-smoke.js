@@ -23,9 +23,9 @@ mkdirSync(output, { recursive: true });
     assert.equal(await page.evaluate(() => ContainmentSfx.settings().volume), 1);
     await page.evaluate(() => {
       const s = __containmentArena.scene; for (let i = 0; i < 4; i++) s.resetPrototype();
-      s.state.wave = 14; s.state.wavePhase = "active"; s.spawningEnabled = false;
+      s.state.wave = 14; s.state.waveKills = 0; s.state.wavePhase = "active"; s.spawningEnabled = false;
       __containmentArena.spawnEnemyAt(480, 250, 1000);
-      const boss = s.enemies.at(-1); ARENA.Endless.setupBoss(s, boss);
+      const boss = s.enemies.at(-1); boss.operationTarget = true; boss.operationWave = 14; ARENA.Endless.setupBoss(s, boss);
       s.state.endless.attack = ARENA.BALANCE_CONFIG.endless.bossAttackSeconds;
     });
     await page.waitForFunction(() => ContainmentSfx.snapshot().played.summon > 0);
@@ -33,7 +33,8 @@ mkdirSync(output, { recursive: true });
       const s = __containmentArena.scene, boss = s.enemies.find(e => e.gigaboss);
       boss.health = 1; __containmentArena.clickAt(boss.x, boss.y);
     });
-    assert(await page.evaluate(() => ContainmentSfx.snapshot().played.bossDefeat > 0));
+    assert.equal(await page.evaluate(() => ContainmentSfx.snapshot().played.waveClear), 1);
+    assert.equal(await page.evaluate(() => ContainmentSfx.snapshot().played.bossDefeat || 0), 0);
     assert.equal(await page.evaluate(() => audioContextsCreated), 1, "resets reuse one audio context");
     await page.evaluate(() => {
       const s = __containmentArena.scene; s.soundSystem.charge(0.5); s.togglePause();

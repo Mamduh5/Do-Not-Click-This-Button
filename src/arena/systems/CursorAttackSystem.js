@@ -82,7 +82,8 @@
     if (scene.registerOperationKill) {
       scene.registerOperationKill(enemy);
     }
-    scene.soundSystem.play(enemy.gigaboss ? "bossDefeat" : "kill");
+    // Gigaboss success is announced once by registerOperationKill, like every wave.
+    if (!enemy.gigaboss) { scene.soundSystem.play("kill"); }
 
     ARENA.ImpactEffects.showKillBurst(scene, x, y, stats.feedbackScale * ARENA.BALANCE_CONFIG.feedback.killImpactScale);
     ARENA.ImpactEffects.showSplatter(scene, x, y, stats.feedbackScale, enemy.enemySkin ? enemy.enemySkin.deathColor : 0xd82626);

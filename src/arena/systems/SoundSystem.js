@@ -9,8 +9,8 @@
     return {
       unlock: sfx.unlock,
       play: function (name) {
-        if (["helperClick", "comboTick", "waveClear"].indexOf(name) >= 0) { return false; }
-        if (["interrupt", "coreImpact", "coreDestroyed", "bossDefeat"].indexOf(name) >= 0) { cancelCharge(); }
+        if (["helperClick", "comboTick"].indexOf(name) >= 0) { return false; }
+        if (["interrupt", "coreImpact", "coreDestroyed", "waveClear"].indexOf(name) >= 0) { cancelCharge(); }
         return sfx.play(aliases[name] || name);
       },
       charge: function (progress) {
