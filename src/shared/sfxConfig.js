@@ -13,9 +13,12 @@
   window.SFX_CONFIG = {
     storageKey: "containmentSfxV1", defaultVolume: 0.75, sampleRate: 24000,
     bankDelay: { cashOut: 0.58, breach: 1.15 },
-    mix: { caps: { spam: 4, info: 3, critical: 3 }, output: 0.7,
-      threshold: -14, knee: 10, ratio: 8, attack: 0.003, release: 0.12,
+    // More body and drive into peak control, without equalizing cue levels.
+    mix: { caps: { spam: 4, info: 3, critical: 3 }, input: 2.5, output: 0.85,
+      decay: { spam: 3.4, info: 3, critical: 3 },
+      threshold: -14, knee: 6, ratio: 12, attack: 0.001, release: 0.12,
       duck: 0.2, infoDuck: 0.55, duckRelease: 0.09, variation: 0.035 },
+    enterGameNavigationMs: 220,
     warnings: { hysteresis: 8, cooldown: 12, overrun: [65, 85], chargeSteps: [0, 0.4, 0.75] },
     cues: {
       hit: cue("spam", 0.15, [tone(670, 310, 0.045, 0.8, 0, 0.2), noise(2200, 0.022, 0.3)], { variants: 3, gap: 0.022 }),
@@ -28,6 +31,7 @@
       upgrade: cue("info", 0.28, [tone(660, 680, 0.10, 0.7), tone(990, 1020, 0.16, 0.8, 0.07)], { gap: 0.08, duck: 0.24 }),
       bank: cue("info", 0.24, [tone(740, 740, 0.1, 0.7), tone(1110, 1110, 0.17, 0.8, 0.09)], { gap: 0.3 }),
       ui: cue("info", 0.12, [tone(580, 450, 0.045, 0.8)], { gap: 0.1 }),
+      enterGame: cue("info", 0.23, [tone(480, 720, 0.08, 0.55), tone(960, 1040, 0.10, 0.65, 0.05)], { gap: 0.5 }),
       error: cue("info", 0.13, [tone(350, 280, 0.08, 0.8, 0, 0.15)], { gap: 0.3 }),
       pulse: cue("info", 0.38, [noise(1700, 0.12, 0.4), tone(370, 1350, 0.23, 0.8, 0, 0.15), tone(900, 500, 0.16, 0.4, 0.09)], { duck: 0.4 }),
       wave: cue("info", 0.16, [tone(470, 640, 0.11, 0.8)], { gap: 0.8 }),

@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  if (window.ContainmentSfx) { return; }
   var C = window.SFX_CONFIG, context = null, engine = null, resumePending = null;
   var listeners = [], settings = { muted: false, volume: C.defaultVolume };
   function readSettings() {
@@ -26,7 +27,7 @@
       var length = Math.min(samples.length - offset, Math.ceil(l.seconds * rate));
       for (var i = 0; i < length; i++) {
         var t = i / rate, fraction = t / l.seconds;
-        var envelope = Math.min(1, t / 0.0015) * Math.exp(-4.5 * fraction) * Math.min(1, (l.seconds - t) / 0.006);
+        var envelope = Math.min(1, t / 0.0015) * Math.exp(-C.mix.decay[def.group] * fraction) * Math.min(1, (l.seconds - t) / 0.006);
         var value;
         if (l.noise) {
           seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
@@ -54,12 +55,14 @@
   function createEngine(ctx, destination, monitors) {
     var buses = {}, voices = [], last = {}, serial = 0, quietUntil = 0, duckUntil = 0;
     var stats = { played: {}, limited: 0, maxVoices: 0 };
-    var compressor = ctx.createDynamicsCompressor(), output = ctx.createGain(), master = ctx.createGain();
+    var input = ctx.createGain(), compressor = ctx.createDynamicsCompressor(), output = ctx.createGain(), master = ctx.createGain();
+    input.gain.value = C.mix.input;
+    input.connect(compressor);
     ["threshold", "knee", "ratio", "attack", "release"].forEach(function (k) { compressor[k].value = C.mix[k]; });
     output.gain.value = C.mix.output;
     compressor.connect(output); output.connect(master); master.connect(destination);
     Object.keys(C.mix.caps).forEach(function (group) {
-      buses[group] = ctx.createGain(); buses[group].connect(compressor);
+      buses[group] = ctx.createGain(); buses[group].connect(input);
       if (monitors && monitors[group]) { buses[group].connect(monitors[group]); }
     });
     var bank = {};
@@ -183,6 +186,28 @@
       return false;
     };
   }
+  var enteringGame = false, entryNavigationTimer = null, entryLinksBound = false;
+  function bindGameEntry() {
+    if (entryLinksBound) { return; }
+    entryLinksBound = true;
+    document.querySelectorAll('.game-card[href="arena.html"], .game-card[href="breach.html"]').forEach(function (link) {
+      link.addEventListener("click", function (event) {
+        // Preserve modified/new-tab navigation and ignore internal synthetic activation.
+        if (!event.isTrusted || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || (link.target && link.target !== "_self")) { return; }
+        event.preventDefault();
+        if (enteringGame) { return; }
+        enteringGame = true;
+        unlock();
+        // The next page has a new audio context: finish this gesture-unlocked cue
+        // here rather than queueing a second cue behind destination autoplay rules.
+        if (play("enterGame")) {
+          entryNavigationTimer = window.setTimeout(function () { window.location.assign(link.href); }, C.enterGameNavigationMs);
+        } else {
+          window.location.assign(link.href);
+        }
+      });
+    });
+  }
   window.ContainmentSfx = { unlock: unlock, play: play, change: change, subscribe: subscribe, bindControls: bindControls,
     stop: function (tag) { if (engine) { engine.stop(tag); } }, warningTracker: warningTracker,
     settings: function () { return Object.assign({}, settings); },
@@ -195,8 +220,12 @@
     else if (context) { unlock(); }
   });
   window.addEventListener("pagehide", function () { if (engine) { engine.stop(); } });
+  window.addEventListener("pageshow", function () {
+    window.clearTimeout(entryNavigationTimer); entryNavigationTimer = null; enteringGame = false;
+  });
   window.addEventListener("storage", function (event) { if (event.key === C.storageKey || event.key === null) { settings = readSettings(); notify(); } });
   window.addEventListener("DOMContentLoaded", function () {
+    bindGameEntry();
     bindControls("arenaMuteBtn", "arenaSfxVolume"); bindControls("soundBtn", "breachSfxVolume"); bindControls("lobbyMuteBtn", "lobbySfxVolume");
     var button = document.getElementById("lobbyMuteBtn");
     if (button) { button.addEventListener("click", function () { change({ muted: !settings.muted }); if (!settings.muted) { play("ui"); } }); }
