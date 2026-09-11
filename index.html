@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Containment · Lobby</title>
 <link rel="stylesheet" href="src/styles/lobby.css">
+<link rel="stylesheet" href="src/styles/sfx.css">
 </head>
 <body>
 <div class="lobby-shell">
@@ -93,9 +94,12 @@
 </div>
 </a>
 </section>
+<details class="lobby-sfx"><summary>Sound effects</summary><button id="lobbyMuteBtn" type="button">SFX: ON</button><label class="sfx-volume" for="lobbySfxVolume">SFX volume <input id="lobbySfxVolume" type="range" min="0" max="100" step="1" value="75"><output id="lobbySfxVolumeValue" for="lobbySfxVolume">75%</output></label></details>
 </main>
 <footer>PROGRESS SAVED ON THIS DEVICE <span>Each game keeps its own build and progress.</span>
 </footer>
 </div>
+<script src="src/shared/sfxConfig.js"></script>
+<script src="src/shared/sfx.js"></script>
 </body>
 </html>

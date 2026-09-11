@@ -125,11 +125,12 @@
     machineControls.appendChild(getElement("machineRisk"));
     machineControls.appendChild(machinePanel.querySelector(".machine-actions"));
     elements.btnContainer.insertAdjacentElement("afterend", machineControls);
-    getElement("stabilizeBtn").onclick = function () { if (!awaitingBreach) { state.machine.stabilizing = !state.machine.stabilizing; save(); refresh(); } };
+    getElement("stabilizeBtn").onclick = function () { if (!awaitingBreach) { state.machine.stabilizing = !state.machine.stabilizing; sound.play(state.machine.stabilizing ? "stabilize" : "ui"); save(); refresh(); } };
     getElement("cashOutBtn").onclick = function () { if (DNC.Instability.getShardReward(state) > 0) { triggerBreach(true); } };
     getElement("purgeBtn").onclick = function () {
       if (!awaitingBreach && state.instability >= CONFIG.machine.surgeAt && !state.machine.rescued) {
         state.machine.rescued = true; state.machine.risk = 0; state.machine.surge = 0; state.instability = CONFIG.machine.purgeDanger;
+        sound.play("purge");
         state.power *= CONFIG.machine.purgePowerRetained; state.machine.stabilizing = true; save(); refresh();
       }
     };
@@ -337,7 +338,9 @@
         return;
       }
 
+      var surge = state.machine.surge;
       DNC.Machine.tick(state, deltaSeconds);
+      if (surge > 0 && state.machine.surge === 0 && state.instability >= CONFIG.machine.surgeAt && state.instability < CONFIG.instability.breachAt) { sound.play("surge"); }
       if (state.powerPerSecond > 0) { updateAutoCursor(deltaSeconds); }
 
       if (state.instability >= CONFIG.instability.breachAt) {
@@ -378,7 +381,8 @@
       getElement("breachOverlay").classList.toggle("controlled", controlled === true);
       getElement("breachOverlay").querySelector("h3").textContent = controlled === true ? "Rewards secured." : "Containment failed.";
       getElement("breachOverlay").setAttribute("aria-label", controlled === true ? "Controlled shutdown. Rewards secured." : "Catastrophic breach. Base rewards retained.");
-      sound.play(controlled === true ? "shardUpgrade" : "breach");
+      sound.play(controlled === true ? "cashOut" : "breach");
+      if (shardsEarned > 0) { sound.bank(controlled === true); }
 
       if (!state.reducedMotion && controlled !== true) {
         root.classList.add("shake");
@@ -415,6 +419,7 @@
     }
 
     function deleteSaveData() {
+      sound.destroy();
       state = DNC.Save.reset();
       sound = DNC.createSoundSystem(state);
       awaitingBreach = false;
@@ -507,7 +512,7 @@
       sound.unlock();
 
       if (state.audioEnabled) {
-        sound.play("upgrade");
+        sound.play("ui");
       }
 
       consoleLog.add("Sound " + (state.audioEnabled ? "enabled." : "muted."), "normal");
@@ -540,7 +545,7 @@
       elements.stateDot.style.background = bandData.color;
       elements.warnHeadline.textContent = bandData.headline;
       elements.warnHeadline.style.color = bandData.headlineColor;
-      elements.soundBtn.textContent = CONFIG.menu.soundLabel + ": " + (state.audioEnabled ? "ON" : "OFF");
+      elements.soundBtn.textContent = "SFX: " + (state.audioEnabled ? "ON" : "OFF");
       elements.motionBtn.textContent = CONFIG.menu.motionLabel + ": " + (state.reducedMotion ? "OFF" : "ON");
       elements.root.classList.toggle("reduced-motion", state.reducedMotion);
 
@@ -557,17 +562,15 @@
 
       elements.mainBtn.innerHTML = "DO NOT<br>CLICK";
 
+      if (!awaitingBreach) { sound.danger(state.instability); }
       if (band !== lastBand) {
         lastBand = band;
         if (band === "disturbed") {
           consoleLog.add("DISTURBED state entered. Watch the meter.", "warning");
-          sound.play("warning");
         } else if (band === "unstable") {
           consoleLog.add("UNSTABLE state entered. Containment advised.", "corrupt");
-          sound.play("warning");
         } else if (band === "critical") {
           consoleLog.add("CRITICAL state entered. Stop pressing.", "critical");
-          sound.play("warning");
         }
       }
 
@@ -606,7 +609,7 @@
           m.offers.forEach(function (id) {
             var def = CONFIG.machine.modules.find(function (v) { return v.id === id; });
             var button = document.createElement("button"); button.type = "button"; button.textContent = def.name + " / " + def.text;
-            button.onclick = function () { if (!awaitingBreach && DNC.Machine.choose(state, id)) { save(); refresh(); } };
+            button.onclick = function () { if (!awaitingBreach && DNC.Machine.choose(state, id)) { sound.play("upgrade"); save(); refresh(); } };
             offers.appendChild(button);
           });
         }
@@ -658,7 +661,7 @@
         window.clearTimeout(forecastFeedbackTimeoutId);
         forecastFeedbackTimeoutId = window.setTimeout(function () { elements.breachForecast.classList.remove("reward-increased"); }, CONFIG.timing.rewardFeedbackMs);
         consoleLog.add(guide.rewardIncreaseLog.replace("{shards}", forecast.shards), "normal");
-        sound.play("shardUpgrade");
+        // A forecast is not a banked reward; keep its existing visual feedback.
       }
       lastForecastShards = forecast.shards;
     }
@@ -790,7 +793,7 @@
       autoCursor.playCycle();
       showAutoFeedback();
       pulseButton(CONFIG.autoCursor.pressMs);
-      sound.play("autoClick");
+      // Passive production stays visually readable without an ongoing sound bed.
 
       if (autoCursor.canLog(Date.now())) {
         consoleLog.add("Auto-Presser cycle completed.", "normal");
@@ -798,8 +801,7 @@
     }
 
     function playClickSound() {
-      var band = DNC.Instability.getBand(state.instability);
-      sound.play(band === "critical" ? "clickCritical" : "click");
+      sound.press(state.instability);
     }
 
     function addPermanentEffectConsole() {

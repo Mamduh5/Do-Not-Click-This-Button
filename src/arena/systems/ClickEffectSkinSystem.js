@@ -89,9 +89,7 @@
       ARENA.BackgroundEffects.add(scene.backgroundEffectSystem, skin, x, y, scale);
     }
 
-    if (!helper && !(options && options.silent)) {
-      scene.soundSystem.playClickSkin(skin.id);
-    }
+    // The attack owns its single hit/miss cue; cosmetic layers do not stack audio.
 
     mark(scene, "skin_" + skin.id);
   }

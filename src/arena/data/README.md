@@ -2,11 +2,11 @@
 
 All arena gameplay tuning lives in data/config files.
 
-Edit spawn rates, enemy visuals, enemy health/speed/rewards, movement variance, wave scaling, click damage, click radius, knockback, combo timing, helper cursor timing, hit particles, kill splatter, shockwave feedback, autosave timing, and generated sound volumes/tones in `arenaBalanceConfig.js`.
+Edit spawn rates, enemy visuals, enemy health/speed/rewards, movement variance, wave scaling, click damage, click radius, knockback, combo timing, helper cursor timing, hit particles, kill splatter, shockwave feedback, and autosave timing in `arenaBalanceConfig.js`.
 
 Edit upgrade costs, cost multipliers, max levels, labels, descriptions, and effects in `arenaUpgrades.js`.
 
-Edit click effect skin labels, unlock defaults, effect colors, particle counts, durations, shake values, helper scales, and skin-specific generated sound tones in `clickEffectSkins.js`.
+Edit click effect skin labels, unlock defaults, effect colors, particle counts, durations, shake values, and helper scales in `clickEffectSkins.js`.
 
 Edit enemy skin labels, unlock defaults, procedural colors, hit/death colors, outlines, and visual scale in `enemySkins.js`.
 
@@ -27,3 +27,5 @@ choices. Reloading a cleared wave restarts the short countdown without paying ag
 `operations.defeatRevealDelayMs` controls the beat before retry controls appear;
 `coreStrikeFeedbackMs` controls the visible Core hit. Defeat preserves the enemies
 on the battlefield until retry. Overrun and Core integrity provide the cause.
+
+Shared SFX recipes and mixing live in `src/shared/sfxConfig.js`. All click skins use the same restrained hit/death vocabulary; their visual layers never stack sound voices.

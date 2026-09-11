@@ -146,7 +146,7 @@ async function run() {
     assert(fullReset.anomalyShards === 0, "delete all should clear shards");
     assert(fullReset.breachCount === 0, "delete all should clear breaches");
     assert(Object.keys(fullReset.shardUpgrades).length === 0, "delete all should clear shard upgrades");
-    assert(fullReset.audioEnabled === true, "delete all should reset sound setting");
+    assert(fullReset.audioEnabled === false, "game reset should preserve the shared SFX preference");
     assert(fullReset.reducedMotion === false, "delete all should reset motion setting");
   } finally {
     await browser.close();

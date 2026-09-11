@@ -106,6 +106,7 @@
     window.addEventListener("pagehide", this.handlePageHide);
     document.addEventListener("visibilitychange", this.handleVisibility);
     this.events.once("shutdown", function () {
+      this.soundSystem.destroy();
       fieldResizeObserver.disconnect();
       window.removeEventListener("keydown", this.handleKey);
       window.removeEventListener("pagehide", this.handlePageHide);
@@ -229,6 +230,7 @@
     if (this.state.wavePhase === "failed") { return; }
     this.paused = !this.paused;
     if (this.paused) {
+      this.soundSystem.stop();
       this.pausedAt = this.time.now;
       this.tweens.pauseAll();
       this.time.paused = true;
@@ -379,6 +381,7 @@
     this.clearRevealAt = 0;
     this.defeatRevealAt = 0;
     this.coreHitUntil = 0;
+    this.soundSystem.destroy();
     this.state = ARENA.Save.reset();
     this.waveSystem = ARENA.Waves.create(this.state);
     this.spawnAccumulatorMs = 0;
@@ -452,7 +455,7 @@
         e.offers.forEach(function (id) {
           var def = c.modules.find(function (m) { return m.id === id; });
           var button = document.createElement("button"); button.type = "button"; button.textContent = def.name + " / " + def.text;
-          button.onclick = function () { if (ARENA.Endless.choose(this.state, id)) { this.stats = ARENA.Upgrades.computeStats(this.state); ARENA.Save.save(this.state); this.refreshUi(); } }.bind(this);
+          button.onclick = function () { if (ARENA.Endless.choose(this.state, id)) { this.soundSystem.play("upgrade"); this.stats = ARENA.Upgrades.computeStats(this.state); ARENA.Save.save(this.state); this.refreshUi(); } }.bind(this);
           draft.appendChild(button);
         }, this);
       }

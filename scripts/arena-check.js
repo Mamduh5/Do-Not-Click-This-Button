@@ -4,6 +4,8 @@ const { readFileSync } = require("node:fs");
 const { runInThisContext } = require("node:vm");
 
 global.window = global;
+global.addEventListener = function () {};
+global.document = { addEventListener() {}, hidden: false };
 global.Phaser = {
   Math: {
     Angle: {
@@ -41,6 +43,8 @@ global.localStorage = {
 };
 
 [
+  "src/shared/sfxConfig.js",
+  "src/shared/sfx.js",
   "src/arena/data/arenaBalanceConfig.js",
   "src/arena/data/arenaUiConfig.js",
   "src/arena/data/enemyRoles.js",
@@ -168,16 +172,13 @@ assert(townSkin.navigation && townSkin.navigation.enabled === false, "Town lane 
 assert(townSkin.navigation.cellSize > 0 && townSkin.navigation.maxPathLength > 0, "Town navigation should define grid and path caps");
 assert(townSkin.navigation.roads.length > 0 && townSkin.navigation.buildings.length === townSkin.surface.buildingRects.length, "Town navigation should define roads and blocked buildings");
 assert(ARENA.CLICK_EFFECT_SKINS.length >= 6, "arena should define required click effect skins");
-const soundSignatures = new Set();
 requiredSkinIds.forEach((id) => {
   const skin = ARENA.ClickEffectSkins.get(id);
   assert(skin.id === id, id + " skin should exist");
   assert(skin.unlockedByDefault === true, id + " should be unlocked by default for testing");
-  assert(skin.sound && skin.sound.durationSeconds > 0, id + " should define generated sound");
+  assert(!skin.sound && !skin.thunkSound, id + " uses the shared hit vocabulary without stacking cosmetic audio");
   assert((skin.decal && skin.decal.enabled === true) || (skin.backgroundDamage && skin.backgroundDamage.enabled === true), id + " should define background interaction config");
-  soundSignatures.add([skin.sound.frequency, skin.sound.endFrequency, skin.sound.durationSeconds, skin.sound.type].join(":"));
 });
-assert(soundSignatures.size === requiredSkinIds.length, "all click skins should have unique sound config");
 const arrowSkin = ARENA.ClickEffectSkins.get("arrowStrike");
 assert(arrowSkin.name === "Arrow Rain", "arrowStrike id should display as Arrow Rain for save compatibility");
 ["arrowCountMin", "arrowCountMax", "arrowSpawnHeight", "arrowSpawnDistance", "arrowSpreadRadius", "arrowTravelDurationMs", "arrowShaftLength", "arrowShaftWidth", "arrowHeadSize", "trailAlpha", "impactParticleCount", "arrowDecalCount", "punctureDecalDurationMs"].forEach((key) => {
@@ -188,7 +189,7 @@ assert(arrowSkin.arrowShaftColor !== 0x000000, "Arrow Rain shaft should not be a
 assert(arrowSkin.arrowHeadColor !== undefined, "Arrow Rain should define arrowhead color");
 assert(arrowSkin.arrowFeatherColor !== undefined, "Arrow Rain should define feather color");
 assert(arrowSkin.trailColor !== undefined, "Arrow Rain should define trail color");
-assert(arrowSkin.thunkSound && arrowSkin.thunkSound.durationSeconds > 0, "Arrow Rain should define thunk sound config");
+assert(!arrowSkin.thunkSound, "Arrow Rain must not stack a second attack voice");
 assert(arrowSkin.decal.type === "arrowRain", "Arrow Rain should define arrow rain background decal");
 const groundSkin = ARENA.ClickEffectSkins.get("groundBreak");
 assert(groundSkin.shakeIntensity === 0, "Ground Break shake should be disabled by default");
@@ -247,7 +248,7 @@ assert(ARENA.BALANCE_CONFIG.backgroundEffects.maxDecals > 0, "background decal c
 assert(ARENA.BALANCE_CONFIG.feedback.comboPopupMs > 0, "combo popup duration should be configurable");
 assert(ARENA.BALANCE_CONFIG.feedback.comboMilestones.indexOf(5) >= 0, "combo milestone thresholds should be configurable");
 assert(ARENA.BALANCE_CONFIG.feedback.comboColors.length >= 3, "combo colors should be configurable");
-assert(ARENA.BALANCE_CONFIG.audio.sounds.comboTick.durationSeconds > 0, "combo sound should be configurable");
+assert(SFX_CONFIG.cues.wave.layers[0].seconds > 0, "wave cue should be configurable");
 near(baseStats.clickDamage, ARENA.BALANCE_CONFIG.cursor.clickDamage, "base click damage should come from config");
 near(baseStats.clickRadius, ARENA.BALANCE_CONFIG.cursor.clickRadius, "base click radius should come from config");
 assert(baseStats.helperCursors === 0, "helper cursors should start locked");
@@ -261,7 +262,7 @@ assert(ARENA.BALANCE_CONFIG.cursor.helperWanderSpeed > 0, "helper wander speed s
 assert(ARENA.BALANCE_CONFIG.cursor.helperTargetReacquireDelayMs > 0, "helper target reacquire delay should be configurable");
 assert(ARENA.BALANCE_CONFIG.cursor.helperClickEffectScale > 0, "helper click effect scale should be configurable");
 assert(ARENA.BALANCE_CONFIG.feedback.hitParticleCount > 0, "hit particles should be configurable");
-assert(ARENA.BALANCE_CONFIG.audio.sounds.kill.durationSeconds > 0, "sound tone duration should be configurable");
+assert(SFX_CONFIG.cues.death.layers[0].seconds > 0, "death cue duration should be configurable");
 
 state.energy = 200;
 assert(ARENA.Upgrades.buy(state, "heavierCursor"), "Heavier Cursor should be purchasable");

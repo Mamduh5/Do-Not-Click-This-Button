@@ -35,8 +35,7 @@
       },
       decal: { enabled: true, type: "scorch", color: 0x5c2a14, alpha: 0.18, radius: 24, lines: 0, fadeMs: 3800 },
       shakeMs: 45,
-      shakeIntensity: 0.0015,
-      sound: { frequency: 92, endFrequency: 28, durationSeconds: 0.13, type: "sawtooth", volume: 0.18 }
+      shakeIntensity: 0.0015
     },
     {
       id: "pixelShatter",
@@ -71,8 +70,7 @@
       },
       decal: { enabled: false, type: "pixels", color: 0xaa2a2a, alpha: 0.08, radius: 14, blocks: 4, gridSize: 5, fadeMs: 1200 },
       shakeMs: 0,
-      shakeIntensity: 0,
-      sound: { frequency: 220, endFrequency: 75, durationSeconds: 0.075, type: "square", volume: 0.13 }
+      shakeIntensity: 0
     },
     {
       id: "sciFiLaser",
@@ -98,8 +96,7 @@
         response: "laser",
         intensity: 0.8
       },
-      decal: { enabled: true, type: "burn", color: 0x19d8ff, alpha: 0.16, radius: 16, lines: 2 },
-      sound: { frequency: 760, endFrequency: 410, durationSeconds: 0.08, type: "sawtooth", volume: 0.12 }
+      decal: { enabled: true, type: "burn", color: 0x19d8ff, alpha: 0.16, radius: 16, lines: 2 }
     },
     {
       id: "groundBreak",
@@ -136,8 +133,7 @@
       },
       decal: { enabled: false, type: "cracks", color: 0x5f4a3a, alpha: 0.08, radius: 18, lines: 4, branchChance: 0.2, lineWidth: 1, fadeMs: 1200 },
       shakeMs: 0,
-      shakeIntensity: 0,
-      sound: { frequency: 140, endFrequency: 46, durationSeconds: 0.12, type: "triangle", volume: 0.15 }
+      shakeIntensity: 0
     },
     {
       id: "paperDrop",
@@ -159,8 +155,7 @@
       particleSize: 4,
       particleDistance: 34,
       backgroundDamage: { enabled: false },
-      decal: { enabled: true, type: "paper", color: 0xe8dec8, alpha: 0.22, radius: 18, blocks: 5 },
-      sound: { frequency: 420, endFrequency: 190, durationSeconds: 0.09, type: "triangle", volume: 0.11 }
+      decal: { enabled: true, type: "paper", color: 0xe8dec8, alpha: 0.22, radius: 18, blocks: 5 }
     },
     {
       id: "arrowStrike",
@@ -202,9 +197,7 @@
         response: "arrowRain",
         intensity: 0.85
       },
-      decal: { enabled: true, type: "arrowRain", color: 0x6f4a25, alpha: 0.2, radius: 22, arrows: 4, punctures: 5, fadeMs: 3600 },
-      sound: { frequency: 540, endFrequency: 420, durationSeconds: 0.05, type: "triangle", volume: 0.09 },
-      thunkSound: { frequency: 150, endFrequency: 70, durationSeconds: 0.045, type: "triangle", volume: 0.09, delaySeconds: 0.055 }
+      decal: { enabled: true, type: "arrowRain", color: 0x6f4a25, alpha: 0.2, radius: 22, arrows: 4, punctures: 5, fadeMs: 3600 }
     }
   ];
 })();

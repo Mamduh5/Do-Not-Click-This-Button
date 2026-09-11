@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Arena · Containment</title>
     <link rel="stylesheet" href="src/styles/arena.css">
-  </head>
+  <link rel="stylesheet" href="src/styles/sfx.css">
+</head>
   <body>
     <div class="arena-shell">
       <header class="arena-header">
@@ -75,7 +76,8 @@
               <select id="arenaEnemySkinSelect" class="skin-select"></select>
               <label class="skin-select-label" for="arenaBackgroundSkinSelect">Background</label>
               <select id="arenaBackgroundSkinSelect" class="skin-select"></select>
-              <button type="button" id="arenaMuteBtn">Sound: ON</button>
+              <button type="button" id="arenaMuteBtn">SFX: ON</button>
+<label class="sfx-volume" for="arenaSfxVolume">SFX volume <input id="arenaSfxVolume" type="range" min="0" max="100" step="1" value="75"><output id="arenaSfxVolumeValue" for="arenaSfxVolume">75%</output></label>
               <button type="button" id="arenaResetBtn">Reset Arena progress</button>
             </div>
           </details>
@@ -83,6 +85,8 @@
       </main>
     </div>
 
+    <script src="src/shared/sfxConfig.js"></script>
+    <script src="src/shared/sfx.js"></script>
     <script src="node_modules/phaser/dist/phaser.min.js"></script>
     <script src="src/arena/data/arenaBalanceConfig.js"></script>
     <script src="src/arena/data/arenaUiConfig.js"></script>

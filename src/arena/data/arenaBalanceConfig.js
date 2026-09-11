@@ -234,32 +234,6 @@
       repairPatchAlpha: 0.98
     },
 
-    autosaveMs: 5000,
-
-    audio: {
-      masterVolume: 0.22,
-      clickMissVolume: 0.12,
-      hitVolume: 0.13,
-      killVolume: 0.2,
-      upgradeVolume: 0.24,
-      helperClickVolume: 0.12,
-      comboTickVolume: 0.1,
-      coreDamageVolume: 0.26,
-      waveVolume: 0.2,
-      pulseVolume: 0.24,
-      waveClearVolume: 0.22,
-      sounds: {
-        clickMiss: { frequency: 180, endFrequency: 120, durationSeconds: 0.04, type: "triangle" },
-        hit: { frequency: 150, endFrequency: 70, durationSeconds: 0.055, type: "sawtooth" },
-        kill: { frequency: 260, endFrequency: 62, durationSeconds: 0.11, type: "sawtooth" },
-        upgrade: { frequency: 620, endFrequency: 980, durationSeconds: 0.13, type: "sine" },
-        helperClick: { frequency: 420, endFrequency: 260, durationSeconds: 0.045, type: "square" },
-        comboTick: { frequency: 520, endFrequency: 720, durationSeconds: 0.045, type: "triangle" },
-        coreDamage: { frequency: 120, endFrequency: 48, durationSeconds: 0.18, type: "sawtooth" },
-        pulse: { frequency: 180, endFrequency: 720, durationSeconds: 0.24, type: "triangle" },
-        waveClear: { frequency: 440, endFrequency: 880, durationSeconds: 0.22, type: "sine" },
-        wave: { frequency: 280, endFrequency: 520, durationSeconds: 0.16, type: "square" }
-      }
-    }
+    autosaveMs: 5000
   };
 })();

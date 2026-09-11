@@ -53,6 +53,7 @@
   function setupBoss(scene, enemy) {
     var e = ensure(scene.state), cycle = Math.floor((scene.state.wave - 1) / C.cycleLength);
     enemy.gigaboss = true;
+    if (scene.soundSystem) { scene.soundSystem.play("arrival"); }
     enemy.maxHealth = C.bossHealth * Math.pow(C.healthGrowth, cycle);
     enemy.health = enemy.maxHealth * e.bossHealth;
     enemy.x = scene.core.x; enemy.y = scene.core.y - C.bossOffsetY;
@@ -71,7 +72,7 @@
         e.attack = 0; e.stagger = 0;
         if (has(scene.state, "control")) { e.core = Math.min(100, e.core + C.controlCoreRepair); }
         scene.bossBreakUntil = scene.time.now + ARENA.UI_CONFIG.defense.breakMs;
-        if (scene.soundSystem) { scene.soundSystem.play("hit"); }
+        if (scene.soundSystem) { scene.soundSystem.play("interrupt"); }
         scene.hud.log("BREAK");
       }
     }
@@ -79,6 +80,7 @@
   }
   function fail(scene) {
     scene.state.wavePhase = "failed";
+    if (scene.soundSystem) { scene.soundSystem.play(ensure(scene.state).core <= 0 ? "coreDestroyed" : "overrunFailed"); }
     // Keep the enemies in place so the battlefield still explains the loss.
     scene.defeatRevealAt = scene.time.now + ARENA.BALANCE_CONFIG.operations.defeatRevealDelayMs;
     scene.combo = 0;
@@ -90,6 +92,7 @@
   }
   function retry(scene, training) {
     if (scene.state.wavePhase !== "failed") { return; }
+    if (scene.soundSystem && scene.soundSystem.stop) { scene.soundSystem.stop(); }
     scene.enemies.forEach(function (enemy) {
       if (enemy.shadow && enemy.shadow.active) { enemy.shadow.destroy(); }
       enemy.destroy();
@@ -111,11 +114,16 @@
     if (boss) {
       e.bossHealth = Math.max(0, boss.health / boss.maxHealth);
       e.attack += seconds * (1 + Math.max(0, active.length - 1) * C.summonHaste);
+      if (scene.soundSystem && scene.soundSystem.charge && e.attack >= C.bossAttackSeconds - C.bossWindupSeconds && e.attack < C.bossAttackSeconds) {
+        scene.soundSystem.charge((e.attack - C.bossAttackSeconds + C.bossWindupSeconds) / C.bossWindupSeconds);
+      }
       if (e.attack >= C.bossAttackSeconds) {
         e.core = Math.max(0, e.core - C.bossDamage * (traits(state.wave).some(function (t) { return t.id === "siege"; }) ? C.siegeDamageMultiplier : 1)); e.attack = 0; e.stagger = 0;
 
+        if (scene.soundSystem && e.core > 0) { scene.soundSystem.play("coreImpact"); }
         scene.coreHitUntil = scene.time.now + ARENA.BALANCE_CONFIG.operations.coreStrikeFeedbackMs;
         if (traits(state.wave).some(function (t) { return t.id === "swarm"; }) && active.length < C.summonActiveLimit) {
+          if (scene.soundSystem && e.core > 0) { scene.soundSystem.play("summon"); }
           scene.summonUntil = scene.time.now + ARENA.UI_CONFIG.defense.summonMs;
           scene.summonTargets = [];
           for (var i = 0; i < C.summonCount; i++) { var add = ARENA.Enemies.spawn(scene, state.wave, "runner"); add.reward = 0; scene.enemies.push(add); scene.summonTargets.push({ x: add.x, y: add.y }); }
@@ -127,6 +135,7 @@
       var crowded = active.length / max >= C.pressureThreshold;
       e.pressure = Math.max(0, Math.min(100, e.pressure + seconds * (crowded ? C.pressureRate * (has(state, "control") ? C.modules.find(function (m) { return m.id === "control"; }).pressure : 1) : -C.pressureRecovery)));
       if (e.pressure >= 100) { fail(scene); }
+      else if (scene.soundSystem && scene.soundSystem.pressure) { scene.soundSystem.pressure(e.pressure); }
     }
   }
   ARENA.Endless = { fresh: fresh, validate: validate, ensure: ensure, traits: traits, applyStats: applyStats, cleared: cleared, choose: choose, startWave: startWave, setupBoss: setupBoss, hit: hit, tick: tick, retry: retry, failureReason: failureReason };

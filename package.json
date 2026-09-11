@@ -9,6 +9,7 @@
     "smoke:browser": "node scripts/browser-smoke.js",
     "smoke:arena": "node scripts/arena-smoke.js",
     "smoke:multitouch": "node scripts/multitouch-smoke.js",
+    "smoke:audio": "node scripts/audio-smoke.js && node scripts/audio-lifecycle-smoke.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "deploy:cloudflare": "npm run build && wrangler deploy",

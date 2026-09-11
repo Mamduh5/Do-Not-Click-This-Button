@@ -1,0 +1,8 @@
+.sfx-volume { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 8px 0; font: inherit; color: inherit; }
+.sfx-volume input { flex: 1 1 110px; min-width: 0; width: 110px; min-height: 44px; accent-color: #79e6df; cursor: pointer; }
+.sfx-volume output { min-width: 4ch; text-align: right; }
+.sfx-volume input:focus-visible { outline: 2px solid #79e6df; outline-offset: 2px; }
+#arenaMuteBtn, #soundBtn { min-height: 44px; }
+.lobby-sfx { max-width: 310px; margin: 28px 0; color: #a6c7cf; font: 12px monospace; }
+.lobby-sfx summary { min-height: 44px; cursor: pointer; display: list-item; align-content: center; }
+.lobby-sfx button { min-height: 44px; padding: 8px 16px; border: 1px solid #49616a; background: #13212b; color: #bdeee9; font: inherit; cursor: pointer; }

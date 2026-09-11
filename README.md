@@ -109,3 +109,17 @@ The new systems remove the finite completion state and create ongoing build/risk
 decisions. This pass does not establish long-term retention or prove equal strength
 of every build: a natural multi-hour balance playtest remains useful. The bounded
 module pools and reused champion presentation are deliberate scope choices.
+
+
+## Event-driven sound effects
+
+The lobby and both games share SFX mute and volume, saved locally under
+`containmentSfxV1`. Existing mute preferences migrate conservatively. Game resets
+keep this shared preference. No music, ambient loops, or passive-production audio
+runs underneath play. See [AUDIO.md](AUDIO.md) for the vocabulary, mixing and
+validation evidence.
+
+With the development server running, `npm run smoke:audio` checks normal play,
+five-finger audio, event wiring, offline mix headroom, mute/volume, lifecycle and
+shared settings. Set `SFX_SMOKE_URL` to a production preview origin to check the
+built pages. Listening samples and reports are written to `output/playwright/audio/`.

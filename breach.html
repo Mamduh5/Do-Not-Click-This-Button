@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Breach · Containment</title>
     <link rel="stylesheet" href="src/styles/dnc.css">
-  </head>
+  <link rel="stylesheet" href="src/styles/sfx.css">
+</head>
   <body>
     <div class="dnc-root" id="gameRoot">
       <div id="phaser-root" aria-hidden="true"></div>
@@ -117,7 +118,8 @@
 
       <div class="system-menu" id="systemMenu" hidden>
         <div class="system-menu-title" id="systemMenuTitle">SYSTEM MENU</div>
-        <button class="menu-action" type="button" id="soundBtn">Sound: ON</button>
+        <button class="menu-action" type="button" id="soundBtn">SFX: ON</button>
+<label class="sfx-volume" for="breachSfxVolume">SFX volume <input id="breachSfxVolume" type="range" min="0" max="100" step="1" value="75"><output id="breachSfxVolumeValue" for="breachSfxVolume">75%</output></label>
         <button class="menu-action" type="button" id="motionBtn">Motion: ON</button>
         <div class="menu-divider"></div>
         <button class="menu-action" type="button" id="resetRunBtn">Reset Current Run</button>
@@ -148,6 +150,8 @@
       </div>
     </div>
 
+    <script src="src/shared/sfxConfig.js"></script>
+    <script src="src/shared/sfx.js"></script>
     <script src="node_modules/phaser/dist/phaser.min.js"></script>
     <script src="src/game/systems/NumberFormat.js"></script>
     <script src="src/game/data/balanceConfig.js"></script>

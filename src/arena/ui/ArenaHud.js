@@ -128,7 +128,7 @@
       element("ChainFill").style.width = (combo ? Math.max(0, Math.min(1, (scene.comboExpiresAt - scene.time.now) / ARENA.BALANCE_CONFIG.cursor.comboWindowMs)) * 100 : 0) + "%";
       element("BestCombo").textContent = "BEST CHAIN " + state.bestCombo;
       element("Loadout").textContent = "DMG " + ARENA.formatNumber(scene.stats.clickDamage) + " / REACH " + scene.stats.clickRadius + " / HELPERS " + scene.stats.helperCursors;
-      elements.mute.textContent = "Sound: " + (state.muted ? "OFF" : "ON");
+      elements.mute.textContent = "SFX: " + (state.muted ? "OFF" : "ON");
       elements.skinSelect.value = state.activeClickSkin;
       elements.enemySkinSelect.value = state.activeEnemySkin;
       elements.backgroundSkinSelect.value = state.activeBackgroundSkin;

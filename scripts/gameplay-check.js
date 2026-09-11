@@ -4,6 +4,8 @@ const { readFileSync } = require("node:fs");
 const { runInThisContext } = require("node:vm");
 
 global.window = global;
+global.addEventListener = function () {};
+global.document = { addEventListener() {}, hidden: false };
 global.localStorage = {
   store: new Map(),
   getItem(key) {
@@ -21,6 +23,8 @@ global.localStorage = {
 };
 
 [
+  "src/shared/sfxConfig.js",
+  "src/shared/sfx.js",
   "src/game/systems/NumberFormat.js",
   "src/game/data/balanceConfig.js",
   "src/game/data/shardUpgrades.js",
@@ -81,6 +85,7 @@ const audioState = DNC.validateState({ audioEnabled: false, anomalyShards: 3, br
 assert(audioState.audioEnabled === false, "sound toggle state should survive save validation");
 assert(audioState.anomalyShards === 3, "shards should survive save validation");
 assert(audioState.breachCount === 2, "breaches should survive save validation");
+ContainmentSfx.change({ muted: true });
 const sound = DNC.createSoundSystem(audioState);
 assert(sound.isSupported() === false, "sound system should tolerate missing AudioContext in checks");
 assert(sound.play("click") === false, "sound play should not throw without audio support or unlock");
