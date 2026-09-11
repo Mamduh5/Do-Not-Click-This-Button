@@ -13,6 +13,8 @@
   window.SFX_CONFIG = {
     storageKey: "containmentSfxV1", defaultVolume: 0.75, sampleRate: 24000,
     bankDelay: { cashOut: 0.58, breach: 1.15 },
+    // A ceiling for blocked/stalled audio, not a fixed navigation delay.
+    navigation: { maxWaitMs: 180, fallbackOutputLatency: 0.02 },
     // More body and drive into peak control, without equalizing cue levels.
     mix: { caps: { spam: 4, info: 3, critical: 3 }, input: 2.5, output: 0.85,
       decay: { spam: 3.4, info: 3, critical: 3 },

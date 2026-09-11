@@ -74,13 +74,23 @@ has a faster attack, firmer ratio and narrower knee for the raised input. Indivi
 cue levels, voice caps, replay gaps, variation and priority ducking remain intact.
 Saved mute/volume values and the slider range are unchanged.
 
-Game cards and both return-to-lobby links play the shared navigation cue in the
-source page's gesture-unlocked context and navigate immediately, without waiting
-for the sound to finish. A guard prevents duplicate playback until the page is
-restored; the destination does not replay it. Modified/new-tab links retain native
-browser behavior. Same-page links, hover, scrolling and gameplay buttons do not
-trigger this cue. Navigation remains available during post-defeat gameplay quiet.
-Mute and volume use the existing shared mixer and settings.
+Game cards and both return-to-lobby links start the same 65 ms navigation cue
+inside the activating gesture. The source page stays alive only until the cue has
+reached the audio output clock, including the compressor's 6 ms look-ahead. Where
+output timestamps are unavailable, the audio clock and reported output latency
+are used, with a 20 ms output allowance if the device exposes no latency estimate.
+The [Web Audio timing and compressor model](https://www.w3.org/TR/webaudio/)
+distinguishes queued/rendered audio from device output.
+
+This fixes immediate page replacement stopping/suspending the mixer before its
+queued cue could become audible. There is no fixed 220 ms delay. A 180 ms maximum
+wait prevents a stalled or blocked context holding up navigation; muted, zero-volume
+and unavailable playback navigate immediately. Muting while waiting also releases
+navigation. One activation queues one cue; the destination does not replay it.
+Page lifecycle events cancel pending timers and rearm navigation on return.
+Modified/new-tab links retain native behavior. Same-page links, hover, scrolling
+and gameplay buttons do not trigger this cue. Navigation remains available during
+post-defeat gameplay quiet. The shared mixer, sound recipe and settings are unchanged.
 
 All successful Arena clears use `waveClear` at the existing clear event. There is
 no separate Gigaboss defeat recipe or stacked victory playback. Ordinary next
@@ -127,8 +137,11 @@ subjective distinctions, and long-session comfort still need physical listening;
 desktop/headphone listening was not performed either. The filtered sample is a
 bandwidth check, not a simulation of a particular phone speaker.
 
+`node scripts/navigation-check.js` checks navigation timing, stalled/cold audio,
+fallback timing, duplicate activation, mute and lifecycle cleanup with fake clocks.
 `node scripts/audio-transition-smoke.js` checks shared wave victories, automatic
-starts, navigation deduplication and mute/volume behavior without listening tests.
+starts, actual navigation source completion/output progress before pagehide,
+deduplication and mute/volume behavior without listening tests.
 `npm run smoke:audio` runs the audio replay and lifecycle suite. For built-page
 checks, set `SFX_SMOKE_URL=http://127.0.0.1:4173` while preview is running.
 `node scripts/audio-smoke.js --mix-only` rerenders only the signal checks.

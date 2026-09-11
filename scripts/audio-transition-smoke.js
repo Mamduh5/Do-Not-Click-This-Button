@@ -70,18 +70,46 @@ const base = process.env.SFX_SMOKE_URL || "http://127.0.0.1:5173";
     });
     assert.equal(await page.evaluate(() => ContainmentSfx.snapshot().master), 0);
 
-    // Record the source's accepted cue count during real navigation, before unload.
+    // Count actual sources and verify output progress before pagehide. Merely
+    // accepting play() did not catch the immediate-unload regression.
     await context.addInitScript(() => {
-      let before = 0;
-      document.addEventListener("click", () => {
+      let before = 0, probe = null, audioContext = null;
+      const Native = window.AudioContext;
+      window.AudioContext = class extends Native {
+        constructor(options) { super(options); audioContext = this; }
+        createBufferSource() {
+          const source = super.createBufferSource(), start = source.start.bind(source);
+          source.start = (...args) => {
+            if (probe && Math.abs(source.buffer.duration - 0.065) < 1e-6) {
+              probe.sources++;
+              probe.end = (args[0] || this.currentTime) + source.buffer.duration + 0.006;
+              source.addEventListener("ended", () => { probe.ended++; });
+            }
+            return start(...args);
+          };
+          return source;
+        }
+      };
+      document.addEventListener("click", event => {
+        if (!event.target.closest("a")) return;
         before = window.ContainmentSfx?.snapshot().played?.navigation || 0;
+        probe = { started: performance.now(), sources: 0, ended: 0 };
       }, true);
       window.addEventListener("click", event => {
         if (!event.target.closest("a")) return;
-        sessionStorage.setItem("navigationProbe", JSON.stringify({
+        Object.assign(probe, {
           count: (ContainmentSfx.snapshot().played?.navigation || 0) - before,
           settings: ContainmentSfx.settings(), master: ContainmentSfx.snapshot().master
-        }));
+        });
+      });
+      window.addEventListener("beforeunload", () => {
+        if (probe) probe.waitMs = performance.now() - probe.started;
+      });
+      window.addEventListener("pagehide", () => {
+        if (!probe) return;
+        probe.elapsedMs = performance.now() - probe.started;
+        probe.outputTime = audioContext?.getOutputTimestamp().contextTime;
+        sessionStorage.setItem("navigationProbe", JSON.stringify(probe));
       });
     });
     await page.goto(base + "/index.html");
@@ -89,19 +117,26 @@ const base = process.env.SFX_SMOKE_URL || "http://127.0.0.1:5173";
     async function navigate(selector, destination, count, keyboard = false) {
       // Rebinding must not introduce another listener or playback.
       await page.evaluate(() => window.dispatchEvent(new Event("DOMContentLoaded")));
-      if (keyboard) {
+      if (keyboard === "mouse") await page.locator(selector).click();
+      else if (keyboard) {
         await page.locator(selector).focus(); await page.keyboard.press("Enter");
       } else await page.locator(selector).tap();
       await page.waitForURL("**/" + destination + ".html");
       await page.waitForFunction(() => window.ContainmentSfx);
       const probe = await page.evaluate(() => JSON.parse(sessionStorage.getItem("navigationProbe")));
       assert.equal(probe.count, count, "one navigation cue per activation: " + destination);
+      assert.equal(probe.sources, count, "one actual navigation source");
+      if (count) {
+        assert.equal(probe.ended, 1, "source finishes before pagehide");
+        assert(probe.outputTime >= probe.end, "cue reaches output before pagehide");
+        console.log("Navigation to " + destination + ": " + Math.round(probe.waitMs) + " ms before navigation");
+      }
       if (probe.master !== undefined) assert(Math.abs(probe.master - (probe.settings.muted ? 0 : probe.settings.volume)) < 1e-6);
       assert.equal(await page.evaluate(() => ContainmentSfx.snapshot().played?.navigation || 0), 0, "destination does not replay");
       assert.deepEqual(await page.evaluate(() => ContainmentSfx.settings()), probe.settings, "settings persist across navigation");
     }
     await navigate('.game-card[href="arena.html"]', "arena", 1);
-    await navigate('.mode-link', "index", 1, true);
+    await navigate('.mode-link', "index", 1, "mouse");
     await navigate('.game-card[href="breach.html"]', "breach", 1, true);
     await page.evaluate(() => { ContainmentSfx.unlock(); ContainmentSfx.play("breach"); });
     await navigate('.mode-link', "index", 1);

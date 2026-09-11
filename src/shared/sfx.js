@@ -187,7 +187,40 @@
       return false;
     };
   }
-  var navigating = false, navigationLinksBound = false;
+  var navigating = false, navigationLinksBound = false, navigationTimer = null;
+  function cancelNavigationWait() {
+    window.clearTimeout(navigationTimer); navigationTimer = null;
+  }
+  function navigateWithSound(href) {
+    unlock();
+    if (!play("navigation")) { window.location.assign(href); return; }
+    // start() only queues audio. Keep this document alive until the short buffer
+    // reaches output, including the shared compressor's 6 ms look-ahead.
+    var end = context.currentTime + pcm.navigation[0].length / C.sampleRate + 0.006;
+    var deadline = performance.now() + C.navigation.maxWaitMs;
+    function advance() {
+      navigationTimer = null;
+      var silent = settings.muted || settings.volume === 0 || document.hidden;
+      var unavailable = context.state === "closed" || (context.state !== "running" && !resumePending);
+      var outputTime = -Infinity;
+      if (context.state === "running") {
+        // Prefer the device presentation clock, not the render-ahead currentTime.
+        var stamp = typeof context.getOutputTimestamp === "function" ? context.getOutputTimestamp() : null;
+        if (stamp && stamp.contextTime > 0 && stamp.performanceTime > 0) {
+          outputTime = stamp.contextTime;
+        } else {
+          var latency = Number.isFinite(context.outputLatency) ? context.outputLatency : C.navigation.fallbackOutputLatency;
+          outputTime = context.currentTime - (context.baseLatency || 0) - latency;
+        }
+      }
+      if (silent || unavailable || outputTime >= end || performance.now() >= deadline) {
+        window.location.assign(href);
+      } else {
+        navigationTimer = window.setTimeout(advance, 8);
+      }
+    }
+    advance();
+  }
   function bindNavigation() {
     if (navigationLinksBound) { return; }
     navigationLinksBound = true;
@@ -199,11 +232,7 @@
         event.preventDefault();
         if (navigating) { return; }
         navigating = true;
-        unlock();
-        play("navigation");
-        // Start in the gesture-unlocked source context, with no navigation timer
-        // and no second playback on the destination page.
-        window.location.assign(link.href);
+        navigateWithSound(link.href);
       });
     });
   }
@@ -218,9 +247,9 @@
     if (document.hidden && context) { engine.stop(); context.suspend().catch(function () {}); }
     else if (context) { unlock(); }
   });
-  window.addEventListener("pagehide", function () { if (engine) { engine.stop(); } });
+  window.addEventListener("pagehide", function () { cancelNavigationWait(); if (engine) { engine.stop(); } });
   window.addEventListener("pageshow", function () {
-    navigating = false;
+    cancelNavigationWait(); navigating = false;
   });
   window.addEventListener("storage", function (event) { if (event.key === C.storageKey || event.key === null) { settings = readSettings(); notify(); } });
   window.addEventListener("DOMContentLoaded", function () {
